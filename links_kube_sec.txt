@@ -68,3 +68,6 @@ sudo apt-get install trivy
 16:19:48 From John to Everyone : https://www.openpolicyagent.org/docs/latest/policy-language/
 16:21:09 From John to Everyone : https://katacoda.com/madhuakula/scenarios/docker-security-checker
 16:30:14 From Marcelo Giles to Everyone : https://kubernetes.io/blog/2021/04/06/podsecuritypolicy-deprecation-past-present-and-future/
+https://www.katacoda.com/vishalpranav/courses/opagatekeeper-policy
+https://blog.sqreen.com/kubernetes-security-best-practices/
+https://aws.github.io/aws-eks-best-practices/
