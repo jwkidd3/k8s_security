@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 4: Hardening Pods — Pod Policies</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reset.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reveal.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/theme/white.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/plugin/highlight/monokai.css">
+    <style>
+        :root {
+            --heading-color: #1a365d;
+            --accent-color: #2b6cb0;
+            --success-color: #2f855a;
+            --warning-color: #c05621;
+            --danger-color: #c53030;
+            --text-color: #2d3748;
+        }
+
+        .reveal {
+            font-size: 28px;
+            color: var(--text-color);
+        }
+
+        .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
+            color: var(--heading-color);
+            text-transform: none;
+        }
+
+        .reveal section {
+            text-align: left;
+            padding: 20px 40px;
+        }
+
+        /* Title Slide */
+        .title-slide {
+            text-align: center !important;
+        }
+
+        .title-slide h1 {
+            font-size: 2.2em;
+            color: #fff !important;
+            margin-bottom: 0.2em;
+        }
+
+        .title-slide h2 {
+            font-size: 1.4em;
+            color: #e2e8f0 !important;
+            margin-bottom: 0.5em;
+        }
+
+        .title-slide p {
+            font-size: 1.1em;
+            color: #cbd5e0 !important;
+        }
+
+        /* Section Divider */
+        .section-divider {
+            text-align: center !important;
+        }
+
+        .section-divider h2 {
+            font-size: 1.9em;
+            color: #fff !important;
+        }
+
+        .section-divider p {
+            font-size: 1.2em;
+            color: #e2e8f0 !important;
+        }
+
+        /* Highlight Boxes */
+        .highlight-box {
+            border-left: 5px solid var(--accent-color);
+            background: #ebf8ff;
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+
+        .highlight-box.success {
+            border-left-color: var(--success-color);
+            background: #f0fff4;
+        }
+
+        .highlight-box.warning {
+            border-left-color: var(--warning-color);
+            background: #fffaf0;
+        }
+
+        .highlight-box.danger {
+            border-left-color: var(--danger-color);
+            background: #fff5f5;
+        }
+
+        /* Two Columns */
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        /* Three Columns */
+        .three-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        /* Cards */
+        .card {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            border-top: 4px solid var(--accent-color);
+        }
+
+        .card.success {
+            border-top-color: var(--success-color);
+        }
+
+        .card.warning {
+            border-top-color: var(--warning-color);
+        }
+
+        .card.danger {
+            border-top-color: var(--danger-color);
+        }
+
+        .card h3, .card h4 {
+            margin-top: 0;
+        }
+
+        /* Concept Box */
+        .concept-box {
+            background: #ebf8ff;
+            border: 2px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .concept-box h4 {
+            color: var(--accent-color);
+            margin-top: 0;
+        }
+
+        /* Key Point */
+        .key-point {
+            background: linear-gradient(135deg, #ebf8ff, #f0fff4);
+            border-left: 5px solid var(--accent-color);
+            padding: 15px 20px;
+            border-radius: 0 8px 8px 0;
+            margin: 15px 0;
+            font-size: 1.05em;
+        }
+
+        /* Lab Callout */
+        .lab-callout {
+            text-align: center !important;
+            border: none !important;
+        }
+
+        .lab-callout h2 {
+            color: #fff !important;
+            font-size: 1.8em;
+        }
+
+        .lab-callout p, .lab-callout li {
+            color: #f0fff4 !important;
+            font-size: 1.1em;
+        }
+
+        .lab-callout ul {
+            display: inline-block;
+            text-align: left;
+        }
+
+        /* Takeaway List */
+        .takeaway-list li {
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        .takeaway-list li::marker {
+            color: var(--success-color);
+        }
+
+        /* Questions Slide */
+        .questions-slide {
+            text-align: center !important;
+        }
+
+        .questions-slide h2 {
+            font-size: 2em;
+        }
+
+        /* Table styling */
+        .reveal table {
+            font-size: 0.75em;
+            border-collapse: collapse;
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .reveal table th {
+            background: var(--heading-color);
+            color: #fff;
+            padding: 10px 12px;
+            text-align: left;
+        }
+
+        .reveal table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .reveal table tr:nth-child(even) {
+            background: #f7fafc;
+        }
+
+        /* Code blocks */
+        .reveal pre {
+            width: 100%;
+            font-size: 0.55em;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 6px;
+        }
+
+        .reveal pre code {
+            padding: 15px 20px;
+            max-height: 500px;
+        }
+
+        .reveal code {
+            color: var(--accent-color);
+            font-size: 0.9em;
+        }
+
+        /* Lists */
+        .reveal ul, .reveal ol {
+            margin-left: 0.5em;
+        }
+
+        .reveal li {
+            margin-bottom: 0.4em;
+            line-height: 1.5;
+        }
+
+        /* Fragment highlight */
+        .reveal .fragment.highlight-current-blue.current-fragment {
+            color: var(--accent-color);
+        }
+
+        /* Small text helper */
+        .small-text {
+            font-size: 0.8em;
+            color: #718096;
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 1: Title -->
+            <!-- ============================================================ -->
+            <section class="title-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h1>Hardening Pods</h1>
+                <h2>Module 4 — Pod Policies</h2>
+                <p>Kubernetes Security Course</p>
+                <aside class="notes">
+                    Welcome to Module 4. We'll focus on the pod — the smallest deployable unit in Kubernetes — and learn how to lock it down using SecurityContext, Pod Security Standards, Linux capabilities, seccomp, AppArmor, and resource limits.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 2: Agenda -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>Module Agenda</h2>
+                <ol>
+                    <li><strong>Why Pod Hardening Matters</strong> — blast radius and defaults</li>
+                    <li><strong>SecurityContext Deep Dive</strong> — pod-level and container-level controls</li>
+                    <li><strong>Pod Security Standards &amp; Admission</strong> — PSS/PSA enforcement</li>
+                    <li><strong>Linux Capabilities</strong> — drop ALL, add only what you need</li>
+                    <li><strong>Seccomp and AppArmor</strong> — system-call and profile-based restrictions</li>
+                    <li><strong>Resource Limits as Security</strong> — preventing denial of service</li>
+                    <li><strong>Lab 4</strong> — Hardening Pods with Security Policies</li>
+                </ol>
+                <aside class="notes">
+                    Here's our roadmap for this module. Each section builds on the last, moving from conceptual motivation through specific enforcement mechanisms.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 1: WHY POD HARDENING MATTERS -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F6E1;&#xFE0F; Section 1</h2>
+                <p>Why Pod Hardening Matters</p>
+                <aside class="notes">
+                    Let's start with the motivation. Why is hardening pods one of the most impactful things you can do for cluster security?
+                </aside>
+            </section>
+
+            <!-- SLIDE 4: Pods Are the Blast Radius -->
+            <section>
+                <h2>&#x1F4A5; Pods Are the Blast Radius</h2>
+                <div class="highlight-box danger">
+                    <strong>A compromised pod is the attacker's foothold inside your cluster.</strong>
+                </div>
+                <ul>
+                    <li>Pods are the <strong>smallest deployable unit</strong> in Kubernetes</li>
+                    <li>Every container runs inside a pod — this is where workloads live</li>
+                    <li>A pod compromise gives an attacker access to:
+                        <ul>
+                            <li>Network namespace (lateral movement)</li>
+                            <li>Service account tokens (API access)</li>
+                            <li>Filesystem and environment variables (secrets)</li>
+                            <li>Node resources (escape vectors)</li>
+                        </ul>
+                    </li>
+                </ul>
+                <aside class="notes">
+                    When we talk about blast radius, we mean: what can an attacker reach once they compromise a single pod? Without hardening, the answer is often far too much.
+                </aside>
+            </section>
+
+            <!-- SLIDE 5: Principle of Least Privilege for Pods -->
+            <section>
+                <h2>&#x1F512; Principle of Least Privilege for Pods</h2>
+                <p>Apply least privilege across three dimensions:</p>
+                <div class="three-columns">
+                    <div class="card">
+                        <h4>Identity</h4>
+                        <ul>
+                            <li>Non-root user</li>
+                            <li>Scoped service account</li>
+                            <li>No auto-mounted token</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h4>Runtime</h4>
+                        <ul>
+                            <li>Minimal capabilities</li>
+                            <li>Seccomp / AppArmor</li>
+                            <li>Read-only filesystem</li>
+                        </ul>
+                    </div>
+                    <div class="card success">
+                        <h4>Resources</h4>
+                        <ul>
+                            <li>CPU &amp; memory limits</li>
+                            <li>Ephemeral storage limits</li>
+                            <li>Namespace quotas</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    These three categories — identity, runtime, and resources — frame how we think about pod hardening. Every setting we cover today falls into one of these buckets.
+                </aside>
+            </section>
+
+            <!-- SLIDE 6: The Dangerous Default Pod -->
+            <section>
+                <h2>&#x26A0;&#xFE0F; The Dangerous Default Pod</h2>
+                <p>A pod with <strong>no</strong> security settings applied:</p>
+                <div class="highlight-box danger">
+                    <ul>
+                        <li><strong>Runs as root</strong> (UID 0) inside the container</li>
+                        <li><strong>Full default capabilities</strong> granted by the container runtime</li>
+                        <li><strong>Read-write filesystem</strong> — attacker can modify binaries</li>
+                        <li><strong>Auto-mounted service account token</strong> at <code>/var/run/secrets/</code></li>
+                        <li><strong>No seccomp profile</strong> — all system calls available</li>
+                        <li><strong>No resource limits</strong> — can consume entire node</li>
+                        <li><strong>Privilege escalation allowed</strong> by default</li>
+                    </ul>
+                </div>
+                <p class="small-text">Every one of these defaults is a security gap we will close in this module.</p>
+                <aside class="notes">
+                    This is the starting point for any pod you create without explicit security configuration. It's essentially an open door. Our job is to systematically close each one.
+                </aside>
+            </section>
+
+            <!-- SLIDE 7: Before vs After -->
+            <section>
+                <h2>&#x1F50D; Before vs After Hardening</h2>
+                <div class="two-columns">
+                    <div class="card danger">
+                        <h4>Default Pod</h4>
+                        <pre><code class="yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: insecure-app
+spec:
+  containers:
+  - name: app
+    image: nginx:latest</code></pre>
+                        <p class="small-text">Root user, full caps, r/w FS, auto-mounted token, no limits</p>
+                    </div>
+                    <div class="card success">
+                        <h4>Hardened Pod</h4>
+                        <pre><code class="yaml">spec:
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+  - name: app
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop: ["ALL"]</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">
+                    On the left, a typical pod definition. On the right, the same pod with hardening applied. We'll build up to that fully hardened spec step by step.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 2: SECURITYCONTEXT DEEP DIVE -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F527; Section 2</h2>
+                <p>SecurityContext Deep Dive</p>
+                <aside class="notes">
+                    The SecurityContext is your primary tool for configuring pod and container security settings. Let's explore it in detail.
+                </aside>
+            </section>
+
+            <!-- SLIDE 9: Pod-level vs Container-level -->
+            <section>
+                <h2>&#x1F4CA; Pod-Level vs Container-Level SecurityContext</h2>
+                <div class="two-columns">
+                    <div class="card">
+                        <h4>Pod-Level <code>spec.securityContext</code></h4>
+                        <ul>
+                            <li><code>runAsUser</code> / <code>runAsGroup</code></li>
+                            <li><code>runAsNonRoot</code></li>
+                            <li><code>fsGroup</code></li>
+                            <li><code>seccompProfile</code></li>
+                            <li><code>sysctls</code></li>
+                        </ul>
+                        <p class="small-text">Applies to all containers unless overridden</p>
+                    </div>
+                    <div class="card warning">
+                        <h4>Container-Level <code>securityContext</code></h4>
+                        <ul>
+                            <li>Everything from pod-level, plus:</li>
+                            <li><code>allowPrivilegeEscalation</code></li>
+                            <li><code>readOnlyRootFilesystem</code></li>
+                            <li><code>capabilities</code></li>
+                            <li><code>privileged</code></li>
+                        </ul>
+                        <p class="small-text">Overrides pod-level settings; controls specific containers</p>
+                    </div>
+                </div>
+                <div class="key-point">
+                    <strong>Rule of thumb:</strong> Set shared defaults at the pod level; set container-specific restrictions at the container level.
+                </div>
+                <aside class="notes">
+                    Container-level settings override pod-level settings when both are specified. Some settings, like capabilities and readOnlyRootFilesystem, only exist at the container level.
+                </aside>
+            </section>
+
+            <!-- SLIDE 10: Critical Fields Table -->
+            <section>
+                <h2>&#x1F4CB; Critical SecurityContext Fields</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Field</th>
+                            <th>Level</th>
+                            <th>Purpose</th>
+                            <th>Recommended</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>runAsNonRoot</code></td>
+                            <td>Pod / Container</td>
+                            <td>Reject containers running as UID 0</td>
+                            <td><code>true</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>runAsUser</code></td>
+                            <td>Pod / Container</td>
+                            <td>Explicit UID for container process</td>
+                            <td><code>1000+</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>runAsGroup</code></td>
+                            <td>Pod / Container</td>
+                            <td>Explicit GID for container process</td>
+                            <td><code>3000+</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>fsGroup</code></td>
+                            <td>Pod</td>
+                            <td>GID applied to mounted volumes</td>
+                            <td><code>2000+</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>readOnlyRootFilesystem</code></td>
+                            <td>Container</td>
+                            <td>Prevent writes to container filesystem</td>
+                            <td><code>true</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>allowPrivilegeEscalation</code></td>
+                            <td>Container</td>
+                            <td>Block setuid / setgid binaries</td>
+                            <td><code>false</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>privileged</code></td>
+                            <td>Container</td>
+                            <td>Full host access (never use in prod)</td>
+                            <td><code>false</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <aside class="notes">
+                    This table is your cheat sheet. Every production pod should set all of these fields. The "recommended" column represents security best practice.
+                </aside>
+            </section>
+
+            <!-- SLIDE 11: automountServiceAccountToken -->
+            <section>
+                <h2>&#x1F510; Disabling Auto-Mounted Tokens</h2>
+                <p>By default, every pod gets a service account token mounted at:</p>
+                <pre><code class="text">/var/run/secrets/kubernetes.io/serviceaccount/token</code></pre>
+                <div class="highlight-box danger">
+                    <strong>Problem:</strong> If a container is compromised, the attacker can use this token to call the Kubernetes API.
+                </div>
+                <pre><code class="yaml"># Pod-level — disable for the entire pod
+spec:
+  automountServiceAccountToken: false
+
+# Or ServiceAccount-level — disable for all pods using this SA
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: my-app
+automountServiceAccountToken: false</code></pre>
+                <div class="key-point">
+                    Only mount tokens when the pod genuinely needs Kubernetes API access.
+                </div>
+                <aside class="notes">
+                    This is one of the simplest and most impactful hardening steps. Most application pods never need to call the Kubernetes API, so there's no reason to mount a token.
+                </aside>
+            </section>
+
+            <!-- SLIDE 12: Full Hardened Pod YAML -->
+            <section>
+                <h2>&#x1F6E1;&#xFE0F; Full Hardened Pod Specification</h2>
+                <pre><code class="yaml" data-trim data-noescape>apiVersion: v1
+kind: Pod
+metadata:
+  name: hardened-app
+spec:
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 3000
+    fsGroup: 2000
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+  - name: app
+    image: gcr.io/distroless/static:nonroot
+    securityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop: ["ALL"]
+    resources:
+      limits:
+        memory: "128Mi"
+        cpu: "250m"
+      requests:
+        memory: "64Mi"
+        cpu: "125m"
+    volumeMounts:
+    - name: tmp
+      mountPath: /tmp
+  volumes:
+  - name: tmp
+    emptyDir: {}</code></pre>
+                <aside class="notes">
+                    This is the gold standard hardened pod. Let's walk through each setting: non-root user, all capabilities dropped, read-only filesystem with a writable tmp via emptyDir, seccomp enabled, service account token disabled, and resource limits set.
+                </aside>
+            </section>
+
+            <!-- SLIDE 13: Distroless and Minimal Images -->
+            <section>
+                <h2>&#x1F4E6; Choosing Secure Base Images</h2>
+                <div class="highlight-box success">
+                    <strong>Fewer binaries = smaller attack surface.</strong> A shell-less container is harder to exploit.
+                </div>
+                <div class="two-columns">
+                    <div class="card success">
+                        <h4>Recommended</h4>
+                        <ul>
+                            <li><code>gcr.io/distroless/static</code></li>
+                            <li><code>gcr.io/distroless/base</code></li>
+                            <li><code>cgr.dev/chainguard/*</code></li>
+                            <li>Scratch-based Go binaries</li>
+                        </ul>
+                    </div>
+                    <div class="card danger">
+                        <h4>Avoid in Production</h4>
+                        <ul>
+                            <li><code>ubuntu:latest</code></li>
+                            <li><code>alpine:latest</code> (better, but still has shell)</li>
+                            <li><code>node:latest</code> (full OS included)</li>
+                            <li>Any <code>:latest</code> tag</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    Distroless images from Google or Chainguard images remove shells, package managers, and other tools that attackers rely on during post-exploitation. Always use specific image tags, never latest.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 3: POD SECURITY STANDARDS AND ADMISSION -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F3DB;&#xFE0F; Section 3</h2>
+                <p>Pod Security Standards &amp; Admission</p>
+                <aside class="notes">
+                    Individual pod hardening is essential, but we also need cluster-wide enforcement. That's where Pod Security Standards and the Pod Security Admission controller come in.
+                </aside>
+            </section>
+
+            <!-- SLIDE 15: PSS Replaces PodSecurityPolicy -->
+            <section>
+                <h2>&#x1F504; PSS Replaces PodSecurityPolicy</h2>
+                <div class="highlight-box warning">
+                    <strong>PodSecurityPolicy (PSP)</strong> was deprecated in Kubernetes 1.21 and removed in 1.25.
+                </div>
+                <ul>
+                    <li><strong>Pod Security Standards (PSS)</strong> — the policy definitions (what is allowed)</li>
+                    <li><strong>Pod Security Admission (PSA)</strong> — the built-in controller that enforces PSS</li>
+                </ul>
+                <div class="key-point">
+                    PSS + PSA is built into Kubernetes — no additional installation needed (since v1.25 GA).
+                </div>
+                <p>Third-party alternatives exist (OPA/Gatekeeper, Kyverno) for more granular policies.</p>
+                <aside class="notes">
+                    If you're still using PodSecurityPolicy, you need to migrate. PSA is the built-in replacement. It's simpler but less flexible than PSP — for advanced use cases, consider Kyverno or OPA Gatekeeper.
+                </aside>
+            </section>
+
+            <!-- SLIDE 16: Three PSS Levels -->
+            <section>
+                <h2>&#x1F4CA; Three Pod Security Standards Levels</h2>
+                <div class="three-columns">
+                    <div class="card danger">
+                        <h4>Privileged</h4>
+                        <p><strong>Unrestricted</strong></p>
+                        <ul>
+                            <li>No restrictions applied</li>
+                            <li>Use for system-level workloads</li>
+                            <li>kube-system, monitoring agents</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h4>Baseline</h4>
+                        <p><strong>Prevents known escalations</strong></p>
+                        <ul>
+                            <li>Blocks privileged containers</li>
+                            <li>Blocks hostNetwork/hostPID</li>
+                            <li>Blocks dangerous capabilities</li>
+                        </ul>
+                    </div>
+                    <div class="card success">
+                        <h4>Restricted</h4>
+                        <p><strong>Heavily locked down</strong></p>
+                        <ul>
+                            <li>Must run as non-root</li>
+                            <li>Must drop ALL capabilities</li>
+                            <li>Seccomp profile required</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    Think of these as three levels of strictness. Most production application namespaces should target Restricted. Infrastructure namespaces may need Baseline or Privileged.
+                </aside>
+            </section>
+
+            <!-- SLIDE 17: Baseline vs Restricted Comparison -->
+            <section>
+                <h2>&#x1F50E; Baseline vs Restricted Comparison</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Control</th>
+                            <th>Baseline</th>
+                            <th>Restricted</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Privileged containers</td>
+                            <td>Blocked</td>
+                            <td>Blocked</td>
+                        </tr>
+                        <tr>
+                            <td>Host namespaces</td>
+                            <td>Blocked</td>
+                            <td>Blocked</td>
+                        </tr>
+                        <tr>
+                            <td>Host ports</td>
+                            <td>Blocked</td>
+                            <td>Blocked</td>
+                        </tr>
+                        <tr>
+                            <td>Capabilities</td>
+                            <td>Dangerous ones blocked</td>
+                            <td>Must drop ALL; only NET_BIND_SERVICE allowed</td>
+                        </tr>
+                        <tr>
+                            <td>Volume types</td>
+                            <td>Most allowed</td>
+                            <td>Only core types allowed</td>
+                        </tr>
+                        <tr>
+                            <td>Running as root</td>
+                            <td>Allowed</td>
+                            <td>Blocked (runAsNonRoot required)</td>
+                        </tr>
+                        <tr>
+                            <td>Privilege escalation</td>
+                            <td>Allowed</td>
+                            <td>Blocked</td>
+                        </tr>
+                        <tr>
+                            <td>Seccomp profile</td>
+                            <td>Not required</td>
+                            <td>Required (RuntimeDefault or Localhost)</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <aside class="notes">
+                    The key differences are in the bottom half of this table. Restricted requires non-root, blocks privilege escalation, requires seccomp, and limits capabilities much more aggressively.
+                </aside>
+            </section>
+
+            <!-- SLIDE 18: PSA Modes -->
+            <section>
+                <h2>&#x2699;&#xFE0F; Pod Security Admission Modes</h2>
+                <p>PSA offers three modes of operation per namespace:</p>
+                <div class="three-columns">
+                    <div class="card danger">
+                        <h4>enforce</h4>
+                        <p>Violations are <strong>rejected</strong> — pods are not created</p>
+                    </div>
+                    <div class="card warning">
+                        <h4>audit</h4>
+                        <p>Violations are <strong>logged</strong> in the audit log but pods are allowed</p>
+                    </div>
+                    <div class="card">
+                        <h4>warn</h4>
+                        <p>Violations return a <strong>warning</strong> to the user but pods are allowed</p>
+                    </div>
+                </div>
+                <div class="key-point">
+                    You can combine modes — e.g., enforce Baseline while warning on Restricted to discover what breaks.
+                </div>
+                <aside class="notes">
+                    This three-mode approach lets you roll out policies gradually. Start with warn, then add audit, and finally enforce once you've fixed all violations.
+                </aside>
+            </section>
+
+            <!-- SLIDE 19: Namespace Labeling -->
+            <section>
+                <h2>&#x1F3F7;&#xFE0F; Namespace Labeling for PSA</h2>
+                <p>Apply Pod Security Standards to a namespace via labels:</p>
+                <pre><code class="yaml" data-trim>apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted</code></pre>
+                <p>Label format:</p>
+                <pre><code class="text">pod-security.kubernetes.io/&lt;MODE&gt;: &lt;LEVEL&gt;
+pod-security.kubernetes.io/&lt;MODE&gt;-version: &lt;VERSION&gt;  # optional, e.g., v1.28</code></pre>
+                <div class="highlight-box">
+                    <strong>Tip:</strong> You can pin to a Kubernetes version to prevent policy changes when upgrading the cluster.
+                </div>
+                <aside class="notes">
+                    This is all it takes. One kubectl label command or a few lines in your namespace manifest, and the PSA controller enforces the policy for every pod in that namespace.
+                </aside>
+            </section>
+
+            <!-- SLIDE 20: Progressive Rollout -->
+            <section>
+                <h2>&#x1F4C8; Progressive Rollout Strategy</h2>
+                <p>Migrate to Restricted enforcement safely:</p>
+                <div class="highlight-box success">
+                    <h4>Phase 1: Observe</h4>
+                    <pre><code class="yaml">labels:
+  pod-security.kubernetes.io/warn: restricted
+  pod-security.kubernetes.io/audit: restricted</code></pre>
+                    <p>Discover violations — no workloads are blocked</p>
+                </div>
+                <div class="highlight-box warning">
+                    <h4>Phase 2: Baseline + Warn Restricted</h4>
+                    <pre><code class="yaml">labels:
+  pod-security.kubernetes.io/enforce: baseline
+  pod-security.kubernetes.io/warn: restricted</code></pre>
+                    <p>Block the worst violations; warn on remaining gaps</p>
+                </div>
+                <div class="highlight-box">
+                    <h4>Phase 3: Full Enforcement</h4>
+                    <pre><code class="yaml">labels:
+  pod-security.kubernetes.io/enforce: restricted</code></pre>
+                    <p>All pods must comply with the Restricted standard</p>
+                </div>
+                <aside class="notes">
+                    This phased approach avoids breaking running workloads. Phase 1 lets you collect data, Phase 2 blocks the most dangerous configurations, and Phase 3 locks everything down.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 4: LINUX CAPABILITIES -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F9E9; Section 4</h2>
+                <p>Linux Capabilities</p>
+                <aside class="notes">
+                    Linux capabilities split the almighty root privilege into granular units. Understanding them is key to building least-privilege containers.
+                </aside>
+            </section>
+
+            <!-- SLIDE 22: What Are Capabilities -->
+            <section>
+                <h2>&#x1F511; What Are Linux Capabilities?</h2>
+                <div class="concept-box">
+                    <h4>Core Concept</h4>
+                    <p>Traditional UNIX has two privilege levels: root (UID 0) and everyone else. Linux <strong>capabilities</strong> divide root's powers into ~40 distinct privileges that can be independently granted or revoked.</p>
+                </div>
+                <ul>
+                    <li><code>CAP_NET_BIND_SERVICE</code> — bind to ports below 1024</li>
+                    <li><code>CAP_CHOWN</code> — change file ownership</li>
+                    <li><code>CAP_KILL</code> — send signals to any process</li>
+                    <li><code>CAP_SYS_ADMIN</code> — a catch-all "super" capability</li>
+                </ul>
+                <div class="key-point">
+                    Containers should have <strong>only</strong> the capabilities they actually need — not the default set.
+                </div>
+                <aside class="notes">
+                    Think of capabilities like individual permissions. Instead of giving a process full root access, you can give it just the specific powers it needs. CAP_SYS_ADMIN is the most dangerous because it grants a wide range of root-like abilities.
+                </aside>
+            </section>
+
+            <!-- SLIDE 23: Default Capabilities -->
+            <section>
+                <h2>&#x1F4E6; Default Container Runtime Capabilities</h2>
+                <p>Docker and containerd grant these capabilities by default:</p>
+                <div class="two-columns">
+                    <div>
+                        <ul>
+                            <li><code>CAP_CHOWN</code></li>
+                            <li><code>CAP_DAC_OVERRIDE</code></li>
+                            <li><code>CAP_FSETID</code></li>
+                            <li><code>CAP_FOWNER</code></li>
+                            <li><code>CAP_MKNOD</code></li>
+                            <li><code>CAP_NET_RAW</code></li>
+                            <li><code>CAP_SETGID</code></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <ul>
+                            <li><code>CAP_SETUID</code></li>
+                            <li><code>CAP_SETFCAP</code></li>
+                            <li><code>CAP_SETPCAP</code></li>
+                            <li><code>CAP_NET_BIND_SERVICE</code></li>
+                            <li><code>CAP_SYS_CHROOT</code></li>
+                            <li><code>CAP_KILL</code></li>
+                            <li><code>CAP_AUDIT_WRITE</code></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="highlight-box warning">
+                    That's <strong>14 capabilities</strong> by default — most workloads need zero or one of these.
+                </div>
+                <aside class="notes">
+                    Most application containers never need any of these capabilities. The defaults are generous for compatibility, not for security. Notice CAP_NET_RAW in the list — that allows packet spoofing.
+                </aside>
+            </section>
+
+            <!-- SLIDE 24: Dangerous Capabilities -->
+            <section>
+                <h2>&#x1F6A8; Dangerous Capabilities</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Capability</th>
+                            <th>Risk</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>CAP_SYS_ADMIN</code></td>
+                            <td>Mount filesystems, trace processes, BPF — <strong>almost equivalent to root</strong></td>
+                        </tr>
+                        <tr>
+                            <td><code>CAP_NET_ADMIN</code></td>
+                            <td>Modify routing, firewall rules, sniff traffic</td>
+                        </tr>
+                        <tr>
+                            <td><code>CAP_SYS_PTRACE</code></td>
+                            <td>Debug/inject into other processes — <strong>container escape vector</strong></td>
+                        </tr>
+                        <tr>
+                            <td><code>CAP_DAC_OVERRIDE</code></td>
+                            <td>Bypass all file permission checks</td>
+                        </tr>
+                        <tr>
+                            <td><code>CAP_NET_RAW</code></td>
+                            <td>Craft raw packets — ARP spoofing, DNS poisoning</td>
+                        </tr>
+                        <tr>
+                            <td><code>CAP_SYS_MODULE</code></td>
+                            <td>Load kernel modules — <strong>full host compromise</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="highlight-box danger">
+                    If a workload requests <code>CAP_SYS_ADMIN</code>, question whether it truly needs it. There is almost always a better approach.
+                </div>
+                <aside class="notes">
+                    These capabilities appear in real CVEs and container escape techniques. CAP_SYS_ADMIN and CAP_SYS_PTRACE are the most common paths to container escape.
+                </aside>
+            </section>
+
+            <!-- SLIDE 25: Drop ALL, Add What's Needed -->
+            <section>
+                <h2>&#x2705; Best Practice: Drop ALL, Add Selectively</h2>
+                <pre><code class="yaml" data-trim>containers:
+- name: web
+  securityContext:
+    capabilities:
+      drop: ["ALL"]
+      add: ["NET_BIND_SERVICE"]  # Only if binding port &lt; 1024</code></pre>
+                <div class="three-columns">
+                    <div class="card danger">
+                        <h4>Dangerous</h4>
+                        <pre><code class="yaml">capabilities:
+  add: ["SYS_ADMIN"]</code></pre>
+                    </div>
+                    <div class="card warning">
+                        <h4>Default (too broad)</h4>
+                        <pre><code class="yaml"># No capabilities
+# section at all
+# = 14 caps granted</code></pre>
+                    </div>
+                    <div class="card success">
+                        <h4>Minimal</h4>
+                        <pre><code class="yaml">capabilities:
+  drop: ["ALL"]</code></pre>
+                    </div>
+                </div>
+                <div class="key-point">
+                    The Restricted PSS level <strong>requires</strong> dropping ALL capabilities.
+                </div>
+                <aside class="notes">
+                    This is the single most important capability configuration. Start with drop ALL and only add back specific capabilities your application genuinely needs. Most apps need zero.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 5: SECCOMP AND APPARMOR -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F6E1;&#xFE0F; Section 5</h2>
+                <p>Seccomp and AppArmor</p>
+                <aside class="notes">
+                    Beyond capabilities, we can restrict which system calls a container can make and enforce mandatory access control profiles. These are deep-defense layers.
+                </aside>
+            </section>
+
+            <!-- SLIDE 27: Seccomp Profiles -->
+            <section>
+                <h2>&#x1F9F1; Seccomp Profiles</h2>
+                <div class="concept-box">
+                    <h4>Secure Computing Mode (seccomp)</h4>
+                    <p>Seccomp filters restrict which <strong>Linux system calls</strong> a container can make. Blocking unnecessary syscalls shrinks the kernel attack surface.</p>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Profile Type</th>
+                            <th>Description</th>
+                            <th>Use Case</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>RuntimeDefault</code></td>
+                            <td>Container runtime's built-in profile (~300 of ~380 calls)</td>
+                            <td>Recommended default</td>
+                        </tr>
+                        <tr>
+                            <td><code>Localhost</code></td>
+                            <td>Custom profile loaded on the node</td>
+                            <td>Fine-grained restriction</td>
+                        </tr>
+                        <tr>
+                            <td><code>Unconfined</code></td>
+                            <td>No seccomp filtering</td>
+                            <td>Avoid in production</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <aside class="notes">
+                    RuntimeDefault is the pragmatic choice — it blocks dangerous syscalls like ptrace, mount, and reboot while allowing the hundreds of calls most applications need. Custom profiles are more secure but require profiling your application first.
+                </aside>
+            </section>
+
+            <!-- SLIDE 28: Seccomp in Pod Spec -->
+            <section>
+                <h2>&#x1F4DD; Specifying Seccomp in Pod Spec</h2>
+                <div class="two-columns">
+                    <div>
+                        <h4>Pod-Level (all containers)</h4>
+                        <pre><code class="yaml" data-trim>spec:
+  securityContext:
+    seccompProfile:
+      type: RuntimeDefault</code></pre>
+                    </div>
+                    <div>
+                        <h4>Container-Level (specific)</h4>
+                        <pre><code class="yaml" data-trim>containers:
+- name: app
+  securityContext:
+    seccompProfile:
+      type: Localhost
+      localhostProfile: profiles/app.json</code></pre>
+                    </div>
+                </div>
+                <div class="highlight-box success">
+                    <strong>The Restricted PSS level requires</strong> either <code>RuntimeDefault</code> or <code>Localhost</code> seccomp profiles.
+                </div>
+                <p class="small-text">Custom profiles are stored on nodes at <code>/var/lib/kubelet/seccomp/</code> by default.</p>
+                <aside class="notes">
+                    Setting seccomp at the pod level is the simplest approach. If you need a custom profile for a sidecar but RuntimeDefault for the main container, use container-level overrides.
+                </aside>
+            </section>
+
+            <!-- SLIDE 29: AppArmor and SELinux -->
+            <section>
+                <h2>&#x1F6E1;&#xFE0F; AppArmor and SELinux</h2>
+                <div class="two-columns">
+                    <div class="card">
+                        <h4>AppArmor</h4>
+                        <ul>
+                            <li>Mandatory Access Control (MAC) for files, network, capabilities</li>
+                            <li>Available on Ubuntu/Debian nodes</li>
+                            <li>Profiles: <code>runtime/default</code>, <code>localhost/&lt;profile&gt;</code>, <code>unconfined</code></li>
+                        </ul>
+                        <pre><code class="yaml" data-trim>metadata:
+  annotations:
+    container.apparmor.security
+    .beta.kubernetes.io/app:
+      runtime/default</code></pre>
+                    </div>
+                    <div class="card">
+                        <h4>SELinux</h4>
+                        <ul>
+                            <li>Label-based MAC — default on RHEL/CentOS nodes</li>
+                            <li>Configured via <code>seLinuxOptions</code></li>
+                        </ul>
+                        <pre><code class="yaml" data-trim>securityContext:
+  seLinuxOptions:
+    level: "s0:c123,c456"
+    type: "container_t"</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">
+                    AppArmor and SELinux provide an additional layer of mandatory access control beyond capabilities and seccomp. Use whichever is native to your node operating system.
+                </aside>
+            </section>
+
+            <!-- SLIDE 30: RuntimeClass -->
+            <section>
+                <h2>&#x1F4E6; RuntimeClass — Sandboxed Containers</h2>
+                <p>For workloads requiring <strong>stronger isolation than Linux namespaces</strong>:</p>
+                <div class="two-columns">
+                    <div class="card">
+                        <h4>gVisor (runsc)</h4>
+                        <ul>
+                            <li>User-space kernel intercepting syscalls</li>
+                            <li>Dramatic reduction in kernel attack surface</li>
+                            <li>Some performance overhead</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Kata Containers</h4>
+                        <ul>
+                            <li>Lightweight VMs per pod</li>
+                            <li>Hardware-level isolation</li>
+                            <li>Higher overhead, strongest isolation</li>
+                        </ul>
+                    </div>
+                </div>
+                <pre><code class="yaml" data-trim>apiVersion: node.k8s.io/v1
+kind: RuntimeClass
+metadata:
+  name: gvisor
+handler: runsc
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sandboxed-app
+spec:
+  runtimeClassName: gvisor
+  containers:
+  - name: app
+    image: myapp:1.0</code></pre>
+                <aside class="notes">
+                    RuntimeClass lets you choose the container runtime on a per-pod basis. gVisor is great for untrusted workloads. Kata provides VM-level isolation. Both are production-ready.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 6: RESOURCE LIMITS AS SECURITY -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F4B0; Section 6</h2>
+                <p>Resource Limits as Security</p>
+                <aside class="notes">
+                    Resource management is not just an operational concern — it is a security control. Without limits, a single compromised or buggy pod can take down an entire node.
+                </aside>
+            </section>
+
+            <!-- SLIDE 32: Missing Limits = DoS -->
+            <section>
+                <h2>&#x26A0;&#xFE0F; Missing Limits = Denial of Service</h2>
+                <div class="highlight-box danger">
+                    <strong>A pod without resource limits can:</strong>
+                    <ul>
+                        <li>Consume all CPU — starve co-located workloads</li>
+                        <li>Exhaust memory — trigger OOM killer on the node</li>
+                        <li>Fill disk — crash the kubelet via ephemeral storage</li>
+                        <li>Fork bomb — create unlimited processes</li>
+                    </ul>
+                </div>
+                <div class="key-point">
+                    Resource limits are a <strong>security control</strong>, not just a capacity planning tool.
+                </div>
+                <aside class="notes">
+                    Attackers who gain code execution in a container often use resource exhaustion as a stepping stone — filling disk to corrupt logs, exhausting CPU to mask other activity, or triggering OOM to cause pod restarts.
+                </aside>
+            </section>
+
+            <!-- SLIDE 33: Requests vs Limits -->
+            <section>
+                <h2>&#x1F4CA; Resource Requests vs Limits</h2>
+                <div class="two-columns">
+                    <div class="card">
+                        <h4>Requests</h4>
+                        <ul>
+                            <li><strong>Scheduling guarantee</strong> — node must have this much available</li>
+                            <li>Used by the scheduler to place pods</li>
+                            <li>Determines QoS class</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h4>Limits</h4>
+                        <ul>
+                            <li><strong>Hard ceiling</strong> — container cannot exceed this</li>
+                            <li>CPU: throttled; Memory: OOM killed</li>
+                            <li>Prevents noisy-neighbor problems</li>
+                        </ul>
+                    </div>
+                </div>
+                <pre><code class="yaml" data-trim>resources:
+  requests:
+    memory: "64Mi"
+    cpu: "125m"      # 0.125 CPU cores
+  limits:
+    memory: "128Mi"
+    cpu: "250m"      # 0.25 CPU cores</code></pre>
+                <aside class="notes">
+                    Requests guarantee minimum resources for scheduling. Limits cap maximum usage. Memory limits are hard — exceed them and the container is killed. CPU limits cause throttling, not termination.
+                </aside>
+            </section>
+
+            <!-- SLIDE 34: LimitRange -->
+            <section>
+                <h2>&#x1F3AF; LimitRange — Namespace Defaults</h2>
+                <p>Automatically apply default limits to pods that don't specify them:</p>
+                <pre><code class="yaml" data-trim>apiVersion: v1
+kind: LimitRange
+metadata:
+  name: default-limits
+  namespace: production
+spec:
+  limits:
+  - type: Container
+    default:          # Default limits if not specified
+      cpu: "500m"
+      memory: "256Mi"
+    defaultRequest:   # Default requests if not specified
+      cpu: "100m"
+      memory: "128Mi"
+    max:              # Maximum allowed limits
+      cpu: "2"
+      memory: "1Gi"
+    min:              # Minimum allowed requests
+      cpu: "50m"
+      memory: "64Mi"</code></pre>
+                <div class="highlight-box success">
+                    <strong>Safety net:</strong> LimitRange ensures no pod in the namespace runs without resource constraints.
+                </div>
+                <aside class="notes">
+                    LimitRange acts as a safety net. Even if a developer forgets to set limits, the namespace defaults kick in. The max and min fields prevent anyone from requesting extreme values.
+                </aside>
+            </section>
+
+            <!-- SLIDE 35: ResourceQuota -->
+            <section>
+                <h2>&#x1F4CA; ResourceQuota — Namespace Totals</h2>
+                <p>Cap the <strong>total</strong> resources a namespace can consume:</p>
+                <pre><code class="yaml" data-trim>apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: team-quota
+  namespace: production
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: "8Gi"
+    limits.cpu: "8"
+    limits.memory: "16Gi"
+    pods: "20"
+    persistentvolumeclaims: "10"</code></pre>
+                <div class="two-columns">
+                    <div class="highlight-box">
+                        <strong>LimitRange</strong> = per-pod defaults and bounds
+                    </div>
+                    <div class="highlight-box warning">
+                        <strong>ResourceQuota</strong> = total namespace budget
+                    </div>
+                </div>
+                <aside class="notes">
+                    ResourceQuota prevents any single team or namespace from consuming a disproportionate share of cluster resources. Combined with LimitRange, you get both per-pod and per-namespace constraints.
+                </aside>
+            </section>
+
+            <!-- SLIDE 36: QoS Classes -->
+            <section>
+                <h2>&#x1F3C6; QoS Classes</h2>
+                <p>Kubernetes assigns a QoS class based on resource settings:</p>
+                <div class="three-columns">
+                    <div class="card success">
+                        <h4>Guaranteed</h4>
+                        <p>Requests == Limits for all containers</p>
+                        <ul>
+                            <li>Last to be evicted</li>
+                            <li>Most predictable performance</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h4>Burstable</h4>
+                        <p>Requests &lt; Limits (or partially set)</p>
+                        <ul>
+                            <li>Evicted after BestEffort</li>
+                            <li>Can burst above requests</li>
+                        </ul>
+                    </div>
+                    <div class="card danger">
+                        <h4>BestEffort</h4>
+                        <p>No requests or limits set</p>
+                        <ul>
+                            <li>First to be evicted</li>
+                            <li>No resource guarantees</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="key-point">
+                    For security-critical workloads, always aim for <strong>Guaranteed</strong> QoS to prevent eviction.
+                </div>
+                <aside class="notes">
+                    The QoS class determines eviction order under node pressure. BestEffort pods are killed first, Guaranteed pods last. Security-critical workloads should always be Guaranteed.
+                </aside>
+            </section>
+
+            <!-- SLIDE 37: Putting It All Together -->
+            <section>
+                <h2>&#x1F9E9; Putting It All Together</h2>
+                <p>A fully hardened pod combines all the controls from this module:</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Layer</th>
+                            <th>Control</th>
+                            <th>Setting</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Identity</td>
+                            <td>Non-root user</td>
+                            <td><code>runAsNonRoot: true</code>, <code>runAsUser: 1000</code></td>
+                        </tr>
+                        <tr>
+                            <td>Identity</td>
+                            <td>Service account token</td>
+                            <td><code>automountServiceAccountToken: false</code></td>
+                        </tr>
+                        <tr>
+                            <td>Runtime</td>
+                            <td>Capabilities</td>
+                            <td><code>drop: ["ALL"]</code></td>
+                        </tr>
+                        <tr>
+                            <td>Runtime</td>
+                            <td>Privilege escalation</td>
+                            <td><code>allowPrivilegeEscalation: false</code></td>
+                        </tr>
+                        <tr>
+                            <td>Runtime</td>
+                            <td>Filesystem</td>
+                            <td><code>readOnlyRootFilesystem: true</code></td>
+                        </tr>
+                        <tr>
+                            <td>Runtime</td>
+                            <td>System calls</td>
+                            <td><code>seccompProfile: RuntimeDefault</code></td>
+                        </tr>
+                        <tr>
+                            <td>Resources</td>
+                            <td>CPU &amp; memory</td>
+                            <td>Requests and limits set</td>
+                        </tr>
+                        <tr>
+                            <td>Cluster</td>
+                            <td>Namespace policy</td>
+                            <td>PSA enforce: restricted</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <aside class="notes">
+                    This summary table is your checklist. Every production pod should address each of these rows. The combination of pod-level settings and namespace-level PSA enforcement gives you defense in depth.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- LAB CALLOUT -->
+            <!-- ============================================================ -->
+            <section class="lab-callout" data-background-color="#2f855a">
+                <h2>&#x1F9EA; Lab 4: Hardening Pods with Security Policies</h2>
+                <p><strong>Duration: 45-60 minutes</strong></p>
+                <ul>
+                    <li>Deploy a default pod and audit its security posture</li>
+                    <li>Apply SecurityContext hardening step by step</li>
+                    <li>Configure Pod Security Admission on a namespace</li>
+                    <li>Test Baseline and Restricted enforcement</li>
+                    <li>Add resource limits and LimitRange defaults</li>
+                    <li>Verify hardened pods pass PSA validation</li>
+                </ul>
+                <aside class="notes">
+                    In this lab, students will progressively harden a pod from insecure defaults to a fully Restricted-compliant workload. They'll also experience PSA enforcement rejecting non-compliant pods.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- KEY TAKEAWAYS -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F4CC; Key Takeaways</h2>
+                <ul class="takeaway-list">
+                    <li><strong>Default pods are insecure</strong> — they run as root with broad capabilities and no resource limits</li>
+                    <li><strong>SecurityContext</strong> is your primary hardening tool — set it at both pod and container levels</li>
+                    <li><strong>Always</strong> disable service account token auto-mounting unless the pod needs API access</li>
+                    <li><strong>Drop ALL capabilities</strong> and add back only what is strictly required</li>
+                    <li><strong>Pod Security Standards</strong> (Restricted level) enforce best practices cluster-wide via namespace labels</li>
+                    <li><strong>Seccomp RuntimeDefault</strong> should be the minimum for every production workload</li>
+                    <li><strong>Resource limits</strong> are a security control — use LimitRange and ResourceQuota as safety nets</li>
+                    <li><strong>Use distroless images</strong> to reduce the attack surface inside containers</li>
+                </ul>
+                <aside class="notes">
+                    These are the essential takeaways. If students remember nothing else, they should remember: run as non-root, drop all capabilities, set a seccomp profile, disable the service account token, and set resource limits.
+                </aside>
+            </section>
+
+            <!-- SLIDE 40: Quick Reference Checklist -->
+            <section>
+                <h2>&#x1F4CB; Pod Hardening Checklist</h2>
+                <div class="two-columns">
+                    <div>
+                        <h4>Pod Spec</h4>
+                        <ul>
+                            <li>&#x2610; <code>automountServiceAccountToken: false</code></li>
+                            <li>&#x2610; <code>runAsNonRoot: true</code></li>
+                            <li>&#x2610; <code>runAsUser: 1000+</code></li>
+                            <li>&#x2610; <code>runAsGroup: 3000+</code></li>
+                            <li>&#x2610; <code>fsGroup: 2000+</code></li>
+                            <li>&#x2610; <code>seccompProfile: RuntimeDefault</code></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Container Spec</h4>
+                        <ul>
+                            <li>&#x2610; <code>allowPrivilegeEscalation: false</code></li>
+                            <li>&#x2610; <code>readOnlyRootFilesystem: true</code></li>
+                            <li>&#x2610; <code>capabilities.drop: ["ALL"]</code></li>
+                            <li>&#x2610; <code>privileged: false</code> (or omitted)</li>
+                            <li>&#x2610; Resource requests and limits set</li>
+                            <li>&#x2610; Distroless or minimal base image</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="key-point">
+                    Print this checklist. Review every pod spec against it before deployment.
+                </div>
+                <aside class="notes">
+                    This checklist can be integrated into CI/CD pipelines or used as a manual review guide. Every item should be verified before a pod reaches production.
+                </aside>
+            </section>
+
+            <!-- SLIDE 41: Further Reading -->
+            <section>
+                <h2>&#x1F4DA; Further Reading</h2>
+                <ul>
+                    <li><a href="https://kubernetes.io/docs/concepts/security/pod-security-standards/">Pod Security Standards</a> — official Kubernetes documentation</li>
+                    <li><a href="https://kubernetes.io/docs/tasks/configure-pod-container/security-context/">Configure a Security Context</a> — hands-on guide</li>
+                    <li><a href="https://kubernetes.io/docs/tutorials/security/seccomp/">Restrict syscalls with seccomp</a> — seccomp tutorial</li>
+                    <li><a href="https://man7.org/linux/man-pages/man7/capabilities.7.html">Linux capabilities(7)</a> — kernel documentation</li>
+                    <li><a href="https://github.com/GoogleContainerTools/distroless">Distroless container images</a> — Google's minimal images</li>
+                    <li>NSA/CISA Kubernetes Hardening Guide — comprehensive hardening reference</li>
+                </ul>
+                <aside class="notes">
+                    These resources go deeper into each topic we covered. The NSA/CISA guide is especially useful as a comprehensive hardening reference for production clusters.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- QUESTIONS -->
+            <!-- ============================================================ -->
+            <section class="questions-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2 style="color: #fff;">&#x2753; Questions?</h2>
+                <p style="color: #e2e8f0; font-size: 1.2em;">Module 4: Hardening Pods — Pod Policies</p>
+                <p style="color: #cbd5e0;">Up Next: Module 5</p>
+                <aside class="notes">
+                    Open the floor for questions. Common questions include: how do I know which capabilities my app needs? How do I handle pods that need to write to the filesystem? How do I migrate existing namespaces to Restricted PSA?
+                </aside>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reveal.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/plugin/highlight/highlight.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/plugin/notes/notes.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: true,
+            plugins: [RevealHighlight, RevealNotes]
+        });
+    </script>
+</body>
+</html>

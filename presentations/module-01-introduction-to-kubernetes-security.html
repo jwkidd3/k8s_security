@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 1: Introduction to Kubernetes Security</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/theme/white.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/monokai.min.css">
+
+    <style>
+        :root {
+            --heading-color: #1a365d;
+            --accent-color: #2b6cb0;
+            --success-color: #2f855a;
+            --warning-color: #c05621;
+            --danger-color: #c53030;
+            --text-color: #2d3748;
+        }
+
+        .reveal {
+            font-size: 28px;
+            color: var(--text-color);
+        }
+
+        .reveal h1 {
+            font-size: 1.8em;
+            color: var(--heading-color);
+        }
+
+        .reveal h2 {
+            font-size: 1.4em;
+            color: var(--heading-color);
+        }
+
+        .reveal h3 {
+            font-size: 1.1em;
+            color: var(--accent-color);
+        }
+
+        .reveal code {
+            font-size: 0.85em;
+        }
+
+        .reveal .slides section {
+            text-align: left;
+            padding: 20px 40px;
+        }
+
+        /* Title slide */
+        .title-slide {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .title-slide h1,
+        .title-slide h2,
+        .title-slide h3 {
+            color: white !important;
+        }
+
+        .title-slide h1 {
+            font-size: 2em !important;
+            margin-bottom: 0.3em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .title-slide h2 {
+            font-size: 1.3em !important;
+            font-weight: 300;
+            margin-bottom: 0.2em;
+        }
+
+        .title-slide h3 {
+            font-size: 1em !important;
+            font-weight: 300;
+            color: rgba(255,255,255,0.85) !important;
+        }
+
+        .course-badge {
+            display: inline-block;
+            padding: 10px 30px;
+            border: 2px solid rgba(255,255,255,0.8);
+            border-radius: 30px;
+            margin-top: 30px;
+            font-size: 0.85em;
+            color: white;
+            letter-spacing: 1px;
+        }
+
+        /* Section divider */
+        .section-divider {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .section-divider h2,
+        .section-divider h3 {
+            color: white !important;
+        }
+
+        .section-divider h2 {
+            font-size: 1.6em !important;
+        }
+
+        .section-divider h3 {
+            font-size: 1em !important;
+            font-weight: 300;
+            color: rgba(255,255,255,0.85) !important;
+        }
+
+        /* Highlight box */
+        .highlight-box {
+            background: linear-gradient(135deg, #ebf8ff 0%, #bee3f8 100%);
+            border-left: 4px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 15px 0;
+        }
+
+        .highlight-box.success {
+            background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);
+            border-left-color: var(--success-color);
+        }
+
+        .highlight-box.warning {
+            background: linear-gradient(135deg, #fffaf0 0%, #feebc8 100%);
+            border-left-color: var(--warning-color);
+        }
+
+        .highlight-box.danger {
+            background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+            border-left-color: var(--danger-color);
+        }
+
+        /* Columns */
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .three-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        /* Card */
+        .card {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .card.success {
+            border-top: 4px solid var(--success-color);
+        }
+
+        .card.warning {
+            border-top: 4px solid var(--warning-color);
+        }
+
+        .card.danger {
+            border-top: 4px solid var(--danger-color);
+        }
+
+        /* Concept box */
+        .concept-box {
+            background: white;
+            border: 2px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 10px 0;
+        }
+
+        /* Key point */
+        .key-point {
+            text-align: center !important;
+            font-style: italic;
+            font-size: 1.15em;
+            color: var(--accent-color);
+            padding: 20px;
+        }
+
+        /* Lab callout */
+        .lab-callout {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .lab-callout h2,
+        .lab-callout h3 {
+            color: white !important;
+        }
+
+        .lab-callout ul {
+            text-align: left;
+            display: inline-block;
+        }
+
+        .lab-callout li {
+            color: white;
+            margin-bottom: 8px;
+        }
+
+        .lab-badge {
+            display: inline-block;
+            padding: 8px 24px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.6);
+            border-radius: 20px;
+            color: white;
+            font-size: 0.8em;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+
+        .lab-description {
+            margin-top: 20px;
+        }
+
+        /* Takeaway list */
+        .takeaway-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .takeaway-list li {
+            padding: 10px 0 10px 35px;
+            position: relative;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .takeaway-list li::before {
+            content: "\2713";
+            position: absolute;
+            left: 0;
+            color: var(--success-color);
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        /* Questions slide */
+        .questions-slide {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .questions-slide h2 {
+            color: white !important;
+            font-size: 2em !important;
+        }
+
+        .questions-slide p {
+            color: rgba(255,255,255,0.85);
+        }
+
+        /* Tables */
+        .reveal table {
+            font-size: 0.75em;
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        .reveal table th {
+            background: var(--heading-color);
+            color: white;
+            padding: 10px 14px;
+            text-align: left;
+        }
+
+        .reveal table td {
+            padding: 8px 14px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .reveal table tr:nth-child(even) {
+            background: #f7fafc;
+        }
+
+        /* Stat boxes */
+        .stat-box {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .stat-box .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: var(--accent-color);
+            display: block;
+        }
+
+        .stat-box .stat-label {
+            font-size: 0.8em;
+            color: var(--text-color);
+        }
+
+        /* Nested circles for 4Cs */
+        .four-cs-diagram {
+            text-align: center;
+            margin: 20px auto;
+        }
+
+        .four-cs-circle {
+            display: inline-block;
+            border-radius: 50%;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .four-cs-circle.cloud {
+            width: 400px;
+            height: 400px;
+            background: rgba(43, 108, 176, 0.15);
+            border: 3px solid var(--accent-color);
+            padding-top: 20px;
+            line-height: 1;
+        }
+
+        .four-cs-circle.cluster {
+            width: 310px;
+            height: 310px;
+            background: rgba(47, 133, 90, 0.15);
+            border: 3px solid var(--success-color);
+            padding-top: 15px;
+        }
+
+        .four-cs-circle.container {
+            width: 220px;
+            height: 220px;
+            background: rgba(192, 86, 33, 0.15);
+            border: 3px solid var(--warning-color);
+            padding-top: 15px;
+        }
+
+        .four-cs-circle.code {
+            width: 130px;
+            height: 130px;
+            background: rgba(197, 48, 48, 0.15);
+            border: 3px solid var(--danger-color);
+            line-height: 130px;
+        }
+
+        .four-cs-label {
+            font-weight: bold;
+            font-size: 0.8em;
+        }
+
+        /* Attack surface diagram */
+        .attack-surface {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 10px;
+        }
+
+        .attack-surface .panel {
+            border-radius: 10px;
+            padding: 15px;
+        }
+
+        .attack-surface .panel h4 {
+            margin: 0 0 10px 0;
+            font-size: 0.9em;
+        }
+
+        .attack-surface .panel ul {
+            font-size: 0.8em;
+            margin: 0;
+        }
+
+        .attack-surface .control-plane {
+            background: #ebf8ff;
+            border: 2px solid var(--accent-color);
+        }
+
+        .attack-surface .worker-node {
+            background: #fff5f5;
+            border: 2px solid var(--danger-color);
+        }
+
+        /* Module roadmap */
+        .roadmap-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 0.7em;
+        }
+
+        .roadmap-item {
+            padding: 8px 12px;
+            border-radius: 6px;
+            background: #f7fafc;
+            border-left: 3px solid var(--accent-color);
+        }
+
+        .roadmap-item.current {
+            background: #ebf8ff;
+            border-left-color: var(--success-color);
+            font-weight: bold;
+        }
+
+        /* Pre/code styling */
+        .reveal pre {
+            width: 100%;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            border-radius: 8px;
+            font-size: 0.55em;
+        }
+
+        .reveal pre code {
+            padding: 15px 20px;
+            max-height: 500px;
+        }
+
+        /* Small text helper */
+        .small-text {
+            font-size: 0.75em;
+        }
+
+        .fragment-fade-up {
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 1: TITLE -->
+            <!-- ============================================================ -->
+            <section class="title-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 50%, #2c5282 100%)">
+                <h1>Introduction to Kubernetes Security</h1>
+                <h2>Module 1</h2>
+                <h3>Kubernetes Security Course</h3>
+                <div class="course-badge">2-Day Hands-On Workshop</div>
+                <aside class="notes">
+                    Welcome to the Kubernetes Security course. This is a 2-day intensive workshop designed for
+                    DevOps engineers and developers with existing Kubernetes experience. Module 1 sets the
+                    foundation by exploring why Kubernetes security matters, the threat landscape, and the
+                    frameworks we will use throughout the course.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 2: AGENDA -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>Module 1 Agenda</h2>
+                <ol>
+                    <li><strong>Why Kubernetes Security Matters</strong> &mdash; statistics and real-world breaches</li>
+                    <li><strong>The Kubernetes Threat Landscape</strong> &mdash; attack vectors and surfaces</li>
+                    <li><strong>Why Isn't My Cluster Hardened by Default?</strong> &mdash; insecure defaults</li>
+                    <li><strong>Security Terminology and Concepts</strong> &mdash; foundational vocabulary</li>
+                    <li><strong>Security Frameworks and Benchmarks</strong> &mdash; CIS, NSA/CISA, NIST</li>
+                    <li><strong>Course Roadmap</strong> &mdash; the full 12-module journey</li>
+                    <li><strong>Lab 1:</strong> Auditing Cluster Security</li>
+                </ol>
+                <aside class="notes">
+                    Walk through the agenda briefly. Emphasize that this module is about building context
+                    before we dive into hands-on hardening in subsequent modules.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 1: WHY KUBERNETES SECURITY MATTERS -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2>&#x1F6E1;&#xFE0F; Section 1</h2>
+                <h3>Why Kubernetes Security Matters</h3>
+                <aside class="notes">
+                    This section establishes the urgency. We want the audience to understand that Kubernetes
+                    security is not optional — it is a critical operational concern backed by real data and
+                    real-world incidents.
+                </aside>
+            </section>
+
+            <!-- SLIDE: Kubernetes Adoption -->
+            <section>
+                <h2>Kubernetes Adoption Is Massive</h2>
+                <div class="three-columns" style="margin-top: 30px;">
+                    <div class="stat-box card">
+                        <span class="stat-number">96%</span>
+                        <span class="stat-label">of organizations use or evaluate Kubernetes</span>
+                    </div>
+                    <div class="stat-box card warning">
+                        <span class="stat-number" style="color: var(--warning-color);">67%</span>
+                        <span class="stat-label">have delayed deployments due to security concerns</span>
+                    </div>
+                    <div class="stat-box card danger">
+                        <span class="stat-number" style="color: var(--danger-color);">59%</span>
+                        <span class="stat-label">experienced a security incident in their container environment</span>
+                    </div>
+                </div>
+                <div class="highlight-box warning" style="margin-top: 20px;">
+                    <strong>The implication:</strong> Kubernetes is everywhere, but most teams lack the security
+                    expertise to protect their clusters effectively.
+                </div>
+                <aside class="notes">
+                    Source: CNCF Annual Survey and Red Hat State of Kubernetes Security reports. The 67%
+                    figure is particularly striking — security is the number one barrier to Kubernetes adoption.
+                </aside>
+            </section>
+
+            <!-- SLIDE: The Stakes -->
+            <section>
+                <h2>The Stakes Are High</h2>
+                <div class="two-columns">
+                    <div>
+                        <div class="card danger">
+                            <h3 style="color: var(--danger-color);">&#x26A0;&#xFE0F; What Can Go Wrong</h3>
+                            <ul>
+                                <li>Cryptojacking of compute resources</li>
+                                <li>Data exfiltration from pods and volumes</li>
+                                <li>Lateral movement across namespaces</li>
+                                <li>Supply chain compromise</li>
+                                <li>Complete cluster takeover</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="card success">
+                            <h3 style="color: var(--success-color);">&#x2705; What Security Enables</h3>
+                            <ul>
+                                <li>Confident production deployments</li>
+                                <li>Regulatory compliance (SOC2, PCI, HIPAA)</li>
+                                <li>Reduced blast radius of incidents</li>
+                                <li>Faster incident response</li>
+                                <li>Trust from customers and stakeholders</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE: Real-World Breaches -->
+            <section>
+                <h2>Real-World Kubernetes Breaches</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Incident</th>
+                            <th>Year</th>
+                            <th>Attack Vector</th>
+                            <th>Impact</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Tesla Cryptojacking</strong></td>
+                            <td>2018</td>
+                            <td>Exposed Kubernetes dashboard (no password)</td>
+                            <td>AWS resources used for cryptocurrency mining</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Capital One</strong></td>
+                            <td>2019</td>
+                            <td>SSRF to cloud metadata service</td>
+                            <td>106 million customer records exposed</td>
+                        </tr>
+                        <tr>
+                            <td><strong>SolarWinds</strong></td>
+                            <td>2020</td>
+                            <td>Supply chain — compromised build pipeline</td>
+                            <td>18,000+ organizations affected</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Siloscape</strong></td>
+                            <td>2021</td>
+                            <td>Windows container escape to host</td>
+                            <td>Backdoor into Kubernetes clusters</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <aside class="notes">
+                    Each of these incidents highlights a different class of vulnerability. Tesla shows the
+                    danger of exposed dashboards. Capital One demonstrates cloud metadata attacks. SolarWinds
+                    is the canonical supply chain attack. Siloscape was the first known malware targeting
+                    Kubernetes clusters specifically.
+                </aside>
+            </section>
+
+            <!-- SLIDE: Tesla Deep Dive -->
+            <section>
+                <h2>Case Study: Tesla Cryptojacking</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>What Happened</h3>
+                        <ol class="small-text">
+                            <li>Kubernetes dashboard exposed without authentication</li>
+                            <li>Attackers discovered AWS credentials in pod environment</li>
+                            <li>Deployed cryptomining containers across the cluster</li>
+                            <li>Used evasion techniques to avoid detection</li>
+                        </ol>
+                        <div class="highlight-box danger" style="margin-top: 15px;">
+                            <strong>Root cause:</strong> A single misconfiguration — no authentication on the dashboard.
+                        </div>
+                    </div>
+                    <div>
+                        <h3>Lessons Learned</h3>
+                        <ul class="small-text">
+                            <li>Never expose dashboards without authentication</li>
+                            <li>Use network policies to restrict egress</li>
+                            <li>Monitor for unexpected resource consumption</li>
+                            <li>Avoid storing secrets in environment variables</li>
+                            <li>Implement pod security policies</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE: Shared Responsibility -->
+            <section>
+                <h2>The Shared Responsibility Model</h2>
+                <div class="concept-box" style="margin-bottom: 15px;">
+                    <strong>Key Insight:</strong> Cloud providers secure the infrastructure <em>of</em> Kubernetes,
+                    but you are responsible for security <em>in</em> Kubernetes.
+                </div>
+                <div class="three-columns">
+                    <div class="card">
+                        <h3>Cloud Provider</h3>
+                        <ul class="small-text">
+                            <li>Physical infrastructure</li>
+                            <li>Control plane availability (managed K8s)</li>
+                            <li>Host OS patching</li>
+                            <li>Network infrastructure</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h3>Shared</h3>
+                        <ul class="small-text">
+                            <li>Node configuration</li>
+                            <li>Kubernetes version upgrades</li>
+                            <li>Network plugin configuration</li>
+                            <li>Encryption at rest</li>
+                        </ul>
+                    </div>
+                    <div class="card danger">
+                        <h3>Your Responsibility</h3>
+                        <ul class="small-text">
+                            <li>RBAC policies</li>
+                            <li>Network policies</li>
+                            <li>Pod security</li>
+                            <li>Image security</li>
+                            <li>Secrets management</li>
+                            <li>Application code</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    This is crucial context for the entire course. Most of what we will cover falls in the
+                    "your responsibility" column. Even with managed Kubernetes services like EKS, GKE, or
+                    AKS, the majority of security concerns remain with the customer.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 2: THE KUBERNETES THREAT LANDSCAPE -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F30D; Section 2</h2>
+                <h3>The Kubernetes Threat Landscape</h3>
+            </section>
+
+            <!-- SLIDE: Attack Vectors Overview -->
+            <section>
+                <h2>Common Attack Vectors</h2>
+                <div class="three-columns">
+                    <div class="card danger">
+                        <h3 style="color: var(--danger-color);">External Threats</h3>
+                        <ul class="small-text">
+                            <li>Exposed API servers</li>
+                            <li>Vulnerable container images</li>
+                            <li>Misconfigured RBAC</li>
+                            <li>Unprotected dashboards</li>
+                            <li>Ingress misconfigurations</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h3 style="color: var(--warning-color);">Internal Threats</h3>
+                        <ul class="small-text">
+                            <li>Lateral movement between pods</li>
+                            <li>Privilege escalation</li>
+                            <li>Container escape to host</li>
+                            <li>Service account abuse</li>
+                            <li>Namespace hopping</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3>Supply Chain</h3>
+                        <ul class="small-text">
+                            <li>Malicious base images</li>
+                            <li>Compromised dependencies</li>
+                            <li>Tampered CI/CD pipelines</li>
+                            <li>Typosquatting in registries</li>
+                            <li>Unverified Helm charts</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    These three categories represent distinct threat models. External threats are what most
+                    people think of first, but internal threats (east-west traffic) and supply chain threats
+                    are often more dangerous because they bypass perimeter defenses.
+                </aside>
+            </section>
+
+            <!-- SLIDE: Attack Surface Diagram -->
+            <section>
+                <h2>Kubernetes Attack Surface</h2>
+                <div class="attack-surface">
+                    <div class="panel control-plane">
+                        <h4 style="color: var(--accent-color);">&#x1F3AF; Control Plane Targets</h4>
+                        <ul>
+                            <li><strong>API Server</strong> &mdash; front door to the cluster; authn/authz critical</li>
+                            <li><strong>etcd</strong> &mdash; stores all cluster state, secrets in plaintext by default</li>
+                            <li><strong>Controller Manager</strong> &mdash; runs with elevated privileges</li>
+                            <li><strong>Scheduler</strong> &mdash; pod placement can be manipulated</li>
+                            <li><strong>Cloud Controller</strong> &mdash; access to cloud provider APIs</li>
+                        </ul>
+                    </div>
+                    <div class="panel worker-node">
+                        <h4 style="color: var(--danger-color);">&#x1F4BB; Worker Node Targets</h4>
+                        <ul>
+                            <li><strong>Kubelet</strong> &mdash; node agent; anonymous access can be enabled</li>
+                            <li><strong>Container Runtime</strong> &mdash; escape vulnerabilities (CVE-2019-5736)</li>
+                            <li><strong>Pods/Containers</strong> &mdash; application-level vulnerabilities</li>
+                            <li><strong>Kube-proxy</strong> &mdash; network rule manipulation</li>
+                            <li><strong>Host Filesystem</strong> &mdash; hostPath mounts expose node</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    Every component here is a potential target. The API server is the most critical because
+                    it is the single point of entry. etcd is the crown jewel — if an attacker gets access to
+                    etcd, they own the entire cluster. On the worker side, kubelet API and container runtime
+                    vulnerabilities are the most common attack paths.
+                </aside>
+            </section>
+
+            <!-- SLIDE: Attack Flow Example -->
+            <section>
+                <h2>Typical Attack Flow</h2>
+                <div class="concept-box">
+                    <p class="small-text" style="text-align: center; margin: 0;">
+                        <strong>Reconnaissance</strong> &rarr;
+                        <strong>Initial Access</strong> &rarr;
+                        <strong>Execution</strong> &rarr;
+                        <strong>Persistence</strong> &rarr;
+                        <strong>Privilege Escalation</strong> &rarr;
+                        <strong>Lateral Movement</strong> &rarr;
+                        <strong>Exfiltration</strong>
+                    </p>
+                </div>
+                <pre><code class="language-bash"># 1. Attacker discovers exposed kubelet API
+curl -sk https://target-node:10250/pods
+
+# 2. Executes commands inside a running container
+curl -sk https://target-node:10250/run/default/web-app/web \
+  -d "cmd=cat /var/run/secrets/kubernetes.io/serviceaccount/token"
+
+# 3. Uses stolen service account token to access API server
+kubectl --token=$STOLEN_TOKEN --server=https://api-server:6443 \
+  get secrets --all-namespaces
+
+# 4. Pivots to other namespaces and exfiltrates data
+kubectl --token=$STOLEN_TOKEN exec -it db-pod -- pg_dump mydb</code></pre>
+                <aside class="notes">
+                    Walk through each step. This is a realistic attack scenario that exploits an exposed
+                    kubelet API, steals a service account token, and uses it to access secrets cluster-wide.
+                    Each step in this chain can be mitigated — and we will cover how throughout the course.
+                </aside>
+            </section>
+
+            <!-- SLIDE: MITRE ATT&CK -->
+            <section>
+                <h2>MITRE ATT&CK for Containers</h2>
+                <p>A structured framework mapping adversary tactics and techniques to container environments.</p>
+                <div class="two-columns" style="font-size: 0.75em;">
+                    <div>
+                        <table>
+                            <thead><tr><th>Tactic</th><th>Example Technique</th></tr></thead>
+                            <tbody>
+                                <tr><td>Initial Access</td><td>Exposed dashboard, compromised image</td></tr>
+                                <tr><td>Execution</td><td>Exec into container, new container</td></tr>
+                                <tr><td>Persistence</td><td>Backdoor container, writable hostPath</td></tr>
+                                <tr><td>Privilege Escalation</td><td>Privileged container, hostPID</td></tr>
+                                <tr><td>Defense Evasion</td><td>Clear logs, pod name masquerade</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                        <table>
+                            <thead><tr><th>Tactic</th><th>Example Technique</th></tr></thead>
+                            <tbody>
+                                <tr><td>Credential Access</td><td>Steal SA token, access etcd</td></tr>
+                                <tr><td>Discovery</td><td>List pods, access K8s API</td></tr>
+                                <tr><td>Lateral Movement</td><td>Access cloud resources, pivot to pods</td></tr>
+                                <tr><td>Collection</td><td>Data from volumes, configmaps</td></tr>
+                                <tr><td>Impact</td><td>Cryptomining, data destruction</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="highlight-box" style="margin-top: 15px;">
+                    <strong>Resource:</strong> <code>attack.mitre.org/matrices/enterprise/containers/</code>
+                </div>
+                <aside class="notes">
+                    MITRE ATT&CK provides a common language for describing attacks. Microsoft also maintains
+                    a Kubernetes-specific threat matrix. We will reference specific techniques throughout the
+                    course when discussing defenses.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 3: WHY ISN'T MY CLUSTER HARDENED BY DEFAULT? -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #c05621 0%, #dd6b20 100%)">
+                <h2>&#x1F513; Section 3</h2>
+                <h3>Why Isn't My Cluster Hardened by Default?</h3>
+            </section>
+
+            <!-- SLIDE: Design Philosophy -->
+            <section>
+                <h2>Kubernetes Design Philosophy</h2>
+                <div class="key-point">
+                    "Kubernetes prioritizes developer velocity, composability, and ease of adoption —
+                    security is intentionally left as a configuration responsibility."
+                </div>
+                <div class="two-columns" style="margin-top: 20px;">
+                    <div class="card">
+                        <h3>Why This Matters</h3>
+                        <ul class="small-text">
+                            <li>Low barrier to entry accelerated adoption</li>
+                            <li>Flexible security allows diverse use cases</li>
+                            <li>One-size-fits-all security doesn't work across industries</li>
+                            <li>Operators are expected to harden for their environment</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h3>The Consequence</h3>
+                        <ul class="small-text">
+                            <li>Default clusters are functionally <strong>wide open</strong></li>
+                            <li>Most tutorials skip security configuration</li>
+                            <li>Development clusters get promoted to production as-is</li>
+                            <li>Teams don't know what they don't know</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE: Insecure Defaults -->
+            <section>
+                <h2>Insecure Defaults in Kubernetes</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Default Behavior</th>
+                            <th>Security Risk</th>
+                            <th>What Should Be Done</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>No network policies</td>
+                            <td>All pods can communicate freely</td>
+                            <td>Apply deny-all then whitelist</td>
+                        </tr>
+                        <tr>
+                            <td>SA tokens auto-mounted</td>
+                            <td>Every pod gets API access</td>
+                            <td>Set <code>automountServiceAccountToken: false</code></td>
+                        </tr>
+                        <tr>
+                            <td>No pod security standards</td>
+                            <td>Privileged containers allowed</td>
+                            <td>Enforce Restricted PSS</td>
+                        </tr>
+                        <tr>
+                            <td>No audit logging</td>
+                            <td>No visibility into API activity</td>
+                            <td>Enable audit policy</td>
+                        </tr>
+                        <tr>
+                            <td>etcd not encrypted at rest</td>
+                            <td>Secrets stored in plaintext</td>
+                            <td>Enable encryption provider</td>
+                        </tr>
+                        <tr>
+                            <td>No resource limits</td>
+                            <td>DoS via resource exhaustion</td>
+                            <td>Set requests and limits</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <aside class="notes">
+                    Go through each row. These are the top six insecure defaults that every team should
+                    address immediately. We will cover every single one of these in depth in later modules.
+                </aside>
+            </section>
+
+            <!-- SLIDE: Insecure Pod YAML -->
+            <section>
+                <h2>Insecure Pod: What NOT To Do</h2>
+                <pre><code class="language-yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: insecure-app
+spec:
+  containers:
+  - name: app
+    image: myapp:latest          # Mutable tag, no digest
+    ports:
+    - containerPort: 8080
+    securityContext:
+      privileged: true           # Full host access
+      runAsUser: 0               # Running as root
+    volumeMounts:
+    - mountPath: /host
+      name: host-fs
+  volumes:
+  - name: host-fs
+    hostPath:
+      path: /                    # Entire host filesystem mounted
+  # No resource limits
+  # Service account token auto-mounted
+  # No readOnlyRootFilesystem</code></pre>
+                <div class="highlight-box danger">
+                    <strong>Vulnerabilities:</strong> privileged mode, root user, hostPath mount of <code>/</code>,
+                    mutable image tag, no resource limits, writable filesystem, auto-mounted SA token.
+                </div>
+            </section>
+
+            <!-- SLIDE: Hardened Pod YAML -->
+            <section>
+                <h2>Hardened Pod: Security Best Practices</h2>
+                <pre><code class="language-yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: hardened-app
+spec:
+  automountServiceAccountToken: false    # No API access
+  securityContext:
+    runAsNonRoot: true                   # Enforce non-root
+    runAsUser: 1000
+    runAsGroup: 3000
+    fsGroup: 2000
+    seccompProfile:
+      type: RuntimeDefault               # Restrict syscalls
+  containers:
+  - name: app
+    image: myapp@sha256:abc123...        # Immutable digest
+    ports:
+    - containerPort: 8080
+    securityContext:
+      allowPrivilegeEscalation: false    # No privilege escalation
+      readOnlyRootFilesystem: true       # Immutable filesystem
+      capabilities:
+        drop: ["ALL"]                    # Drop all capabilities
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "256Mi"
+        cpu: "500m"
+    volumeMounts:
+    - mountPath: /tmp
+      name: tmp-vol
+  volumes:
+  - name: tmp-vol
+    emptyDir: {}                         # Ephemeral, no host access</code></pre>
+                <aside class="notes">
+                    Walk through each security control line by line. This is the reference template for a
+                    production-ready pod. In the lab, students will compare insecure and hardened configurations.
+                </aside>
+            </section>
+
+            <!-- SLIDE: Side by Side Comparison -->
+            <section>
+                <h2>Before and After: Key Differences</h2>
+                <div class="two-columns">
+                    <div class="card danger">
+                        <h3 style="color: var(--danger-color);">Insecure Defaults</h3>
+                        <ul class="small-text">
+                            <li><code>privileged: true</code></li>
+                            <li><code>runAsUser: 0</code> (root)</li>
+                            <li><code>image: myapp:latest</code></li>
+                            <li>hostPath mount of <code>/</code></li>
+                            <li>No resource limits</li>
+                            <li>SA token auto-mounted</li>
+                            <li>Writable root filesystem</li>
+                            <li>All Linux capabilities</li>
+                        </ul>
+                    </div>
+                    <div class="card success">
+                        <h3 style="color: var(--success-color);">Hardened Configuration</h3>
+                        <ul class="small-text">
+                            <li><code>privileged: false</code> (implicit)</li>
+                            <li><code>runAsNonRoot: true</code></li>
+                            <li><code>image: myapp@sha256:...</code></li>
+                            <li>emptyDir for temp storage only</li>
+                            <li>CPU and memory limits set</li>
+                            <li><code>automountServiceAccountToken: false</code></li>
+                            <li><code>readOnlyRootFilesystem: true</code></li>
+                            <li><code>capabilities.drop: ["ALL"]</code></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="key-point" style="margin-top: 15px;">
+                    Every hardening step reduces the blast radius of a compromise.
+                </div>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 4: SECURITY TERMINOLOGY AND CONCEPTS -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2f855a 0%, #38a169 100%)">
+                <h2>&#x1F4DA; Section 4</h2>
+                <h3>Security Terminology and Concepts</h3>
+            </section>
+
+            <!-- SLIDE: Core Concepts -->
+            <section>
+                <h2>Core Security Concepts</h2>
+                <div class="two-columns">
+                    <div>
+                        <div class="concept-box" style="margin-bottom: 12px;">
+                            <h3>Attack Surface</h3>
+                            <p class="small-text">The sum of all points where an attacker can try to enter or extract data from a system. In Kubernetes, this includes the API server, kubelet, container runtime, network, and every running workload.</p>
+                        </div>
+                        <div class="concept-box" style="margin-bottom: 12px;">
+                            <h3>Defense in Depth</h3>
+                            <p class="small-text">Layered security controls so that if one layer fails, others still protect the system. No single control is considered sufficient on its own.</p>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="concept-box" style="margin-bottom: 12px;">
+                            <h3>Principle of Least Privilege</h3>
+                            <p class="small-text">Grant only the minimum permissions necessary for a user, service account, or workload to perform its intended function. Nothing more.</p>
+                        </div>
+                        <div class="concept-box">
+                            <h3>Zero Trust</h3>
+                            <p class="small-text">Never trust, always verify. Every request must be authenticated and authorized regardless of its origin — even from inside the cluster network.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE: Defense in Depth in Kubernetes -->
+            <section>
+                <h2>Defense in Depth in Kubernetes</h2>
+                <div class="highlight-box">
+                    <strong>Principle:</strong> Multiple independent layers of security ensure no single failure leads to a full compromise.
+                </div>
+                <div style="margin-top: 15px;">
+                    <table>
+                        <thead>
+                            <tr><th>Layer</th><th>Controls</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><strong>Perimeter</strong></td><td>Firewalls, API server access restrictions, private clusters</td></tr>
+                            <tr><td><strong>Authentication</strong></td><td>OIDC, client certificates, webhook tokens</td></tr>
+                            <tr><td><strong>Authorization</strong></td><td>RBAC policies, namespace isolation</td></tr>
+                            <tr><td><strong>Admission Control</strong></td><td>OPA/Gatekeeper, Kyverno, Pod Security Standards</td></tr>
+                            <tr><td><strong>Network</strong></td><td>Network policies, service mesh mTLS, egress controls</td></tr>
+                            <tr><td><strong>Workload</strong></td><td>Security contexts, seccomp, AppArmor, read-only FS</td></tr>
+                            <tr><td><strong>Runtime</strong></td><td>Falco, audit logging, anomaly detection</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <aside class="notes">
+                    Each row in this table maps to one or more modules in this course. By the end of Day 2,
+                    students will have hands-on experience with controls at every layer.
+                </aside>
+            </section>
+
+            <!-- SLIDE: 4Cs of Cloud Native Security -->
+            <section>
+                <h2>The 4Cs of Cloud Native Security</h2>
+                <div class="two-columns">
+                    <div class="four-cs-diagram">
+                        <div class="four-cs-circle cloud">
+                            <div class="four-cs-label" style="color: var(--accent-color);">Cloud</div>
+                            <div class="four-cs-circle cluster">
+                                <div class="four-cs-label" style="color: var(--success-color);">Cluster</div>
+                                <div class="four-cs-circle container">
+                                    <div class="four-cs-label" style="color: var(--warning-color);">Container</div>
+                                    <div class="four-cs-circle code">
+                                        <div class="four-cs-label" style="color: var(--danger-color);">Code</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="card" style="margin-bottom: 10px;">
+                            <h3 style="color: var(--accent-color);">Cloud</h3>
+                            <p class="small-text">Infrastructure security: IAM, network, encryption, physical security</p>
+                        </div>
+                        <div class="card success" style="margin-bottom: 10px;">
+                            <h3 style="color: var(--success-color);">Cluster</h3>
+                            <p class="small-text">K8s components: RBAC, network policies, admission control, audit</p>
+                        </div>
+                        <div class="card warning" style="margin-bottom: 10px;">
+                            <h3 style="color: var(--warning-color);">Container</h3>
+                            <p class="small-text">Image scanning, minimal base images, non-root, read-only FS</p>
+                        </div>
+                        <div class="card danger">
+                            <h3 style="color: var(--danger-color);">Code</h3>
+                            <p class="small-text">Secure coding, dependency scanning, SAST/DAST, secrets handling</p>
+                        </div>
+                    </div>
+                </div>
+                <aside class="notes">
+                    The 4Cs model from the Kubernetes documentation shows that each layer depends on the
+                    security of the layers beneath it. You cannot have secure code running in an insecure
+                    container, on an insecure cluster, on an insecure cloud.
+                </aside>
+            </section>
+
+            <!-- SLIDE: Immutable Infrastructure -->
+            <section>
+                <h2>Immutable Infrastructure</h2>
+                <div class="concept-box">
+                    <strong>Definition:</strong> Servers and containers are never modified after deployment.
+                    When changes are needed, the entire unit is replaced with a new version.
+                </div>
+                <div class="two-columns" style="margin-top: 20px;">
+                    <div class="card danger">
+                        <h3 style="color: var(--danger-color);">Mutable (Traditional)</h3>
+                        <ul class="small-text">
+                            <li>SSH into production servers</li>
+                            <li>Apply patches in place</li>
+                            <li>Configuration drift over time</li>
+                            <li>Hard to reproduce state</li>
+                            <li>Attacker changes persist</li>
+                        </ul>
+                    </div>
+                    <div class="card success">
+                        <h3 style="color: var(--success-color);">Immutable (Cloud Native)</h3>
+                        <ul class="small-text">
+                            <li>Build new image for every change</li>
+                            <li>Deploy as replacement pods</li>
+                            <li>Consistent, reproducible state</li>
+                            <li>Read-only root filesystem</li>
+                            <li>Attacker changes lost on restart</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="highlight-box success" style="margin-top: 15px;">
+                    <strong>Security benefit:</strong> Immutable containers with read-only filesystems make it
+                    significantly harder for attackers to persist malware or modify application behavior.
+                </div>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 5: SECURITY FRAMEWORKS AND BENCHMARKS -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #1a365d 0%, #2c5282 100%)">
+                <h2>&#x1F4CB; Section 5</h2>
+                <h3>Security Frameworks and Benchmarks</h3>
+            </section>
+
+            <!-- SLIDE: CIS Benchmark -->
+            <section>
+                <h2>CIS Kubernetes Benchmark</h2>
+                <p>The industry-standard checklist for securing Kubernetes clusters.</p>
+                <table>
+                    <thead>
+                        <tr><th>Section</th><th>Focus Area</th><th>Example Checks</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1</td><td>Control Plane Components</td><td>API server flags, etcd encryption</td></tr>
+                        <tr><td>2</td><td>etcd</td><td>Peer encryption, access controls</td></tr>
+                        <tr><td>3</td><td>Control Plane Configuration</td><td>Auth, admission controllers</td></tr>
+                        <tr><td>4</td><td>Worker Nodes</td><td>Kubelet config, file permissions</td></tr>
+                        <tr><td>5</td><td>Policies</td><td>RBAC, pod security, network policies</td></tr>
+                        <tr><td>6</td><td>Managed Services</td><td>EKS/GKE/AKS-specific checks</td></tr>
+                        <tr><td>7</td><td>Additional</td><td>Logging, secrets, general practices</td></tr>
+                    </tbody>
+                </table>
+                <div class="highlight-box" style="margin-top: 10px;">
+                    <strong>Key tool:</strong> <code>kube-bench</code> automates CIS Benchmark checks against your cluster.
+                </div>
+                <aside class="notes">
+                    The CIS Benchmark is the most widely adopted standard. It is updated regularly to match
+                    new Kubernetes versions. In Lab 1, students will run kube-bench against their lab cluster
+                    and interpret the results.
+                </aside>
+            </section>
+
+            <!-- SLIDE: kube-bench Example -->
+            <section>
+                <h2>Running kube-bench</h2>
+                <pre><code class="language-bash"># Run kube-bench as a Kubernetes Job
+kubectl apply -f https://raw.githubusercontent.com/aquasecurity/kube-bench/main/job.yaml
+
+# View results
+kubectl logs job/kube-bench
+
+# Or run directly on a node
+kube-bench run --targets=master,node
+
+# Example output:
+# [INFO] 1 Control Plane Security Configuration
+# [PASS] 1.1.1 Ensure that the API server pod spec file permissions are set to 644
+# [FAIL] 1.1.2 Ensure that the API server pod spec file ownership is set to root:root
+# [WARN] 1.1.3 Ensure that the proxy kubeconfig file permissions are set to 644
+#
+# == Summary master ==
+# 42 checks PASS
+# 11 checks FAIL
+# 5 checks WARN</code></pre>
+                <div class="highlight-box warning">
+                    <strong>Note:</strong> Not every FAIL requires immediate action. Evaluate each finding against
+                    your organization's risk profile and environment.
+                </div>
+            </section>
+
+            <!-- SLIDE: NSA/CISA Guide -->
+            <section>
+                <h2>NSA/CISA Kubernetes Hardening Guide</h2>
+                <div class="concept-box" style="margin-bottom: 15px;">
+                    A comprehensive guide published by the U.S. National Security Agency and Cybersecurity and
+                    Infrastructure Security Agency, focused on threat mitigation.
+                </div>
+                <div class="three-columns">
+                    <div class="card">
+                        <h3>Kubernetes Pod Security</h3>
+                        <ul class="small-text">
+                            <li>Non-root containers</li>
+                            <li>Immutable filesystems</li>
+                            <li>Image scanning</li>
+                            <li>Resource limits</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3>Network Separation</h3>
+                        <ul class="small-text">
+                            <li>Network policies</li>
+                            <li>Control plane isolation</li>
+                            <li>Encrypted traffic</li>
+                            <li>External access control</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3>Audit & Threat Detection</h3>
+                        <ul class="small-text">
+                            <li>Audit logging enabled</li>
+                            <li>Alerting configured</li>
+                            <li>Centralized log aggregation</li>
+                            <li>Periodic scanning</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE: Pod Security Standards -->
+            <section>
+                <h2>Pod Security Standards (PSS)</h2>
+                <p>The built-in Kubernetes mechanism for enforcing pod security (replacing the deprecated PodSecurityPolicy).</p>
+                <div class="three-columns" style="margin-top: 15px;">
+                    <div class="card danger">
+                        <h3 style="color: var(--danger-color);">Privileged</h3>
+                        <p class="small-text">Unrestricted policy. Provides the widest possible level of permissions. Intended for system-level workloads managed by trusted users.</p>
+                        <div class="highlight-box danger">
+                            <strong>Use case:</strong> kube-system namespace, CNI plugins, monitoring agents
+                        </div>
+                    </div>
+                    <div class="card warning">
+                        <h3 style="color: var(--warning-color);">Baseline</h3>
+                        <p class="small-text">Minimally restrictive policy. Prevents known privilege escalations while remaining easy to adopt. Good starting point.</p>
+                        <div class="highlight-box warning">
+                            <strong>Blocks:</strong> hostNetwork, hostPID, privileged containers, hostPath
+                        </div>
+                    </div>
+                    <div class="card success">
+                        <h3 style="color: var(--success-color);">Restricted</h3>
+                        <p class="small-text">Heavily restricted policy. Follows current pod hardening best practices. The target for all production workloads.</p>
+                        <div class="highlight-box success">
+                            <strong>Requires:</strong> non-root, drop ALL caps, seccomp, read-only FS
+                        </div>
+                    </div>
+                </div>
+                <aside class="notes">
+                    PSS replaced PodSecurityPolicy starting in Kubernetes 1.25. There are three enforcement
+                    modes: enforce (reject), audit (log), and warn (show warning). Recommended approach is to
+                    start with warn/audit and move to enforce once workloads are compliant.
+                </aside>
+            </section>
+
+            <!-- SLIDE: Enforcing PSS -->
+            <section>
+                <h2>Enforcing Pod Security Standards</h2>
+                <pre><code class="language-yaml"># Apply Restricted standard to a namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+  labels:
+    # Enforcement modes: enforce, audit, warn
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest</code></pre>
+                <pre><code class="language-bash"># Test what would be blocked
+kubectl label --dry-run=server --overwrite ns production \
+  pod-security.kubernetes.io/enforce=restricted
+
+# Warning: would violate PodSecurity "restricted:latest":
+# allowPrivilegeEscalation != false, unrestricted capabilities, ...</code></pre>
+            </section>
+
+            <!-- SLIDE: NIST and Tools -->
+            <section>
+                <h2>Additional Frameworks and Tools</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>NIST SP 800-190</h3>
+                        <div class="card" style="margin-bottom: 15px;">
+                            <p class="small-text">Application Container Security Guide covering:</p>
+                            <ul class="small-text">
+                                <li>Image vulnerabilities</li>
+                                <li>Registry security</li>
+                                <li>Orchestrator configuration</li>
+                                <li>Container runtime protection</li>
+                                <li>Host OS hardening</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div>
+                        <h3>Security Scanning Tools</h3>
+                        <div class="card success" style="margin-bottom: 8px;">
+                            <p class="small-text"><strong>kube-bench</strong> &mdash; CIS Benchmark checks</p>
+                        </div>
+                        <div class="card success" style="margin-bottom: 8px;">
+                            <p class="small-text"><strong>kubesec</strong> &mdash; Static analysis of Kubernetes manifests</p>
+                        </div>
+                        <div class="card success" style="margin-bottom: 8px;">
+                            <p class="small-text"><strong>Trivy</strong> &mdash; Image, filesystem, and config vulnerability scanner</p>
+                        </div>
+                        <div class="card success" style="margin-bottom: 8px;">
+                            <p class="small-text"><strong>Falco</strong> &mdash; Runtime threat detection</p>
+                        </div>
+                        <div class="card success">
+                            <p class="small-text"><strong>OPA/Gatekeeper</strong> &mdash; Policy-as-code admission control</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE: Trivy Example -->
+            <section>
+                <h2>Scanning with Trivy</h2>
+                <pre><code class="language-bash"># Scan a container image for vulnerabilities
+trivy image nginx:1.25
+
+# Example output:
+# nginx:1.25 (debian 12.2)
+# ========================
+# Total: 142 (UNKNOWN: 0, LOW: 87, MEDIUM: 39, HIGH: 14, CRITICAL: 2)
+#
+# ┌──────────────┬────────────────┬──────────┬─────────────────────────┐
+# │   Library    │ Vulnerability  │ Severity │     Fixed Version       │
+# ├──────────────┼────────────────┼──────────┼─────────────────────────┤
+# │ libssl3      │ CVE-2024-XXXX  │ CRITICAL │ 3.0.13-1~deb12u1       │
+# │ libcurl4     │ CVE-2024-YYYY  │ HIGH     │ 7.88.1-10+deb12u5      │
+# └──────────────┴────────────────┴──────────┴─────────────────────────┘
+
+# Scan Kubernetes manifests for misconfigurations
+trivy config ./k8s-manifests/
+
+# Scan a running cluster
+trivy k8s --report=summary cluster</code></pre>
+                <aside class="notes">
+                    Trivy is one of the most versatile open-source scanning tools. It can scan images,
+                    filesystems, git repositories, and Kubernetes clusters. We will use it extensively in
+                    the image security module.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 6: COURSE ROADMAP -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)">
+                <h2>&#x1F5FA;&#xFE0F; Section 6</h2>
+                <h3>Course Roadmap</h3>
+            </section>
+
+            <!-- SLIDE: Course Overview -->
+            <section>
+                <h2>12-Module Course Overview</h2>
+                <div class="roadmap-grid">
+                    <div class="roadmap-item current">Module 1: Introduction to Kubernetes Security</div>
+                    <div class="roadmap-item">Module 2: Authentication &amp; Authorization (RBAC)</div>
+                    <div class="roadmap-item">Module 3: Securing the API Server</div>
+                    <div class="roadmap-item">Module 4: Pod Security &amp; Security Contexts</div>
+                    <div class="roadmap-item">Module 5: Network Policies</div>
+                    <div class="roadmap-item">Module 6: Secrets Management</div>
+                    <div class="roadmap-item">Module 7: Image Security &amp; Supply Chain</div>
+                    <div class="roadmap-item">Module 8: Admission Controllers &amp; Policy Engines</div>
+                    <div class="roadmap-item">Module 9: Runtime Security &amp; Monitoring</div>
+                    <div class="roadmap-item">Module 10: Audit Logging &amp; Compliance</div>
+                    <div class="roadmap-item">Module 11: Service Mesh Security</div>
+                    <div class="roadmap-item">Module 12: Incident Response &amp; Forensics</div>
+                </div>
+                <aside class="notes">
+                    Each module builds on the previous ones. By the end of the course, students will have
+                    a comprehensive understanding of Kubernetes security across all layers. Highlight that
+                    Module 1 (current) provides the foundation for everything that follows.
+                </aside>
+            </section>
+
+            <!-- SLIDE: Day 1 vs Day 2 -->
+            <section>
+                <h2>Day 1 vs Day 2 Breakdown</h2>
+                <div class="two-columns">
+                    <div class="card">
+                        <h3>Day 1: Foundations &amp; Core Security</h3>
+                        <ul class="small-text">
+                            <li><strong>Module 1:</strong> Introduction &amp; Threat Landscape</li>
+                            <li><strong>Module 2:</strong> Authentication &amp; RBAC</li>
+                            <li><strong>Module 3:</strong> API Server Security</li>
+                            <li><strong>Module 4:</strong> Pod Security Contexts</li>
+                            <li><strong>Module 5:</strong> Network Policies</li>
+                            <li><strong>Module 6:</strong> Secrets Management</li>
+                        </ul>
+                        <div class="highlight-box" style="margin-top: 10px;">
+                            <strong>Focus:</strong> Understanding threats and implementing core controls
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Day 2: Advanced &amp; Operational Security</h3>
+                        <ul class="small-text">
+                            <li><strong>Module 7:</strong> Image Security &amp; Supply Chain</li>
+                            <li><strong>Module 8:</strong> Admission Controllers</li>
+                            <li><strong>Module 9:</strong> Runtime Security</li>
+                            <li><strong>Module 10:</strong> Audit Logging &amp; Compliance</li>
+                            <li><strong>Module 11:</strong> Service Mesh Security</li>
+                            <li><strong>Module 12:</strong> Incident Response</li>
+                        </ul>
+                        <div class="highlight-box success" style="margin-top: 10px;">
+                            <strong>Focus:</strong> Advanced controls, monitoring, and operational readiness
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SLIDE: How Modules Build on Each Other -->
+            <section>
+                <h2>How the Modules Connect</h2>
+                <div class="concept-box">
+                    <p class="small-text" style="text-align: center; margin: 0;">
+                        <strong>Foundations</strong> (M1-M2) &rarr;
+                        <strong>Core Controls</strong> (M3-M6) &rarr;
+                        <strong>Supply Chain</strong> (M7-M8) &rarr;
+                        <strong>Operations</strong> (M9-M12)
+                    </p>
+                </div>
+                <div class="two-columns" style="margin-top: 20px;">
+                    <div>
+                        <div class="highlight-box" style="margin-bottom: 10px;">
+                            <strong>RBAC (M2)</strong> underpins API Server (M3) and Secrets (M6)
+                        </div>
+                        <div class="highlight-box" style="margin-bottom: 10px;">
+                            <strong>Pod Security (M4)</strong> feeds into Admission Control (M8)
+                        </div>
+                        <div class="highlight-box">
+                            <strong>Network Policies (M5)</strong> complement Service Mesh (M11)
+                        </div>
+                    </div>
+                    <div>
+                        <div class="highlight-box warning" style="margin-bottom: 10px;">
+                            <strong>Image Security (M7)</strong> integrates with Admission (M8)
+                        </div>
+                        <div class="highlight-box warning" style="margin-bottom: 10px;">
+                            <strong>Runtime Security (M9)</strong> depends on Audit Logging (M10)
+                        </div>
+                        <div class="highlight-box warning">
+                            <strong>All modules</strong> inform Incident Response (M12)
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- LAB CALLOUT -->
+            <!-- ============================================================ -->
+            <section class="lab-callout" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <div class="lab-badge">Hands-On Lab</div>
+                <h2>Lab 1: Auditing Cluster Security</h2>
+                <h3>45 minutes</h3>
+                <div class="lab-description">
+                    <ul>
+                        <li>Inspect cluster health and configuration</li>
+                        <li>Review default security settings and RBAC</li>
+                        <li>Identify common security misconfigurations</li>
+                        <li>Run CIS Benchmark scans with kube-bench</li>
+                        <li>Document findings in a security audit report</li>
+                    </ul>
+                </div>
+                <aside class="notes">
+                    This lab gives students their first hands-on experience auditing a cluster. They will use
+                    kubectl, kube-bench, and trivy to identify real security issues. The audit report they
+                    produce will serve as a baseline that they will improve throughout the course.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- KEY TAKEAWAYS -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>Key Takeaways</h2>
+                <ul class="takeaway-list">
+                    <li>Kubernetes adoption is near-universal, but most clusters are inadequately secured due to insecure defaults and knowledge gaps</li>
+                    <li>Real-world breaches — from Tesla to Siloscape — demonstrate that Kubernetes security failures have material business impact</li>
+                    <li>Defense in depth is essential: no single control is sufficient; security must be layered across the 4Cs (Code, Container, Cluster, Cloud)</li>
+                    <li>Kubernetes is intentionally not hardened out of the box — operators must proactively configure security controls</li>
+                    <li>Industry frameworks (CIS Benchmark, NSA/CISA Guide, NIST) and tools (kube-bench, Trivy, Falco) provide actionable guidance</li>
+                    <li>Pod Security Standards (Privileged, Baseline, Restricted) are the built-in mechanism for enforcing workload security</li>
+                </ul>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- NEXT MODULE PREVIEW -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>Up Next: Module 2</h2>
+                <div class="card" style="max-width: 700px;">
+                    <h3>Authentication &amp; Authorization (RBAC)</h3>
+                    <p>In the next module, we will dive into:</p>
+                    <ul class="small-text">
+                        <li>How Kubernetes authenticates users and service accounts</li>
+                        <li>Role-Based Access Control (RBAC) design patterns</li>
+                        <li>Creating least-privilege Roles and ClusterRoles</li>
+                        <li>Auditing and testing RBAC policies</li>
+                        <li>Common RBAC misconfigurations and how to avoid them</li>
+                    </ul>
+                </div>
+                <div class="key-point" style="margin-top: 20px;">
+                    RBAC is the single most important security control in Kubernetes. Get it right, and you have a strong foundation. Get it wrong, and nothing else matters.
+                </div>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- QUESTIONS -->
+            <!-- ============================================================ -->
+            <section class="questions-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2>Questions?</h2>
+                <p>Module 1: Introduction to Kubernetes Security</p>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/notes/notes.min.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: true,
+            plugins: [RevealHighlight, RevealNotes]
+        });
+    </script>
+</body>
+</html>

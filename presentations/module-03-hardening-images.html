@@ -1,0 +1,1842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 3: Hardening Images - Kubernetes Security</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/theme/white.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/monokai.min.css">
+    <style>
+        :root {
+            --heading-color: #1a365d;
+            --accent-color: #2b6cb0;
+            --success-color: #2f855a;
+            --warning-color: #c05621;
+            --danger-color: #c53030;
+            --text-color: #2d3748;
+        }
+
+        .reveal {
+            font-size: 28px;
+            color: var(--text-color);
+        }
+
+        .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
+            color: var(--heading-color);
+            text-transform: none;
+        }
+
+        .reveal section {
+            text-align: left;
+            padding: 20px 40px;
+        }
+
+        /* Title Slide */
+        .title-slide {
+            text-align: center !important;
+        }
+        .title-slide h1 {
+            color: #ffffff !important;
+            font-size: 2.2em;
+            margin-bottom: 0.2em;
+        }
+        .title-slide h2 {
+            color: #e2e8f0 !important;
+            font-size: 1.4em;
+            font-weight: 300;
+        }
+        .title-slide p {
+            color: #cbd5e0 !important;
+            font-size: 0.9em;
+        }
+
+        /* Section Divider */
+        .section-divider {
+            text-align: center !important;
+        }
+        .section-divider h2 {
+            color: #ffffff !important;
+            font-size: 2em;
+        }
+        .section-divider p {
+            color: #e2e8f0 !important;
+            font-size: 1.1em;
+        }
+
+        /* Highlight Box */
+        .highlight-box {
+            background: #ebf8ff;
+            border-left: 4px solid var(--accent-color);
+            padding: 15px 20px;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+        .highlight-box.success {
+            background: #f0fff4;
+            border-left-color: var(--success-color);
+        }
+        .highlight-box.warning {
+            background: #fffaf0;
+            border-left-color: var(--warning-color);
+        }
+        .highlight-box.danger {
+            background: #fff5f5;
+            border-left-color: var(--danger-color);
+        }
+
+        /* Two Columns */
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        /* Three Columns */
+        .three-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        /* Cards */
+        .card {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 10px 0;
+        }
+        .card.success {
+            border-color: var(--success-color);
+            background: #f0fff4;
+        }
+        .card.warning {
+            border-color: var(--warning-color);
+            background: #fffaf0;
+        }
+        .card.danger {
+            border-color: var(--danger-color);
+            background: #fff5f5;
+        }
+        .card h4 {
+            margin-top: 0;
+        }
+
+        /* Concept Box */
+        .concept-box {
+            background: linear-gradient(135deg, #ebf8ff 0%, #f0fff4 100%);
+            border: 2px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        /* Key Point */
+        .key-point {
+            background: #fffff0;
+            border: 2px solid #d69e2e;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+
+        /* Lab Callout */
+        .lab-callout {
+            text-align: center !important;
+            border-radius: 12px;
+        }
+        .lab-callout h2 {
+            color: #ffffff !important;
+        }
+        .lab-callout p, .lab-callout li {
+            color: #ffffff !important;
+            font-size: 0.95em;
+        }
+        .lab-callout ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        .lab-callout ul li::before {
+            content: "\2714\0020";
+        }
+
+        /* Takeaway List */
+        .takeaway-list ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        .takeaway-list ul li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        /* Questions Slide */
+        .questions-slide {
+            text-align: center !important;
+        }
+        .questions-slide h2 {
+            color: #ffffff !important;
+            font-size: 2.2em;
+        }
+        .questions-slide p {
+            color: #e2e8f0 !important;
+        }
+
+        /* Tables */
+        .reveal table {
+            font-size: 0.75em;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .reveal table th {
+            background: var(--heading-color);
+            color: #ffffff;
+            padding: 10px 12px;
+            text-align: left;
+        }
+        .reveal table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .reveal table tr:nth-child(even) {
+            background: #f7fafc;
+        }
+
+        /* Code */
+        .reveal pre {
+            width: 100%;
+            font-size: 0.55em;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .reveal code {
+            font-size: 0.9em;
+        }
+
+        /* Lists */
+        .reveal ul, .reveal ol {
+            margin-left: 0.5em;
+        }
+        .reveal li {
+            margin-bottom: 0.4em;
+        }
+
+        /* Fragment fade-in */
+        .reveal .fragment.custom-fade {
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .reveal .fragment.custom-fade.visible {
+            opacity: 1;
+        }
+
+        /* Comparison side by side */
+        .side-by-side {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .side-by-side .bad {
+            border: 2px solid var(--danger-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .side-by-side .bad::before {
+            content: "\274C Bad";
+            display: block;
+            background: var(--danger-color);
+            color: white;
+            padding: 4px 12px;
+            font-weight: bold;
+            font-size: 0.8em;
+        }
+        .side-by-side .good {
+            border: 2px solid var(--success-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .side-by-side .good::before {
+            content: "\2705 Good";
+            display: block;
+            background: var(--success-color);
+            color: white;
+            padding: 4px 12px;
+            font-weight: bold;
+            font-size: 0.8em;
+        }
+        .side-by-side pre {
+            margin: 0 !important;
+            border-radius: 0 !important;
+        }
+
+        /* Metric bar */
+        .metric-bar {
+            background: #e2e8f0;
+            border-radius: 8px;
+            height: 30px;
+            margin: 6px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        .metric-bar .fill {
+            height: 100%;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            padding-left: 10px;
+            color: white;
+            font-weight: bold;
+            font-size: 0.7em;
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- ============================================ -->
+            <!-- SLIDE 1: Title Slide                         -->
+            <!-- ============================================ -->
+            <section class="title-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 50%, #2c5282 100%)">
+                <h1>Hardening Images</h1>
+                <h2>Module 3</h2>
+                <p>Kubernetes Security</p>
+                <aside class="notes">
+                    This is the largest module in the course. Container images are the foundation of every workload in Kubernetes, so getting them right is critical to overall cluster security. We will cover image fundamentals, base image selection, multi-stage builds, Dockerfile best practices, scanning, signing, registry security, and supply chain security.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 2: Module Overview                     -->
+            <!-- ============================================ -->
+            <section>
+                <h2>Module Overview</h2>
+                <div class="two-columns">
+                    <div>
+                        <ol>
+                            <li>Container Image Fundamentals</li>
+                            <li>Base Image Selection</li>
+                            <li>Multi-Stage Builds</li>
+                            <li>Dockerfile Best Practices</li>
+                        </ol>
+                    </div>
+                    <div>
+                        <ol start="5">
+                            <li>Image Scanning</li>
+                            <li>Image Signing &amp; Verification</li>
+                            <li>Registry Security</li>
+                            <li>Supply Chain Security</li>
+                        </ol>
+                    </div>
+                </div>
+                <div class="key-point" style="margin-top: 20px;">
+                    Your container image is the first line of defense. Every vulnerability baked into an image is deployed to production.
+                </div>
+                <aside class="notes">
+                    Walk through the eight sections. Emphasize that image hardening is foundational and affects every subsequent security layer.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SECTION 1: Container Image Fundamentals      -->
+            <!-- ============================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F4E6; Section 1</h2>
+                <p>Container Image Fundamentals</p>
+                <aside class="notes">
+                    We begin with the internals of container images so students understand why hardening matters at a structural level.
+                </aside>
+            </section>
+
+            <!-- SLIDE 4: Anatomy of a Container Image -->
+            <section>
+                <h2>&#x1F4E6; Anatomy of a Container Image</h2>
+                <div class="two-columns">
+                    <div>
+                        <ul>
+                            <li><strong>Manifest</strong> &mdash; metadata describing layers and config</li>
+                            <li><strong>Config JSON</strong> &mdash; environment vars, entrypoint, user</li>
+                            <li><strong>Layers</strong> &mdash; filesystem diffs stacked via Union FS</li>
+                            <li><strong>Union FS</strong> &mdash; overlays layers into a single view (OverlayFS)</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="concept-box">
+                            <h4>Layer Stacking</h4>
+                            <pre style="font-size:0.65em; margin:0;"><code>Layer 4: COPY app binary     (app)
+Layer 3: RUN apt-get install  (packages)
+Layer 2: RUN apt-get update   (index)
+Layer 1: FROM ubuntu:22.04    (base OS)</code></pre>
+                        </div>
+                    </div>
+                </div>
+                <aside class="notes">
+                    Each Dockerfile instruction creates a layer. Layers are read-only; the container gets a thin writable layer on top. Understanding this helps explain why deleted files still consume space if removed in a later layer.
+                </aside>
+            </section>
+
+            <!-- SLIDE 5: Image Layers and Security -->
+            <section>
+                <h2>&#x1F50D; Image Layers and Security Implications</h2>
+                <ul>
+                    <li>Each layer is <strong>immutable</strong> and <strong>content-addressable</strong> (SHA256)</li>
+                    <li>Deleting a file in a later layer does <em>not</em> remove it from the image</li>
+                    <li>Secrets added in any layer persist in the image history</li>
+                    <li>Every package installed adds potential CVEs to the attack surface</li>
+                </ul>
+                <div class="highlight-box danger">
+                    <strong>Critical:</strong> <code>docker history</code> can reveal secrets embedded in earlier layers, even if a subsequent layer removes the file.
+                </div>
+                <aside class="notes">
+                    Demo idea: show docker history revealing a secret that was removed in a later layer. This is one of the most common image security mistakes.
+                </aside>
+            </section>
+
+            <!-- SLIDE 6: Image Size and Attack Surface -->
+            <section>
+                <h2>&#x1F4CF; Image Size and Attack Surface</h2>
+                <p>Larger images = more packages = more potential vulnerabilities</p>
+                <div style="margin-top: 20px;">
+                    <div style="display:flex; align-items:center; margin:10px 0;">
+                        <span style="width:120px; font-weight:bold;">Ubuntu</span>
+                        <div class="metric-bar" style="flex:1;">
+                            <div class="fill" style="width:100%; background: var(--danger-color);">77 MB &mdash; ~400+ packages</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; margin:10px 0;">
+                        <span style="width:120px; font-weight:bold;">Alpine</span>
+                        <div class="metric-bar" style="flex:1;">
+                            <div class="fill" style="width:9%; min-width:140px; background: var(--warning-color);">7 MB &mdash; ~15 packages</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; margin:10px 0;">
+                        <span style="width:120px; font-weight:bold;">Distroless</span>
+                        <div class="metric-bar" style="flex:1;">
+                            <div class="fill" style="width:3%; min-width:120px; background: var(--success-color);">2 MB &mdash; minimal</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center; margin:10px 0;">
+                        <span style="width:120px; font-weight:bold;">scratch</span>
+                        <div class="metric-bar" style="flex:1;">
+                            <div class="fill" style="width:1%; min-width:100px; background: #1a365d;">0 MB &mdash; empty</div>
+                        </div>
+                    </div>
+                </div>
+                <aside class="notes">
+                    This visual comparison drives home the relationship between image size and attack surface. A 77MB Ubuntu image contains hundreds of packages, each of which could harbor vulnerabilities.
+                </aside>
+            </section>
+
+            <!-- SLIDE 7: CVE Density by Base Image -->
+            <section>
+                <h2>&#x1F4CA; CVE Density by Base Image</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Base Image</th>
+                            <th>Size</th>
+                            <th>Typical CVEs</th>
+                            <th>Shell Access</th>
+                            <th>Package Manager</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>ubuntu:22.04</td>
+                            <td>77 MB</td>
+                            <td>30-100+</td>
+                            <td>Yes</td>
+                            <td>apt</td>
+                        </tr>
+                        <tr>
+                            <td>alpine:3.19</td>
+                            <td>7 MB</td>
+                            <td>0-5</td>
+                            <td>Yes (ash)</td>
+                            <td>apk</td>
+                        </tr>
+                        <tr>
+                            <td>distroless/static</td>
+                            <td>2 MB</td>
+                            <td>0</td>
+                            <td>No</td>
+                            <td>None</td>
+                        </tr>
+                        <tr>
+                            <td>scratch</td>
+                            <td>0 MB</td>
+                            <td>0</td>
+                            <td>No</td>
+                            <td>None</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="key-point">
+                    Fewer packages = fewer vulnerabilities = smaller attack surface. Aim for the smallest image that meets your application's requirements.
+                </div>
+                <aside class="notes">
+                    Typical CVE counts fluctuate over time. The point is the order of magnitude difference. Distroless and scratch have essentially zero OS-level CVEs.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SECTION 2: Base Image Selection              -->
+            <!-- ============================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F3AF; Section 2</h2>
+                <p>Base Image Selection</p>
+                <aside class="notes">
+                    Choosing the right base image is one of the highest-impact decisions for container security.
+                </aside>
+            </section>
+
+            <!-- SLIDE 9: Base Image Comparison -->
+            <section>
+                <h2>&#x1F3AF; Base Image Comparison</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Use Case</th>
+                            <th>Pros</th>
+                            <th>Cons</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Ubuntu/Debian</strong></td>
+                            <td>Full-featured apps, legacy</td>
+                            <td>Familiar, broad compatibility</td>
+                            <td>Large, many CVEs</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Alpine</strong></td>
+                            <td>Minimal, general-purpose</td>
+                            <td>Tiny, fast builds</td>
+                            <td>musl libc issues</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Distroless</strong></td>
+                            <td>Production workloads</td>
+                            <td>No shell, minimal CVEs</td>
+                            <td>Hard to debug</td>
+                        </tr>
+                        <tr>
+                            <td><strong>scratch</strong></td>
+                            <td>Static binaries (Go, Rust)</td>
+                            <td>Zero attack surface</td>
+                            <td>No OS utilities at all</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <aside class="notes">
+                    Each base image sits on a spectrum from convenience to security. In production, lean toward distroless or scratch whenever possible.
+                </aside>
+            </section>
+
+            <!-- SLIDE 10: Distroless Deep Dive -->
+            <section>
+                <h2>&#x1F6E1;&#xFE0F; Distroless Deep Dive</h2>
+                <p>Google's Distroless images contain <strong>only</strong> your application and its runtime dependencies. No shell, no package manager, no unnecessary OS utilities.</p>
+                <div class="three-columns" style="margin-top: 15px;">
+                    <div class="card success">
+                        <h4>static</h4>
+                        <p>Statically-linked binaries (Go, Rust)</p>
+                        <p><em>~2 MB</em></p>
+                    </div>
+                    <div class="card success">
+                        <h4>base</h4>
+                        <p>glibc + libssl + ca-certs</p>
+                        <p><em>~20 MB</em></p>
+                    </div>
+                    <div class="card success">
+                        <h4>cc</h4>
+                        <p>base + libgcc</p>
+                        <p><em>~22 MB</em></p>
+                    </div>
+                </div>
+                <div class="three-columns" style="margin-top: 10px;">
+                    <div class="card">
+                        <h4>java</h4>
+                        <p>OpenJDK runtime</p>
+                    </div>
+                    <div class="card">
+                        <h4>python3</h4>
+                        <p>Python interpreter</p>
+                    </div>
+                    <div class="card">
+                        <h4>nodejs</h4>
+                        <p>Node.js runtime</p>
+                    </div>
+                </div>
+                <aside class="notes">
+                    Distroless images are maintained by Google and published to gcr.io/distroless. The static variant is the smallest and works for statically compiled languages. Language-specific variants include only the runtime needed.
+                </aside>
+            </section>
+
+            <!-- SLIDE 11: Distroless Nonroot Tags -->
+            <section>
+                <h2>&#x1F6E1;&#xFE0F; Distroless: Nonroot Tags</h2>
+                <p>Every Distroless image ships a <code>:nonroot</code> tag variant that runs as UID 65534:</p>
+                <pre><code class="dockerfile"># Runs as root (default)
+FROM gcr.io/distroless/static-debian12
+
+# Runs as nonroot user (UID 65534) - preferred
+FROM gcr.io/distroless/static-debian12:nonroot</code></pre>
+                <div class="highlight-box success">
+                    <strong>Best practice:</strong> Always use the <code>:nonroot</code> tag unless your application specifically requires root privileges.
+                </div>
+                <aside class="notes">
+                    The nonroot variant sets the USER directive to 65534 (nobody). This means even if an attacker breaks out of the application, they have minimal OS privileges.
+                </aside>
+            </section>
+
+            <!-- SLIDE 12: Alpine Considerations -->
+            <section>
+                <h2>&#x26A0;&#xFE0F; Alpine Considerations</h2>
+                <div class="two-columns">
+                    <div>
+                        <h4 style="color: var(--success-color);">Advantages</h4>
+                        <ul>
+                            <li>Extremely small (~7 MB)</li>
+                            <li>Fast pull and build times</li>
+                            <li>Includes shell for debugging</li>
+                            <li>Active security team</li>
+                            <li>apk is fast and simple</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 style="color: var(--warning-color);">Watch Out For</h4>
+                        <ul>
+                            <li><strong>musl vs glibc</strong> &mdash; some apps expect glibc</li>
+                            <li><strong>DNS resolution</strong> &mdash; musl resolves differently</li>
+                            <li><strong>Python wheels</strong> &mdash; may need compilation</li>
+                            <li><strong>Node.js native modules</strong> &mdash; compatibility issues</li>
+                            <li><strong>Performance</strong> &mdash; musl allocator can be slower</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    musl DNS resolution is a classic Alpine gotcha. musl does not support the search/ndots directives the same way glibc does, which can cause issues in Kubernetes where DNS relies heavily on search paths.
+                </aside>
+            </section>
+
+            <!-- SLIDE 13: When to Use Each Base Image -->
+            <section>
+                <h2>&#x1F9ED; When to Use Each Base Image</h2>
+                <div class="two-columns">
+                    <div class="card success">
+                        <h4>Use scratch when...</h4>
+                        <ul>
+                            <li>Statically compiled Go/Rust binary</li>
+                            <li>No runtime dependencies</li>
+                            <li>Maximum security posture</li>
+                        </ul>
+                    </div>
+                    <div class="card success">
+                        <h4>Use Distroless when...</h4>
+                        <ul>
+                            <li>You need a runtime (Java, Python, Node)</li>
+                            <li>You want no shell access in production</li>
+                            <li>You need CA certificates or TLS</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="two-columns" style="margin-top: 15px;">
+                    <div class="card warning">
+                        <h4>Use Alpine when...</h4>
+                        <ul>
+                            <li>You need shell access for debugging</li>
+                            <li>Your app is compatible with musl</li>
+                            <li>You need to install system packages</li>
+                        </ul>
+                    </div>
+                    <div class="card danger">
+                        <h4>Use Ubuntu/Debian when...</h4>
+                        <ul>
+                            <li>Legacy app with specific glibc needs</li>
+                            <li>Complex native dependencies</li>
+                            <li><em>Still harden it!</em></li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    The decision tree should default to scratch/distroless and only fall back to Alpine or full distros when there is a concrete requirement.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SECTION 3: Multi-Stage Builds                -->
+            <!-- ============================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F3D7;&#xFE0F; Section 3</h2>
+                <p>Multi-Stage Builds</p>
+                <aside class="notes">
+                    Multi-stage builds are one of the most effective techniques for producing small, secure production images.
+                </aside>
+            </section>
+
+            <!-- SLIDE 15: The Problem -->
+            <section>
+                <h2>&#x1F3D7;&#xFE0F; The Problem: Build Tools in Production</h2>
+                <div class="two-columns">
+                    <div>
+                        <h4>Single-Stage Build</h4>
+                        <ul>
+                            <li>Compilers (gcc, javac, go)</li>
+                            <li>Build tools (make, maven, npm)</li>
+                            <li>Development headers</li>
+                            <li>Test frameworks</li>
+                            <li>Source code</li>
+                        </ul>
+                        <p style="color: var(--danger-color); font-weight:bold;">All shipped to production!</p>
+                    </div>
+                    <div>
+                        <h4>What Production Actually Needs</h4>
+                        <ul>
+                            <li>Compiled binary or bundled app</li>
+                            <li>Runtime dependencies only</li>
+                            <li>Configuration files</li>
+                        </ul>
+                        <p style="color: var(--success-color); font-weight:bold;">Minimal attack surface.</p>
+                    </div>
+                </div>
+                <aside class="notes">
+                    Build tools in production are unnecessary attack surface. A Go compiler, for example, could be used by an attacker to compile exploit tools inside the container.
+                </aside>
+            </section>
+
+            <!-- SLIDE 16: Multi-Stage Build Pattern - Go -->
+            <section>
+                <h2>&#x1F3D7;&#xFE0F; Multi-Stage Build: Go Example</h2>
+                <pre><code class="dockerfile">FROM golang:1.22-alpine AS builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/server
+
+FROM gcr.io/distroless/static-debian12:nonroot
+COPY --from=builder /app/server /server
+ENTRYPOINT ["/server"]</code></pre>
+                <div class="highlight-box success">
+                    <strong>Result:</strong> Build stage has Go toolchain (~300 MB). Final image has only the static binary (~10-15 MB).
+                </div>
+                <aside class="notes">
+                    Walk through each stage. The builder stage has the full Go toolchain. The final stage copies only the compiled binary into a distroless image. CGO_ENABLED=0 ensures a fully static binary.
+                </aside>
+            </section>
+
+            <!-- SLIDE 17: Multi-Stage Build - Java -->
+            <section>
+                <h2>&#x2615; Multi-Stage Build: Java Example</h2>
+                <pre><code class="dockerfile">FROM maven:3.9-eclipse-temurin-21 AS builder
+WORKDIR /app
+COPY pom.xml .
+RUN mvn dependency:go-offline
+COPY src ./src
+RUN mvn package -DskipTests
+
+FROM gcr.io/distroless/java21-debian12:nonroot
+COPY --from=builder /app/target/myapp.jar /app/myapp.jar
+ENTRYPOINT ["java", "-jar", "/app/myapp.jar"]</code></pre>
+                <div class="highlight-box">
+                    Build stage: ~800 MB (JDK + Maven + dependencies)<br>
+                    Final image: ~220 MB (JRE only, no build tools)
+                </div>
+                <aside class="notes">
+                    Java builds are a great multi-stage candidate because the build toolchain (JDK + Maven/Gradle) is very large compared to the runtime (JRE only).
+                </aside>
+            </section>
+
+            <!-- SLIDE 18: Multi-Stage Build - Python -->
+            <section>
+                <h2>&#x1F40D; Multi-Stage Build: Python Example</h2>
+                <pre><code class="dockerfile">FROM python:3.12-slim AS builder
+WORKDIR /app
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+
+FROM gcr.io/distroless/python3-debian12:nonroot
+COPY --from=builder /opt/venv /opt/venv
+COPY --from=builder /app /app
+ENV PATH="/opt/venv/bin:$PATH"
+WORKDIR /app
+ENTRYPOINT ["python", "main.py"]</code></pre>
+                <aside class="notes">
+                    Python multi-stage builds use a virtual environment in the builder, then copy the entire venv to the final image. This avoids shipping pip, setuptools, and wheel in production.
+                </aside>
+            </section>
+
+            <!-- SLIDE 19: Multi-Stage Build - Node.js -->
+            <section>
+                <h2>&#x1F4E6; Multi-Stage Build: Node.js Example</h2>
+                <pre><code class="dockerfile">FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+
+FROM gcr.io/distroless/nodejs20-debian12:nonroot
+WORKDIR /app
+COPY --from=builder /app /app
+CMD ["server.js"]</code></pre>
+                <div class="highlight-box">
+                    <strong>Tip:</strong> Use <code>npm ci</code> instead of <code>npm install</code> for deterministic, reproducible builds.
+                </div>
+                <aside class="notes">
+                    npm ci uses the lockfile exactly and is faster in CI environments. The distroless nodejs image contains only the Node runtime, not npm or any build tools.
+                </aside>
+            </section>
+
+            <!-- SLIDE 20: Size Reduction Metrics -->
+            <section>
+                <h2>&#x1F4C9; Size Reduction with Multi-Stage Builds</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Application</th>
+                            <th>Single Stage</th>
+                            <th>Multi-Stage</th>
+                            <th>Reduction</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Go API Server</td>
+                            <td>350 MB</td>
+                            <td>12 MB</td>
+                            <td><strong style="color:var(--success-color);">97%</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Java Spring Boot</td>
+                            <td>800 MB</td>
+                            <td>220 MB</td>
+                            <td><strong style="color:var(--success-color);">73%</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Python Flask</td>
+                            <td>450 MB</td>
+                            <td>120 MB</td>
+                            <td><strong style="color:var(--success-color);">73%</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Node.js Express</td>
+                            <td>350 MB</td>
+                            <td>130 MB</td>
+                            <td><strong style="color:var(--success-color);">63%</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="key-point">
+                    Smaller images = faster pulls, less storage, fewer CVEs, and reduced blast radius.
+                </div>
+                <aside class="notes">
+                    These are approximate real-world numbers. Go achieves the most dramatic reduction because it compiles to a single static binary.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SECTION 4: Dockerfile Best Practices         -->
+            <!-- ============================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F4DD; Section 4</h2>
+                <p>Dockerfile Best Practices</p>
+                <aside class="notes">
+                    Even with the right base image and multi-stage builds, poor Dockerfile practices can introduce vulnerabilities.
+                </aside>
+            </section>
+
+            <!-- SLIDE 22: Pin Base Image Versions -->
+            <section>
+                <h2>&#x1F4CC; Pin Base Image Versions</h2>
+                <p>Tags are mutable. The same tag can point to different images over time.</p>
+                <pre><code class="dockerfile"># Bad - tag can change
+FROM python:3.12
+
+# Better - pinned minor version
+FROM python:3.12.2-slim
+
+# Best - pinned with SHA256 digest
+FROM python:3.12.2-slim@sha256:abcdef1234567890...</code></pre>
+                <div class="highlight-box warning">
+                    <strong>Why digest pinning?</strong> Even a specific version tag like <code>3.12.2-slim</code> can be overwritten. A digest guarantees the exact image bytes.
+                </div>
+                <aside class="notes">
+                    Digest pinning is the gold standard for reproducible and secure builds. Pair it with automated dependency update tools like Renovate or Dependabot to keep images current.
+                </aside>
+            </section>
+
+            <!-- SLIDE 23: Minimize Layers -->
+            <section>
+                <h2>&#x1F4E6; Minimize Layers</h2>
+                <div class="side-by-side">
+                    <div class="bad">
+                        <pre><code class="dockerfile">RUN apt-get update
+RUN apt-get install -y curl
+RUN apt-get install -y wget
+RUN rm -rf /var/lib/apt/lists/*</code></pre>
+                    </div>
+                    <div class="good">
+                        <pre><code class="dockerfile">RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      curl \
+      wget && \
+    rm -rf /var/lib/apt/lists/*</code></pre>
+                    </div>
+                </div>
+                <ul style="margin-top: 15px;">
+                    <li>Combine related <code>RUN</code> commands with <code>&amp;&amp;</code></li>
+                    <li>Clean up caches in the <strong>same layer</strong> they are created</li>
+                    <li>Use <code>--no-install-recommends</code> to skip optional packages</li>
+                </ul>
+                <aside class="notes">
+                    If you run apt-get update in one layer and rm in another, the cache files still exist in the earlier layer. Combining into a single RUN ensures the cleanup actually reduces image size.
+                </aside>
+            </section>
+
+            <!-- SLIDE 24: .dockerignore -->
+            <section>
+                <h2>&#x1F6AB; Use .dockerignore</h2>
+                <p>Prevent sensitive and unnecessary files from entering the build context:</p>
+                <pre><code class="plaintext"># .dockerignore
+.git
+.gitignore
+.env
+*.md
+Dockerfile
+docker-compose*.yml
+node_modules
+__pycache__
+.vscode
+.idea
+*.secret
+*.key
+*.pem</code></pre>
+                <div class="highlight-box danger">
+                    <strong>Without .dockerignore:</strong> Your entire directory (including <code>.env</code>, <code>.git</code>, secrets, keys) is sent to the Docker daemon as build context.
+                </div>
+                <aside class="notes">
+                    The .dockerignore file works like .gitignore. Without it, COPY . . copies everything, including secrets and development files. This is both a security risk and slows builds.
+                </aside>
+            </section>
+
+            <!-- SLIDE 25: Don't Run as Root -->
+            <section>
+                <h2>&#x1F6E1;&#xFE0F; Don't Run as Root</h2>
+                <pre><code class="dockerfile"># Create a non-root user
+RUN groupadd -r appuser && useradd -r -g appuser -s /sbin/nologin appuser
+
+# Set ownership
+COPY --chown=appuser:appuser . /app
+
+# Switch to non-root user
+USER appuser
+
+ENTRYPOINT ["/app/server"]</code></pre>
+                <div class="two-columns" style="margin-top: 15px;">
+                    <div class="highlight-box danger">
+                        <strong>Running as root:</strong> Container compromise = root access to container filesystem, potential host escape.
+                    </div>
+                    <div class="highlight-box success">
+                        <strong>Running as non-root:</strong> Limits blast radius. Attacker gets only unprivileged access.
+                    </div>
+                </div>
+                <aside class="notes">
+                    By default, Docker runs containers as root. Always add a USER directive. For distroless, use the :nonroot tag variant instead.
+                </aside>
+            </section>
+
+            <!-- SLIDE 26: No Secrets in Images -->
+            <section>
+                <h2>&#x1F512; No Secrets in Build Args or Layers</h2>
+                <div class="side-by-side">
+                    <div class="bad">
+                        <pre><code class="dockerfile"># Secrets visible in image history
+ARG DB_PASSWORD
+ENV DB_PASSWORD=$DB_PASSWORD
+COPY credentials.json /app/
+RUN curl -H "Token: $API_KEY" ...</code></pre>
+                    </div>
+                    <div class="good">
+                        <pre><code class="dockerfile"># Use BuildKit secrets
+RUN --mount=type=secret,id=db_pass \
+    cat /run/secrets/db_pass | \
+    my-setup-script
+
+# Mount secrets at runtime
+# via Kubernetes Secrets or
+# external secret managers</code></pre>
+                    </div>
+                </div>
+                <div class="key-point" style="margin-top: 15px;">
+                    Build args and ENV values are stored in image metadata. Use Docker BuildKit <code>--mount=type=secret</code> or inject secrets at runtime via Kubernetes Secrets.
+                </div>
+                <aside class="notes">
+                    docker build --secret id=db_pass,src=./db_password.txt passes the secret to the build without persisting it in any layer. At runtime, use Kubernetes Secrets mounted as volumes or environment variables.
+                </aside>
+            </section>
+
+            <!-- SLIDE 27: COPY vs ADD -->
+            <section>
+                <h2>&#x1F4CB; COPY vs ADD</h2>
+                <div class="two-columns">
+                    <div class="card success">
+                        <h4>COPY (Preferred)</h4>
+                        <ul>
+                            <li>Simple file/directory copy</li>
+                            <li>Predictable behavior</li>
+                            <li>No hidden magic</li>
+                        </ul>
+                        <pre style="font-size:0.65em;"><code class="dockerfile">COPY app.py /app/
+COPY --chown=appuser:appuser . /app</code></pre>
+                    </div>
+                    <div class="card warning">
+                        <h4>ADD (Use Sparingly)</h4>
+                        <ul>
+                            <li>Auto-extracts tar archives</li>
+                            <li>Supports remote URLs</li>
+                            <li>Unpredictable side effects</li>
+                        </ul>
+                        <pre style="font-size:0.65em;"><code class="dockerfile"># Only use for tar extraction
+ADD app.tar.gz /app/
+# Never use for remote URLs
+# ADD http://... (use curl instead)</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">
+                    ADD can fetch remote URLs and auto-extract tarballs, which makes it harder to reason about. COPY is explicit and should be the default choice. ADD with URLs is especially risky because the content could change.
+                </aside>
+            </section>
+
+            <!-- SLIDE 28: Layer Cache Efficiency -->
+            <section>
+                <h2>&#x26A1; Order Layers for Cache Efficiency</h2>
+                <div class="side-by-side">
+                    <div class="bad">
+                        <pre><code class="dockerfile">FROM node:20-alpine
+WORKDIR /app
+# Any code change invalidates npm install
+COPY . .
+RUN npm ci
+USER node
+CMD ["node", "server.js"]</code></pre>
+                    </div>
+                    <div class="good">
+                        <pre><code class="dockerfile">FROM node:20-alpine
+WORKDIR /app
+# Dependencies change rarely
+COPY package*.json ./
+RUN npm ci
+# Code changes frequently
+COPY . .
+USER node
+CMD ["node", "server.js"]</code></pre>
+                    </div>
+                </div>
+                <div class="highlight-box">
+                    <strong>Rule:</strong> Place instructions that change <em>least frequently</em> at the top. Dependencies before source code. OS packages before application packages.
+                </div>
+                <aside class="notes">
+                    Docker cache invalidation cascades: once a layer changes, all subsequent layers must be rebuilt. Ordering layers from least to most frequently changing maximizes cache hits.
+                </aside>
+            </section>
+
+            <!-- SLIDE 29: Bad vs Good Dockerfile - Full Comparison -->
+            <section>
+                <h2>&#x1F6A8; Bad vs Good Dockerfile: Full Comparison</h2>
+                <div class="side-by-side">
+                    <div class="bad">
+                        <pre><code class="dockerfile">FROM python:latest
+COPY . /app
+WORKDIR /app
+RUN pip install -r requirements.txt
+ARG API_KEY
+ENV API_KEY=$API_KEY
+EXPOSE 8080
+CMD python app.py</code></pre>
+                    </div>
+                    <div class="good">
+                        <pre><code class="dockerfile">FROM python:3.12.2-slim@sha256:abc...
+RUN groupadd -r app && \
+    useradd -r -g app app
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir \
+    -r requirements.txt
+COPY --chown=app:app . .
+USER app
+EXPOSE 8080
+ENTRYPOINT ["python", "app.py"]</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">
+                    Walk through every difference: pinned version, non-root user, no secrets in args, layer ordering, no-cache-dir, ENTRYPOINT exec form vs CMD shell form, chown on COPY.
+                </aside>
+            </section>
+
+            <!-- SLIDE 30: Dockerfile Linting -->
+            <section>
+                <h2>&#x1F50D; Dockerfile Linting with Hadolint</h2>
+                <pre><code class="bash"># Run Hadolint on your Dockerfile
+docker run --rm -i hadolint/hadolint < Dockerfile
+
+# Example output:
+# DL3007 warning: Using latest is prone to errors
+# DL3008 warning: Pin versions in apt-get install
+# DL3009 info: Delete apt-get lists after installing
+# DL3025 warning: Use arguments JSON notation for CMD</code></pre>
+                <div class="highlight-box success">
+                    <strong>Hadolint</strong> checks Dockerfiles against best practices. Integrate it into your CI pipeline to catch issues before they reach production.
+                </div>
+                <aside class="notes">
+                    Hadolint parses Dockerfiles and applies rules from the Dockerfile best practices documentation. It also shells out to ShellCheck for RUN instruction linting.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SECTION 5: Image Scanning                    -->
+            <!-- ============================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F50E; Section 5</h2>
+                <p>Image Scanning</p>
+                <aside class="notes">
+                    Scanning images for known vulnerabilities is essential. We cover SBOM generation and vulnerability scanning.
+                </aside>
+            </section>
+
+            <!-- SLIDE 32: Why Scan Images? -->
+            <section>
+                <h2>&#x1F50E; Why Scan Images?</h2>
+                <ul>
+                    <li>Known vulnerabilities (CVEs) in OS packages and application dependencies</li>
+                    <li>Malware detection</li>
+                    <li>License compliance</li>
+                    <li>Configuration issues (running as root, exposed secrets)</li>
+                    <li>Compliance requirements (SOC 2, PCI-DSS, HIPAA)</li>
+                </ul>
+                <div class="concept-box">
+                    <h4>Shift Left</h4>
+                    <p>Scan images in the CI/CD pipeline <em>before</em> they reach the registry. Catching a critical CVE in CI costs minutes; catching it in production costs hours or worse.</p>
+                </div>
+                <aside class="notes">
+                    Image scanning should be automated and continuous. New CVEs are published daily, so images that were clean yesterday may have vulnerabilities today.
+                </aside>
+            </section>
+
+            <!-- SLIDE 33: SBOM Generation with Syft -->
+            <section>
+                <h2>&#x1F4CB; SBOM Generation with Syft</h2>
+                <p>A Software Bill of Materials (SBOM) inventories every component in your image.</p>
+                <pre><code class="bash"># Generate SBOM in CycloneDX format
+syft packages myimage:latest -o cyclonedx-json > sbom.json
+
+# Generate SBOM in SPDX format
+syft packages myimage:latest -o spdx-json > sbom-spdx.json
+
+# Scan a local Dockerfile directory
+syft dir:/path/to/project -o cyclonedx-json</code></pre>
+                <div class="highlight-box">
+                    <strong>Syft</strong> (by Anchore) detects packages from OS package managers, language-specific manifests (package.json, go.mod, pom.xml), and binary analysis.
+                </div>
+                <aside class="notes">
+                    SBOMs are increasingly required by regulation (US Executive Order 14028). CycloneDX and SPDX are the two main standards. Syft supports both.
+                </aside>
+            </section>
+
+            <!-- SLIDE 34: Vulnerability Scanning with Trivy -->
+            <section>
+                <h2>&#x1F6E1;&#xFE0F; Vulnerability Scanning with Trivy</h2>
+                <pre><code class="bash"># Scan image for HIGH and CRITICAL vulnerabilities
+trivy image --severity HIGH,CRITICAL myimage:latest
+
+# Scan and fail CI if critical issues found
+trivy image --exit-code 1 --severity CRITICAL myimage:latest
+
+# Scan with SBOM output
+trivy image --format cyclonedx --output sbom.json myimage:latest
+
+# Scan filesystem (for local development)
+trivy fs --severity HIGH,CRITICAL .</code></pre>
+                <div class="highlight-box success">
+                    <strong>Trivy</strong> scans container images, filesystems, git repositories, and Kubernetes clusters. It detects vulnerabilities, misconfigurations, and secrets.
+                </div>
+                <aside class="notes">
+                    Trivy is free, open source, and maintained by Aqua Security. The --exit-code flag makes it easy to use as a CI gate. Demonstrate running trivy against a sample image.
+                </aside>
+            </section>
+
+            <!-- SLIDE 35: Grype Scanning -->
+            <section>
+                <h2>&#x1F50D; Vulnerability Scanning with Grype</h2>
+                <pre><code class="bash"># Scan an image
+grype myimage:latest
+
+# Scan and filter by severity
+grype myimage:latest --only-fixed --fail-on critical
+
+# Scan an SBOM (from Syft)
+grype sbom:./sbom.json
+
+# Output in table or JSON
+grype myimage:latest -o json > results.json</code></pre>
+                <div class="highlight-box">
+                    <strong>Grype + Syft</strong> form a powerful pair: Syft generates the SBOM, Grype scans it for vulnerabilities. Both are open source from Anchore.
+                </div>
+                <aside class="notes">
+                    Grype can consume SBOMs generated by Syft, so you generate the SBOM once and scan it repeatedly as new vulnerability data becomes available, without needing the original image.
+                </aside>
+            </section>
+
+            <!-- SLIDE 36: Scanner Comparison -->
+            <section>
+                <h2>&#x1F4CA; Scanner Comparison</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Trivy</th>
+                            <th>Grype</th>
+                            <th>Snyk</th>
+                            <th>Anchore</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>License</td>
+                            <td>Apache 2.0</td>
+                            <td>Apache 2.0</td>
+                            <td>Commercial</td>
+                            <td>Commercial/OSS</td>
+                        </tr>
+                        <tr>
+                            <td>OS Packages</td>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                        </tr>
+                        <tr>
+                            <td>App Dependencies</td>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                        </tr>
+                        <tr>
+                            <td>Misconfigurations</td>
+                            <td>Yes</td>
+                            <td>No</td>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                        </tr>
+                        <tr>
+                            <td>SBOM Generation</td>
+                            <td>Yes</td>
+                            <td>Via Syft</td>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                        </tr>
+                        <tr>
+                            <td>K8s Scanning</td>
+                            <td>Yes</td>
+                            <td>No</td>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                        </tr>
+                        <tr>
+                            <td>CI Integration</td>
+                            <td>Excellent</td>
+                            <td>Good</td>
+                            <td>Excellent</td>
+                            <td>Good</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <aside class="notes">
+                    Trivy is the most popular free option and covers the broadest range of scanning. Snyk offers the best developer experience with its commercial platform. Anchore Enterprise adds policy enforcement.
+                </aside>
+            </section>
+
+            <!-- SLIDE 37: CI/CD Integration -->
+            <section>
+                <h2>&#x2699;&#xFE0F; Integrating Scanning into CI/CD</h2>
+                <pre><code class="yaml"># GitHub Actions example
+- name: Build image
+  run: docker build -t myapp:${{ github.sha }} .
+
+- name: Scan with Trivy
+  uses: aquasecurity/trivy-action@master
+  with:
+    image-ref: myapp:${{ github.sha }}
+    format: table
+    exit-code: 1
+    severity: CRITICAL,HIGH
+
+- name: Generate SBOM
+  run: syft packages myapp:${{ github.sha }} -o cyclonedx-json > sbom.json
+
+- name: Upload SBOM
+  uses: actions/upload-artifact@v4
+  with:
+    name: sbom
+    path: sbom.json</code></pre>
+                <aside class="notes">
+                    This GitHub Actions workflow builds, scans, generates an SBOM, and uploads it as an artifact. The exit-code: 1 flag will fail the pipeline if HIGH or CRITICAL vulnerabilities are found.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SECTION 6: Image Signing and Verification    -->
+            <!-- ============================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x270D;&#xFE0F; Section 6</h2>
+                <p>Image Signing and Verification</p>
+                <aside class="notes">
+                    Signing images ensures that what you deploy is exactly what you built. This is the foundation of supply chain integrity.
+                </aside>
+            </section>
+
+            <!-- SLIDE 39: Why Sign Images? -->
+            <section>
+                <h2>&#x270D;&#xFE0F; Why Sign Images?</h2>
+                <div class="concept-box">
+                    <h4>The Supply Chain Problem</h4>
+                    <p>Between building an image and running it in production, many things can go wrong:</p>
+                </div>
+                <ul style="margin-top: 15px;">
+                    <li><strong>Registry compromise</strong> &mdash; attacker replaces your image with a malicious one</li>
+                    <li><strong>Man-in-the-middle</strong> &mdash; image tampered during transit</li>
+                    <li><strong>Tag mutation</strong> &mdash; someone pushes a different image to the same tag</li>
+                    <li><strong>Unauthorized builds</strong> &mdash; images built outside trusted CI pipelines</li>
+                </ul>
+                <div class="key-point" style="margin-top: 15px;">
+                    Image signing creates a cryptographic guarantee: this image was built by a trusted entity and has not been modified.
+                </div>
+                <aside class="notes">
+                    Image signing is analogous to code signing for software packages. Without it, you are trusting the registry infrastructure completely.
+                </aside>
+            </section>
+
+            <!-- SLIDE 40: Cosign - Signing -->
+            <section>
+                <h2>&#x1F511; Cosign: Signing Images</h2>
+                <p>Cosign is part of the <strong>Sigstore</strong> project for supply chain security.</p>
+                <pre><code class="bash"># Generate a key pair
+cosign generate-key-pair
+
+# Sign an image
+cosign sign --key cosign.key myregistry/myimage:v1.0
+
+# Sign with annotations
+cosign sign --key cosign.key \
+  -a "git_sha=$(git rev-parse HEAD)" \
+  -a "build_pipeline=github-actions" \
+  myregistry/myimage:v1.0</code></pre>
+                <div class="highlight-box">
+                    Cosign stores signatures as OCI artifacts alongside the image in the same registry. No separate signature storage needed.
+                </div>
+                <aside class="notes">
+                    Cosign was designed specifically for containers and OCI artifacts. The signature is stored as a tag in the registry alongside the image, making it easy to distribute.
+                </aside>
+            </section>
+
+            <!-- SLIDE 41: Cosign - Verification -->
+            <section>
+                <h2>&#x2705; Cosign: Verifying Images</h2>
+                <pre><code class="bash"># Verify an image signature
+cosign verify --key cosign.pub myregistry/myimage:v1.0
+
+# Verify with annotation checks
+cosign verify --key cosign.pub \
+  -a "build_pipeline=github-actions" \
+  myregistry/myimage:v1.0
+
+# Output verification details in JSON
+cosign verify --key cosign.pub \
+  myregistry/myimage:v1.0 | jq .</code></pre>
+                <div class="highlight-box success">
+                    <strong>Kubernetes integration:</strong> Use admission controllers (Kyverno, OPA Gatekeeper, Sigstore Policy Controller) to enforce signature verification before pods can run.
+                </div>
+                <aside class="notes">
+                    Verification should be enforced at the cluster level. The Sigstore Policy Controller can be installed as a Kubernetes admission webhook that rejects unsigned images.
+                </aside>
+            </section>
+
+            <!-- SLIDE 42: Keyless Signing -->
+            <section>
+                <h2>&#x1F310; Keyless Signing with Sigstore</h2>
+                <div class="two-columns">
+                    <div>
+                        <h4>How It Works</h4>
+                        <ol>
+                            <li>Authenticate via OIDC (GitHub, Google, etc.)</li>
+                            <li><strong>Fulcio</strong> issues a short-lived certificate</li>
+                            <li>Image signed with ephemeral key</li>
+                            <li>Signature recorded in <strong>Rekor</strong> transparency log</li>
+                            <li>Key material discarded</li>
+                        </ol>
+                    </div>
+                    <div>
+                        <pre><code class="bash"># Keyless signing (opens browser)
+cosign sign myregistry/myimage:v1.0
+
+# Keyless verification
+cosign verify \
+  --certificate-identity=user@example.com \
+  --certificate-oidc-issuer=https://accounts.google.com \
+  myregistry/myimage:v1.0</code></pre>
+                    </div>
+                </div>
+                <div class="key-point" style="margin-top: 10px;">
+                    Keyless signing eliminates key management. Identity is proven via OIDC; provenance is recorded in a public transparency log.
+                </div>
+                <aside class="notes">
+                    Keyless signing is ideal for CI/CD pipelines where managing long-lived keys is a burden. GitHub Actions, for example, provides OIDC tokens that Fulcio accepts directly.
+                </aside>
+            </section>
+
+            <!-- SLIDE 43: Notary v2 -->
+            <section>
+                <h2>&#x1F4DC; Notary v2 Overview</h2>
+                <ul>
+                    <li>OCI-native signature specification (part of <strong>Notation</strong> project)</li>
+                    <li>Signatures stored as OCI reference types in the registry</li>
+                    <li>Plugin-based architecture for signing providers</li>
+                    <li>Supported by Azure Container Registry and AWS Signer</li>
+                </ul>
+                <pre><code class="bash"># Sign with Notation (Notary v2 CLI)
+notation sign myregistry/myimage@sha256:abc123...
+
+# Verify
+notation verify myregistry/myimage@sha256:abc123...</code></pre>
+                <div class="highlight-box">
+                    <strong>Cosign vs Notation:</strong> Cosign is more widely adopted in the open-source ecosystem. Notation has stronger enterprise/cloud provider backing. Both are valid choices.
+                </div>
+                <aside class="notes">
+                    Notary v2 (Notation) is the CNCF project for OCI artifact signing. It is particularly well-integrated with Azure and AWS. In practice, many teams use Cosign for its simplicity and Sigstore integration.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SECTION 7: Registry Security                 -->
+            <!-- ============================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F3E2; Section 7</h2>
+                <p>Registry Security</p>
+                <aside class="notes">
+                    The registry is the gatekeeper between your CI/CD pipeline and your Kubernetes cluster. Securing it is critical.
+                </aside>
+            </section>
+
+            <!-- SLIDE 45: Private Registry Best Practices -->
+            <section>
+                <h2>&#x1F3E2; Private Registry Best Practices</h2>
+                <ul>
+                    <li><strong>Authentication required</strong> &mdash; no anonymous pulls</li>
+                    <li><strong>TLS everywhere</strong> &mdash; encrypt registry traffic</li>
+                    <li><strong>RBAC</strong> &mdash; separate push/pull permissions by team</li>
+                    <li><strong>Vulnerability scanning</strong> &mdash; scan on push (Harbor, ECR, GCR, ACR)</li>
+                    <li><strong>Content trust</strong> &mdash; enforce signed images</li>
+                    <li><strong>Image retention policies</strong> &mdash; clean up old, untagged images</li>
+                    <li><strong>Geo-replication</strong> &mdash; reduce pull latency and improve availability</li>
+                    <li><strong>Audit logging</strong> &mdash; track who pushed/pulled what</li>
+                </ul>
+                <aside class="notes">
+                    Harbor is a popular CNCF-graduated project for self-hosted registries. Cloud providers offer managed registries with built-in scanning and RBAC.
+                </aside>
+            </section>
+
+            <!-- SLIDE 46: Image Pull Policies -->
+            <section>
+                <h2>&#x1F504; Image Pull Policies</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Policy</th>
+                            <th>Behavior</th>
+                            <th>Security Impact</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>Always</code></td>
+                            <td>Pull every time a pod starts</td>
+                            <td style="color: var(--success-color);">Always gets latest (patched) image</td>
+                        </tr>
+                        <tr>
+                            <td><code>IfNotPresent</code></td>
+                            <td>Pull only if not cached locally</td>
+                            <td style="color: var(--warning-color);">May use stale/vulnerable cached image</td>
+                        </tr>
+                        <tr>
+                            <td><code>Never</code></td>
+                            <td>Only use pre-loaded images</td>
+                            <td style="color: var(--warning-color);">Air-gapped scenarios only</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <pre><code class="yaml">spec:
+  containers:
+  - name: app
+    image: myregistry/myimage@sha256:abc123...  # Digest pinned
+    imagePullPolicy: Always                      # Always verify</code></pre>
+                <div class="key-point">
+                    Combine <code>Always</code> pull policy with digest-pinned images for maximum security and reproducibility.
+                </div>
+                <aside class="notes">
+                    imagePullPolicy: Always with a digest-pinned image ensures that every pod start verifies the image exists in the registry. With tags, Always re-pulls the image each time, which can slow pod startup.
+                </aside>
+            </section>
+
+            <!-- SLIDE 47: Digest Pinning vs Tag Pinning -->
+            <section>
+                <h2>&#x1F4CC; Digest Pinning vs Tag Pinning</h2>
+                <div class="two-columns">
+                    <div class="card warning">
+                        <h4>Tag Pinning</h4>
+                        <pre style="font-size:0.6em;"><code>image: myapp:v1.2.3</code></pre>
+                        <ul>
+                            <li>Human-readable</li>
+                            <li>Tags are <strong>mutable</strong></li>
+                            <li>Can be overwritten</li>
+                            <li>No guarantee of content</li>
+                        </ul>
+                    </div>
+                    <div class="card success">
+                        <h4>Digest Pinning</h4>
+                        <pre style="font-size:0.6em;"><code>image: myapp@sha256:a1b2c3...</code></pre>
+                        <ul>
+                            <li>Immutable reference</li>
+                            <li>Cryptographic guarantee</li>
+                            <li>Cannot be overwritten</li>
+                            <li>Exact content known</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="highlight-box success" style="margin-top: 15px;">
+                    <strong>Best practice:</strong> Use tools like <strong>crane digest</strong> or <strong>skopeo inspect</strong> to resolve tags to digests in your deployment pipelines.
+                </div>
+                <aside class="notes">
+                    In practice, teams often use tags in Dockerfiles for readability and resolve them to digests in Kubernetes manifests via automation.
+                </aside>
+            </section>
+
+            <!-- SLIDE 48: ImagePolicyWebhook -->
+            <section>
+                <h2>&#x1F6A7; ImagePolicyWebhook Admission Controller</h2>
+                <p>Kubernetes can enforce image policies at admission time:</p>
+                <pre><code class="yaml"># Example: Kyverno policy to require image signatures
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-image-signatures
+spec:
+  validationFailureAction: Enforce
+  rules:
+  - name: verify-cosign-signature
+    match:
+      any:
+      - resources:
+          kinds: ["Pod"]
+    verifyImages:
+    - imageReferences: ["myregistry/*"]
+      attestors:
+      - entries:
+        - keys:
+            publicKeys: |-
+              -----BEGIN PUBLIC KEY-----
+              ...
+              -----END PUBLIC KEY-----</code></pre>
+                <aside class="notes">
+                    Kyverno and OPA Gatekeeper are the two most popular policy engines for Kubernetes. This Kyverno policy rejects any pod that uses an unsigned image from the specified registry.
+                </aside>
+            </section>
+
+            <!-- SLIDE 49: OCI Registry Security -->
+            <section>
+                <h2>&#x1F4E6; OCI Registry Security Features</h2>
+                <ul>
+                    <li><strong>Immutable tags</strong> &mdash; prevent tag overwriting (ECR, Harbor)</li>
+                    <li><strong>Vulnerability scanning on push</strong> &mdash; automatic scan when images are pushed</li>
+                    <li><strong>Quarantine</strong> &mdash; hold images until scan passes (ACR)</li>
+                    <li><strong>Token-scoped access</strong> &mdash; short-lived pull tokens per namespace</li>
+                    <li><strong>OCI reference types</strong> &mdash; attach signatures, SBOMs, attestations to images</li>
+                    <li><strong>Webhook notifications</strong> &mdash; alert on push, scan results, policy violations</li>
+                </ul>
+                <div class="highlight-box">
+                    Modern registries are more than storage &mdash; they are active participants in your security posture.
+                </div>
+                <aside class="notes">
+                    ECR immutable tags and ACR quarantine are particularly powerful enterprise features. Harbor provides similar capabilities as an open-source alternative.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SECTION 8: Supply Chain Security              -->
+            <!-- ============================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F517; Section 8</h2>
+                <p>Supply Chain Security</p>
+                <aside class="notes">
+                    Supply chain security is the overarching framework that ties together everything we have covered: base images, builds, scanning, signing, and registry controls.
+                </aside>
+            </section>
+
+            <!-- SLIDE 51: SLSA Framework -->
+            <section>
+                <h2>&#x1F517; SLSA Framework (Supply-chain Levels for Software Artifacts)</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Level</th>
+                            <th>Requirements</th>
+                            <th>Protection</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>SLSA 1</strong></td>
+                            <td>Build process documented</td>
+                            <td>Provenance exists</td>
+                        </tr>
+                        <tr>
+                            <td><strong>SLSA 2</strong></td>
+                            <td>Hosted build service, authenticated provenance</td>
+                            <td>Tamper resistance after build</td>
+                        </tr>
+                        <tr>
+                            <td><strong>SLSA 3</strong></td>
+                            <td>Hardened build platform, non-falsifiable provenance</td>
+                            <td>Tamper resistance of build process</td>
+                        </tr>
+                        <tr>
+                            <td><strong>SLSA 4</strong></td>
+                            <td>Hermetic, reproducible builds, two-person review</td>
+                            <td>Highest confidence in integrity</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="highlight-box">
+                    <strong>Goal:</strong> Progress toward SLSA 3+ for production workloads. Most organizations start at SLSA 1-2 and incrementally improve.
+                </div>
+                <aside class="notes">
+                    SLSA (pronounced "salsa") is a framework from Google that provides a common vocabulary for supply chain security levels. It helps organizations measure and improve their supply chain posture.
+                </aside>
+            </section>
+
+            <!-- SLIDE 52: SBOM Standards -->
+            <section>
+                <h2>&#x1F4CB; SBOM Requirements and Standards</h2>
+                <div class="two-columns">
+                    <div class="card">
+                        <h4>SPDX (Linux Foundation)</h4>
+                        <ul>
+                            <li>ISO/IEC 5962:2021 standard</li>
+                            <li>Focus on license compliance</li>
+                            <li>Comprehensive package metadata</li>
+                            <li>Formats: JSON, RDF, tag-value</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>CycloneDX (OWASP)</h4>
+                        <ul>
+                            <li>Security-focused SBOM standard</li>
+                            <li>Vulnerability references (VEX)</li>
+                            <li>Dependency graph support</li>
+                            <li>Formats: JSON, XML, protobuf</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="key-point" style="margin-top: 15px;">
+                    US Executive Order 14028 requires SBOMs for software sold to the federal government. Both SPDX and CycloneDX are accepted formats.
+                </div>
+                <aside class="notes">
+                    CycloneDX is generally preferred for security use cases because of its VEX (Vulnerability Exploitability eXchange) support. SPDX is more established for license compliance.
+                </aside>
+            </section>
+
+            <!-- SLIDE 53: Provenance and Attestations -->
+            <section>
+                <h2>&#x1F4DC; Provenance and Attestations</h2>
+                <p>Attestations are signed statements about how an artifact was produced.</p>
+                <pre><code class="bash"># Generate and attach SLSA provenance with cosign
+cosign attest --predicate provenance.json \
+  --type slsaprovenance \
+  --key cosign.key \
+  myregistry/myimage:v1.0
+
+# Verify attestation
+cosign verify-attestation \
+  --type slsaprovenance \
+  --key cosign.pub \
+  myregistry/myimage:v1.0</code></pre>
+                <div class="concept-box">
+                    <h4>What Provenance Captures</h4>
+                    <ul>
+                        <li><strong>Builder</strong> &mdash; what CI system built the image</li>
+                        <li><strong>Source</strong> &mdash; git repo, commit SHA, branch</li>
+                        <li><strong>Build config</strong> &mdash; Dockerfile, build args</li>
+                        <li><strong>Materials</strong> &mdash; base images, dependencies</li>
+                    </ul>
+                </div>
+                <aside class="notes">
+                    Provenance tells you the complete story of how an image was created. Combined with signature verification, it provides strong guarantees about image integrity and origin.
+                </aside>
+            </section>
+
+            <!-- SLIDE 54: In-Toto Framework -->
+            <section>
+                <h2>&#x1F50F; In-Toto Framework</h2>
+                <p>In-Toto defines and verifies the <strong>entire supply chain layout</strong>, not just individual artifacts.</p>
+                <div class="two-columns">
+                    <div>
+                        <h4>Key Concepts</h4>
+                        <ul>
+                            <li><strong>Layout</strong> &mdash; defines expected supply chain steps</li>
+                            <li><strong>Steps</strong> &mdash; individual actions (clone, build, scan, sign)</li>
+                            <li><strong>Links</strong> &mdash; signed evidence that each step occurred</li>
+                            <li><strong>Functionaries</strong> &mdash; authorized actors for each step</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="concept-box" style="font-size: 0.85em;">
+                            <h4>Supply Chain Layout</h4>
+                            <p>
+                                Step 1: Developer writes code<br>
+                                Step 2: CI builds image<br>
+                                Step 3: Scanner finds no critical CVEs<br>
+                                Step 4: Signer signs image<br>
+                                Step 5: Deployer pushes to cluster
+                            </p>
+                            <p><em>Each step produces a signed "link" metadata file.</em></p>
+                        </div>
+                    </div>
+                </div>
+                <aside class="notes">
+                    In-Toto is a CNCF project used by companies like Datadog and is integrated into tools like SLSA and Sigstore. It is particularly useful when multiple teams are involved in the software delivery process.
+                </aside>
+            </section>
+
+            <!-- SLIDE 55: Putting It All Together -->
+            <section>
+                <h2>&#x1F3AF; Putting It All Together</h2>
+                <div class="concept-box">
+                    <h4>Secure Image Pipeline</h4>
+                    <ol>
+                        <li><strong>Build</strong> &mdash; Multi-stage, minimal base, pinned dependencies</li>
+                        <li><strong>Lint</strong> &mdash; Hadolint checks Dockerfile best practices</li>
+                        <li><strong>Scan</strong> &mdash; Trivy/Grype for vulnerabilities, fail on CRITICAL</li>
+                        <li><strong>Generate SBOM</strong> &mdash; Syft produces CycloneDX/SPDX</li>
+                        <li><strong>Sign</strong> &mdash; Cosign signs image and attaches attestations</li>
+                        <li><strong>Push</strong> &mdash; Image + signature + SBOM to private registry</li>
+                        <li><strong>Admit</strong> &mdash; Kyverno/OPA verifies signature before deployment</li>
+                        <li><strong>Monitor</strong> &mdash; Continuous scanning for new CVEs</li>
+                    </ol>
+                </div>
+                <aside class="notes">
+                    This is the complete pipeline. Emphasize that each step adds a layer of security, and the combination provides defense in depth for the image supply chain.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- LAB CALLOUT                                  -->
+            <!-- ============================================ -->
+            <section class="lab-callout" data-background-color="#2f855a">
+                <h2>&#x1F9EA; Lab 3: Building Secure Container Images</h2>
+                <p><strong>Duration: 60 minutes</strong></p>
+                <ul>
+                    <li>Compare an insecure Dockerfile against a hardened version</li>
+                    <li>Implement multi-stage builds for a sample application</li>
+                    <li>Scan images with Trivy and analyze the vulnerability report</li>
+                    <li>Sign an image with cosign and verify the signature</li>
+                    <li>Generate an SBOM with Syft</li>
+                </ul>
+                <aside class="notes">
+                    This is a hands-on lab. Students will work with provided Dockerfiles, first examining the insecure version, then building the hardened version step by step. Ensure Trivy and cosign are pre-installed in the lab environment.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- KEY TAKEAWAYS                                -->
+            <!-- ============================================ -->
+            <section class="takeaway-list">
+                <h2>&#x1F4DD; Key Takeaways</h2>
+                <ul>
+                    <li>&#x1F4E6; <strong>Smaller images = fewer vulnerabilities.</strong> Use distroless or scratch when possible.</li>
+                    <li>&#x1F3D7;&#xFE0F; <strong>Multi-stage builds</strong> eliminate build tools from production images, often reducing size by 70-97%.</li>
+                    <li>&#x1F4CC; <strong>Pin base images</strong> by SHA256 digest for reproducible, tamper-resistant builds.</li>
+                    <li>&#x1F512; <strong>Never embed secrets</strong> in image layers or build args. Use BuildKit secrets or runtime injection.</li>
+                    <li>&#x1F50E; <strong>Scan every image</strong> in CI/CD with Trivy or Grype. Fail builds on critical vulnerabilities.</li>
+                    <li>&#x270D;&#xFE0F; <strong>Sign images</strong> with cosign and verify signatures at admission with policy engines.</li>
+                    <li>&#x1F517; <strong>Generate SBOMs</strong> for every production image. It is increasingly a regulatory requirement.</li>
+                    <li>&#x1F6E1;&#xFE0F; <strong>Enforce policies</strong> at the registry and admission controller level for defense in depth.</li>
+                </ul>
+                <aside class="notes">
+                    Review each takeaway. These are the actionable items students should implement in their organizations.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- QUICK REFERENCE                              -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F4D6; Quick Reference: Essential Commands</h2>
+                <pre><code class="bash"># Scan image for vulnerabilities
+trivy image --severity HIGH,CRITICAL myimage:latest
+
+# Generate SBOM
+syft packages myimage:latest -o cyclonedx-json > sbom.json
+
+# Scan SBOM for vulnerabilities
+grype sbom:./sbom.json
+
+# Sign image with cosign
+cosign sign --key cosign.key myregistry/myimage:v1.0
+
+# Verify image signature
+cosign verify --key cosign.pub myregistry/myimage:v1.0
+
+# Lint Dockerfile
+docker run --rm -i hadolint/hadolint < Dockerfile
+
+# Get image digest
+crane digest myregistry/myimage:v1.0</code></pre>
+                <aside class="notes">
+                    This is a handy reference slide for students to come back to. All of these commands are used in the lab.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- QUESTIONS SLIDE                              -->
+            <!-- ============================================ -->
+            <section class="questions-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 50%, #2c5282 100%)">
+                <h2>&#x2753; Questions?</h2>
+                <p>Module 3: Hardening Images</p>
+                <aside class="notes">
+                    Open the floor for questions. Common questions include: How do you handle debugging without a shell in distroless? (Answer: ephemeral debug containers in Kubernetes.) What about base image updates? (Answer: automated dependency update tools like Renovate.)
+                </aside>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/notes/notes.min.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: true,
+            plugins: [RevealHighlight, RevealNotes]
+        });
+    </script>
+</body>
+</html>

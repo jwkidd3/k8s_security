@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 2: Hardening Nodes - Kubernetes Security</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/theme/white.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/monokai.min.css">
+    <style>
+        :root {
+            --heading-color: #1a365d;
+            --accent-color: #2b6cb0;
+            --success-color: #2f855a;
+            --warning-color: #c05621;
+            --danger-color: #c53030;
+            --text-color: #2d3748;
+        }
+
+        .reveal {
+            font-size: 28px;
+            color: var(--text-color);
+        }
+
+        .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
+            color: var(--heading-color);
+            text-transform: none;
+            font-weight: 700;
+        }
+
+        .reveal section {
+            text-align: left;
+            padding: 20px 40px;
+        }
+
+        .reveal ul, .reveal ol {
+            display: block;
+            margin-left: 1em;
+        }
+
+        .reveal li {
+            margin-bottom: 0.5em;
+            line-height: 1.4;
+        }
+
+        .reveal code {
+            color: var(--accent-color);
+            font-size: 0.9em;
+        }
+
+        .reveal pre code {
+            color: #f8f8f2;
+            font-size: 0.55em;
+            line-height: 1.4;
+            max-height: 500px;
+        }
+
+        .reveal pre {
+            width: 100%;
+            margin: 15px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        /* Title Slide */
+        .title-slide h1 {
+            color: #ffffff !important;
+            font-size: 2.2em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .title-slide h2, .title-slide h3, .title-slide p {
+            color: #e2e8f0 !important;
+        }
+        .title-slide .course-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.4);
+            border-radius: 30px;
+            padding: 10px 30px;
+            margin-top: 20px;
+            color: #ffffff;
+            font-size: 0.8em;
+            backdrop-filter: blur(4px);
+        }
+
+        /* Section Divider */
+        .section-divider {
+            text-align: center !important;
+        }
+        .section-divider h2 {
+            color: #ffffff !important;
+            font-size: 2em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .section-divider p {
+            color: #e2e8f0 !important;
+            font-size: 1.1em;
+        }
+
+        /* Highlight Box */
+        .highlight-box {
+            background: #ebf8ff;
+            border-left: 4px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 15px 0;
+        }
+        .highlight-box.success {
+            background: #f0fff4;
+            border-left-color: var(--success-color);
+        }
+        .highlight-box.warning {
+            background: #fffaf0;
+            border-left-color: var(--warning-color);
+        }
+        .highlight-box.danger {
+            background: #fff5f5;
+            border-left-color: var(--danger-color);
+        }
+
+        /* Two Columns */
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 15px;
+        }
+
+        /* Three Columns */
+        .three-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            margin-top: 15px;
+        }
+
+        /* Cards */
+        .card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07);
+            border-top: 4px solid var(--accent-color);
+        }
+        .card.success { border-top-color: var(--success-color); }
+        .card.warning { border-top-color: var(--warning-color); }
+        .card.danger { border-top-color: var(--danger-color); }
+
+        .card h4 {
+            margin-top: 0;
+            font-size: 1em;
+        }
+
+        /* Concept Box */
+        .concept-box {
+            background: linear-gradient(135deg, #ebf8ff, #e2e8f0);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 15px 0;
+            border: 1px solid #bee3f8;
+        }
+
+        /* Key Point */
+        .key-point {
+            background: #fffff0;
+            border-left: 4px solid #d69e2e;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+
+        /* Lab Callout */
+        .lab-callout {
+            text-align: center !important;
+            border-radius: 16px;
+            padding: 40px;
+        }
+        .lab-callout h2 {
+            color: #ffffff !important;
+        }
+        .lab-callout p, .lab-callout li {
+            color: #e2e8f0 !important;
+            font-size: 1em;
+        }
+        .lab-callout ul {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        .lab-callout li::before {
+            content: "\2705  ";
+        }
+
+        /* Takeaway List */
+        .takeaway-list {
+            list-style: none !important;
+            padding-left: 0 !important;
+        }
+        .takeaway-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .takeaway-list li:last-child {
+            border-bottom: none;
+        }
+
+        /* Questions Slide */
+        .questions-slide {
+            text-align: center !important;
+        }
+        .questions-slide h2 {
+            color: #ffffff !important;
+            font-size: 2.5em;
+        }
+        .questions-slide p {
+            color: #e2e8f0 !important;
+            font-size: 1.2em;
+        }
+
+        /* Table styling */
+        .reveal table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 0.65em;
+            margin: 15px 0;
+        }
+        .reveal table th {
+            background: var(--heading-color);
+            color: #ffffff;
+            padding: 10px 12px;
+            text-align: left;
+        }
+        .reveal table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .reveal table tr:nth-child(even) {
+            background: #f7fafc;
+        }
+
+        /* Small text utility */
+        .small-text {
+            font-size: 0.75em;
+            color: #718096;
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- Slide 1: Title -->
+            <section class="title-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 50%, #2c5282 100%)">
+                <h1>Hardening Nodes</h1>
+                <h3>Module 2</h3>
+                <p>Securing the foundation of your Kubernetes cluster</p>
+                <div class="course-badge">Kubernetes Security &bull; Intermediate</div>
+                <aside class="notes">
+                    Nodes are the foundation of every Kubernetes cluster. In this module we focus on hardening the machines that run your workloads, from OS selection to kubelet configuration to mandatory access control.
+                </aside>
+            </section>
+
+            <!-- Slide 2: Module Overview -->
+            <section>
+                <h2>Module Overview</h2>
+                <div class="two-columns">
+                    <div>
+                        <h4>Topics</h4>
+                        <ul>
+                            <li>Node attack surface analysis</li>
+                            <li>OS-level hardening</li>
+                            <li>Kubelet security configuration</li>
+                            <li>AppArmor and SELinux</li>
+                            <li>CIS Benchmarks for nodes</li>
+                            <li>Node maintenance and updates</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Outcomes</h4>
+                        <ul>
+                            <li>Reduce node attack surface</li>
+                            <li>Lock down kubelet APIs</li>
+                            <li>Apply mandatory access controls</li>
+                            <li>Validate hardening with kube-bench</li>
+                            <li>Establish node patching strategy</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    Walk through the agenda. Emphasize that node hardening is foundational — all higher-level controls depend on a secure node layer.
+                </aside>
+            </section>
+
+            <!-- ===================== SECTION 1: Node Attack Surface ===================== -->
+
+            <!-- Slide 3: Section Divider -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #c53030 0%, #9b2c2c 100%)">
+                <h2>&#128737;&#65039; Section 1</h2>
+                <p>Node Attack Surface</p>
+                <aside class="notes">
+                    We start by understanding what we need to protect before deciding how to protect it.
+                </aside>
+            </section>
+
+            <!-- Slide 4: What Is a Node? -->
+            <section>
+                <h2>What Is a Node?</h2>
+                <p>Nodes are the physical or virtual machines that run your Kubernetes workloads.</p>
+                <div class="concept-box">
+                    <p>Every node runs:</p>
+                    <ul>
+                        <li><strong>kubelet</strong> &mdash; the primary node agent</li>
+                        <li><strong>Container runtime</strong> &mdash; containerd, CRI-O, etc.</li>
+                        <li><strong>kube-proxy</strong> &mdash; network rules management</li>
+                        <li><strong>OS services</strong> &mdash; systemd, kernel, networking stack</li>
+                    </ul>
+                </div>
+                <aside class="notes">
+                    Establish baseline understanding. Even experienced operators sometimes overlook the breadth of software running on each node.
+                </aside>
+            </section>
+
+            <!-- Slide 5: Three Dimensions of Node Attack Surface -->
+            <section>
+                <h2>Three Dimensions of Attack Surface</h2>
+                <div class="three-columns">
+                    <div class="card danger">
+                        <h4>&#127760; Network</h4>
+                        <ul>
+                            <li>Open ports</li>
+                            <li>Kubelet API (10250)</li>
+                            <li>Read-only port (10255)</li>
+                            <li>NodePort services</li>
+                            <li>SSH access</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h4>&#128193; Filesystem</h4>
+                        <ul>
+                            <li>Config files</li>
+                            <li>Secrets on disk</li>
+                            <li>Container images</li>
+                            <li>etcd data directory</li>
+                            <li>PKI certificates</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>&#9881;&#65039; Process</h4>
+                        <ul>
+                            <li>kubelet process</li>
+                            <li>Container runtime</li>
+                            <li>System services</li>
+                            <li>Kernel modules</li>
+                            <li>Cron jobs</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    Each dimension represents a different category of attack vectors. An adversary may target any of these to gain initial access or escalate privileges.
+                </aside>
+            </section>
+
+            <!-- Slide 6: Why Node Security Matters -->
+            <section>
+                <h2>Why Node Security Matters</h2>
+                <div class="highlight-box danger">
+                    <strong>Node compromise = cluster compromise path</strong>
+                </div>
+                <p>A compromised node gives an attacker access to:</p>
+                <ul>
+                    <li><strong>kubeconfig</strong> &mdash; credentials for API server communication</li>
+                    <li><strong>Container runtime socket</strong> &mdash; ability to run arbitrary containers</li>
+                    <li><strong>Service account tokens</strong> &mdash; mounted in every pod by default</li>
+                    <li><strong>Network access</strong> &mdash; lateral movement to other nodes and pods</li>
+                    <li><strong>Secrets in memory</strong> &mdash; environment variables and volume-mounted secrets</li>
+                </ul>
+                <aside class="notes">
+                    This is the core motivation for node hardening. A single compromised node can be the starting point for full cluster takeover.
+                </aside>
+            </section>
+
+            <!-- Slide 7: Real-World Attack Path -->
+            <section>
+                <h2>Real-World Attack Path</h2>
+                <div class="concept-box">
+                    <p><strong>Scenario:</strong> Attacker exploits an application vulnerability</p>
+                    <ol>
+                        <li>Gain code execution inside a container</li>
+                        <li>Escape container via runtime vulnerability or misconfiguration</li>
+                        <li>Access kubelet credentials on the node filesystem</li>
+                        <li>Use kubelet identity to list secrets across namespaces</li>
+                        <li>Pivot to control plane or other workloads</li>
+                    </ol>
+                </div>
+                <div class="key-point">
+                    &#128273; Node hardening blocks steps 2&ndash;5 of this attack chain.
+                </div>
+                <aside class="notes">
+                    Walk through a concrete attack scenario to illustrate the importance of defense-in-depth at the node level.
+                </aside>
+            </section>
+
+            <!-- ===================== SECTION 2: OS-Level Hardening ===================== -->
+
+            <!-- Slide 8: Section Divider -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#128187; Section 2</h2>
+                <p>OS-Level Hardening</p>
+                <aside class="notes">
+                    The operating system is the first layer of defense. Choosing the right OS and configuring it properly eliminates entire categories of attack.
+                </aside>
+            </section>
+
+            <!-- Slide 9: Container-Optimized OS Philosophy -->
+            <section>
+                <h2>Container-Optimized OS Philosophy</h2>
+                <div class="two-columns">
+                    <div>
+                        <h4>Traditional Server OS</h4>
+                        <ul>
+                            <li>General-purpose package set</li>
+                            <li>Mutable filesystem</li>
+                            <li>Manual updates via SSH</li>
+                            <li>SSH access by default</li>
+                            <li>Wide attack surface</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Container-Optimized OS</h4>
+                        <ul>
+                            <li>Minimal package footprint</li>
+                            <li>Immutable root filesystem</li>
+                            <li>Transactional auto-updates</li>
+                            <li>No SSH (or disabled)</li>
+                            <li>Reduced attack surface</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="key-point">
+                    &#128161; Fewer packages = fewer CVEs = smaller attack surface.
+                </div>
+                <aside class="notes">
+                    The philosophy is simple: include only what is needed to run containers, nothing more. Every additional package is a potential vulnerability.
+                </aside>
+            </section>
+
+            <!-- Slide 10: Minimal OS Comparison -->
+            <section>
+                <h2>Minimal OS Images Comparison</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Flatcar Container Linux</th>
+                            <th>Bottlerocket (AWS)</th>
+                            <th>Talos Linux</th>
+                            <th>Ubuntu Minimal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>SSH Access</strong></td>
+                            <td>Optional</td>
+                            <td>Admin container only</td>
+                            <td>None (API only)</td>
+                            <td>Yes</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Filesystem</strong></td>
+                            <td>Immutable rootfs</td>
+                            <td>Immutable rootfs</td>
+                            <td>Fully immutable</td>
+                            <td>Mutable</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Auto-Updates</strong></td>
+                            <td>Yes (Nebraska)</td>
+                            <td>Yes (orchestrator)</td>
+                            <td>Yes (rolling)</td>
+                            <td>Manual / unattended-upgrades</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Package Count</strong></td>
+                            <td>~350</td>
+                            <td>~200</td>
+                            <td>~150</td>
+                            <td>~600+</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Update Mechanism</strong></td>
+                            <td>A/B partition</td>
+                            <td>A/B partition</td>
+                            <td>In-place via API</td>
+                            <td>apt / dpkg</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <aside class="notes">
+                    Each of these OSes takes a different approach, but they all share the philosophy of minimalism. Talos Linux is the most extreme — no SSH at all, managed entirely via API.
+                </aside>
+            </section>
+
+            <!-- Slide 11: Choosing the Right OS -->
+            <section>
+                <h2>Choosing the Right OS</h2>
+                <div class="two-columns">
+                    <div class="card success">
+                        <h4>&#9989; Recommended For</h4>
+                        <ul>
+                            <li><strong>Talos / Bottlerocket</strong>: Production clusters with automation</li>
+                            <li><strong>Flatcar</strong>: Multi-cloud deployments</li>
+                            <li><strong>Ubuntu Minimal</strong>: Teams needing SSH troubleshooting access</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h4>&#9888;&#65039; Consider</h4>
+                        <ul>
+                            <li>Team familiarity and operational tooling</li>
+                            <li>Cloud provider integration</li>
+                            <li>Compliance requirements</li>
+                            <li>Debugging and incident response needs</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    The most secure option may not be the most practical for every team. Balance security with operational reality.
+                </aside>
+            </section>
+
+            <!-- Slide 12: Kernel Hardening with sysctl -->
+            <section>
+                <h2>Kernel Hardening with sysctl</h2>
+                <p>Tune kernel parameters to reduce attack surface:</p>
+                <pre><code class="language-bash"># /etc/sysctl.d/99-kubernetes-hardening.conf
+
+# Disable ICMP redirects (prevent MITM attacks)
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.default.accept_redirects = 0
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv6.conf.all.accept_redirects = 0
+
+# Disable IP source routing
+net.ipv4.conf.all.accept_source_route = 0
+net.ipv6.conf.all.accept_source_route = 0
+
+# Enable reverse path filtering
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.default.rp_filter = 1
+
+# Kernel panic behavior
+kernel.panic = 10
+kernel.panic_on_oops = 1
+
+# Prevent OOM killer from crashing the node
+vm.panic_on_oom = 0
+vm.overcommit_memory = 1</code></pre>
+                <aside class="notes">
+                    These sysctl settings are widely recommended by CIS benchmarks and security frameworks. Apply them via configuration management and validate with kube-bench.
+                </aside>
+            </section>
+
+            <!-- Slide 13: Applying sysctl Settings -->
+            <section>
+                <h2>Applying sysctl Settings</h2>
+                <pre><code class="language-bash"># Apply immediately
+sudo sysctl --system
+
+# Verify settings
+sysctl net.ipv4.conf.all.send_redirects
+# Expected output: net.ipv4.conf.all.send_redirects = 0
+
+# Verify at boot with systemd
+sudo systemctl status systemd-sysctl.service</code></pre>
+                <div class="highlight-box warning">
+                    <strong>Note:</strong> Some sysctl parameters can also be set per-pod using Kubernetes
+                    <code>securityContext.sysctls</code>, but node-level settings provide a baseline that applies
+                    regardless of pod configuration.
+                </div>
+                <aside class="notes">
+                    Demonstrate both immediate application and persistence across reboots. Node-level sysctls are defense-in-depth below what pods can configure.
+                </aside>
+            </section>
+
+            <!-- Slide 14: Filesystem Hardening -->
+            <section>
+                <h2>Filesystem Hardening</h2>
+                <div class="two-columns">
+                    <div>
+                        <h4>Critical Paths to Protect</h4>
+                        <pre><code class="language-bash"># Kubelet configuration
+chmod 644 /etc/kubernetes/kubelet.conf
+chmod 600 /var/lib/kubelet/config.yaml
+
+# PKI certificates
+chmod 644 /etc/kubernetes/pki/*.crt
+chmod 600 /etc/kubernetes/pki/*.key
+
+# Kubeconfig files
+chmod 600 /etc/kubernetes/admin.conf
+chmod 644 /etc/kubernetes/kubelet.conf</code></pre>
+                    </div>
+                    <div>
+                        <h4>Ownership Requirements</h4>
+                        <pre><code class="language-bash"># All k8s configs owned by root
+chown root:root /etc/kubernetes/*.conf
+chown root:root /etc/kubernetes/pki/*
+
+# Kubelet data directory
+chown root:root /var/lib/kubelet/
+chmod 750 /var/lib/kubelet/
+
+# Container runtime socket
+chmod 660 /var/run/containerd/
+                            containerd.sock</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">
+                    File permissions are a CIS Benchmark requirement. Incorrect permissions on certificate private keys or kubeconfigs can allow local privilege escalation.
+                </aside>
+            </section>
+
+            <!-- ===================== SECTION 3: Kubelet Security ===================== -->
+
+            <!-- Slide 15: Section Divider -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2f855a 0%, #276749 100%)">
+                <h2>&#9881;&#65039; Section 3</h2>
+                <p>Kubelet Security Configuration</p>
+                <aside class="notes">
+                    The kubelet is the most critical process on the node. Its configuration directly determines how secure the node is within the cluster.
+                </aside>
+            </section>
+
+            <!-- Slide 16: Kubelet Attack Surface -->
+            <section>
+                <h2>Kubelet Attack Surface</h2>
+                <div class="concept-box">
+                    <p>The kubelet exposes powerful APIs on each node:</p>
+                    <ul>
+                        <li><strong>Port 10250</strong> &mdash; Full kubelet API (exec, logs, port-forward)</li>
+                        <li><strong>Port 10255</strong> &mdash; Read-only API (pod info, metrics)</li>
+                        <li><strong>Port 10248</strong> &mdash; Health check endpoint</li>
+                    </ul>
+                </div>
+                <div class="highlight-box danger">
+                    <strong>An unauthenticated kubelet API lets any network attacker exec into pods, read logs, and access node metadata.</strong>
+                </div>
+                <aside class="notes">
+                    In many default installations, the kubelet API on port 10250 allows anonymous access. This is one of the most common misconfigurations found in cluster assessments.
+                </aside>
+            </section>
+
+            <!-- Slide 17: Critical Kubelet Flags -->
+            <section>
+                <h2>Critical Kubelet Flags</h2>
+                <pre><code class="language-bash"># Disable anonymous authentication to kubelet API
+--anonymous-auth=false
+
+# Use Webhook authorization (delegate to API server)
+--authorization-mode=Webhook
+
+# Disable the read-only port entirely
+--read-only-port=0
+
+# Protect kernel defaults (fail if sysctl params don't match)
+--protect-kernel-defaults=true
+
+# Ensure iptables rules are managed by kubelet
+--make-iptables-util-chains=true
+
+# Disable event throttling for audit completeness
+--event-qps=0</code></pre>
+                <div class="key-point">
+                    &#128273; Each flag closes a specific attack vector. Apply all of them together.
+                </div>
+                <aside class="notes">
+                    Go through each flag and explain what attack it prevents. anonymous-auth=false is the single most impactful change you can make.
+                </aside>
+            </section>
+
+            <!-- Slide 18: Kubelet Flags Explained -->
+            <section>
+                <h2>Kubelet Flags Explained</h2>
+                <div class="two-columns">
+                    <div>
+                        <div class="card danger">
+                            <h4><code>--anonymous-auth=false</code></h4>
+                            <p>Prevents unauthenticated requests to the kubelet API. Without this, anyone who can reach port 10250 can exec into pods.</p>
+                        </div>
+                        <div class="card warning">
+                            <h4><code>--authorization-mode=Webhook</code></h4>
+                            <p>Delegates authorization decisions to the API server instead of always allowing authenticated requests.</p>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="card">
+                            <h4><code>--read-only-port=0</code></h4>
+                            <p>Disables the unauthenticated read-only kubelet endpoint on port 10255 that exposes pod and node information.</p>
+                        </div>
+                        <div class="card success">
+                            <h4><code>--protect-kernel-defaults</code></h4>
+                            <p>Causes kubelet to error if kernel parameters differ from expected hardened values, enforcing sysctl compliance.</p>
+                        </div>
+                    </div>
+                </div>
+                <aside class="notes">
+                    Spend time on anonymous-auth and authorization-mode — these are the two most critical settings and the ones most often misconfigured.
+                </aside>
+            </section>
+
+            <!-- Slide 19: KubeletConfiguration YAML -->
+            <section>
+                <h2>KubeletConfiguration YAML</h2>
+                <pre><code class="language-yaml">apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    enabled: true
+    cacheTTL: 2m0s
+  x509:
+    clientCAFile: /etc/kubernetes/pki/ca.crt
+authorization:
+  mode: Webhook
+  webhook:
+    cacheAuthorizedTTL: 5m0s
+    cacheUnauthorizedTTL: 30s
+readOnlyPort: 0
+protectKernelDefaults: true
+makeIPTablesUtilChains: true
+eventRecordQPS: 0
+tlsCertFile: /etc/kubernetes/pki/kubelet.crt
+tlsPrivateKeyFile: /etc/kubernetes/pki/kubelet.key
+rotateCertificates: true
+serverTLSBootstrap: true
+featureGates:
+  RotateKubeletServerCertificate: true</code></pre>
+                <aside class="notes">
+                    This is the modern, declarative way to configure kubelet. The YAML config file replaces command-line flags and is easier to manage with configuration management tools.
+                </aside>
+            </section>
+
+            <!-- Slide 20: Kubelet Certificate Rotation -->
+            <section>
+                <h2>Kubelet Certificate Rotation</h2>
+                <div class="concept-box">
+                    <p><strong>Problem:</strong> Static kubelet certificates can be stolen and reused indefinitely.</p>
+                    <p><strong>Solution:</strong> Automatic certificate rotation limits the window of compromise.</p>
+                </div>
+                <pre><code class="language-yaml"># In KubeletConfiguration
+rotateCertificates: true         # Client cert rotation
+serverTLSBootstrap: true         # Server cert rotation
+
+# Feature gate (if not default)
+featureGates:
+  RotateKubeletServerCertificate: true</code></pre>
+                <div class="highlight-box success">
+                    <strong>Tip:</strong> You must approve CSRs for server certificate rotation. Automate this
+                    with a controller or configure auto-approval for kubelet-serving CSRs.
+                </div>
+                <aside class="notes">
+                    Certificate rotation is enabled by default in recent Kubernetes versions for client certificates, but server certificate rotation requires explicit opt-in and CSR approval.
+                </aside>
+            </section>
+
+            <!-- Slide 21: Verifying Kubelet Security -->
+            <section>
+                <h2>Verifying Kubelet Security</h2>
+                <pre><code class="language-bash"># Test anonymous access (should return 401)
+curl -sk https://localhost:10250/pods
+# Expected: Unauthorized
+
+# Verify read-only port is closed
+curl -s http://localhost:10255/healthz
+# Expected: Connection refused
+
+# Check kubelet process flags
+ps aux | grep kubelet | grep -o '\-\-[a-z-]*'
+
+# Inspect active kubelet configuration
+kubectl get --raw "/api/v1/nodes/$(hostname)/proxy/configz" \
+  | jq '.kubeletconfig'</code></pre>
+                <div class="highlight-box warning">
+                    <strong>Warning:</strong> If <code>curl https://localhost:10250/pods</code> returns pod data,
+                    your kubelet is accepting anonymous requests!
+                </div>
+                <aside class="notes">
+                    Always verify your configuration. These commands can be incorporated into automated security tests or CI/CD pipelines.
+                </aside>
+            </section>
+
+            <!-- ===================== SECTION 4: AppArmor and SELinux ===================== -->
+
+            <!-- Slide 22: Section Divider -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #c05621 0%, #9c4221 100%)">
+                <h2>&#128737;&#65039; Section 4</h2>
+                <p>AppArmor and SELinux</p>
+                <aside class="notes">
+                    Mandatory Access Control provides an additional layer of defense that limits what processes can do, even if they are running as root.
+                </aside>
+            </section>
+
+            <!-- Slide 23: Mandatory Access Control Overview -->
+            <section>
+                <h2>Mandatory Access Control (MAC)</h2>
+                <div class="concept-box">
+                    <p><strong>MAC</strong> restricts what processes can access based on security policies defined by
+                    administrators, regardless of the process's user ID or capabilities.</p>
+                </div>
+                <div class="two-columns">
+                    <div class="card">
+                        <h4>AppArmor</h4>
+                        <ul>
+                            <li>Path-based access control</li>
+                            <li>Easier to write and audit</li>
+                            <li>Default on Ubuntu/Debian</li>
+                            <li>Profile per application</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>SELinux</h4>
+                        <ul>
+                            <li>Label-based access control</li>
+                            <li>More granular control</li>
+                            <li>Default on RHEL/CentOS</li>
+                            <li>Context per file and process</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    Most teams should use whichever MAC system ships with their chosen OS rather than switching. Both provide strong security when configured properly.
+                </aside>
+            </section>
+
+            <!-- Slide 24: When to Use Each -->
+            <section>
+                <h2>When to Use Each</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Criteria</th>
+                            <th>AppArmor</th>
+                            <th>SELinux</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>OS</strong></td>
+                            <td>Ubuntu, Debian, SUSE</td>
+                            <td>RHEL, CentOS, Fedora</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Learning Curve</strong></td>
+                            <td>Lower</td>
+                            <td>Higher</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Policy Model</strong></td>
+                            <td>Path-based</td>
+                            <td>Label-based (Type Enforcement)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Kubernetes Support</strong></td>
+                            <td>GA since 1.31</td>
+                            <td>GA since 1.27</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Best For</strong></td>
+                            <td>Quick adoption, readable policies</td>
+                            <td>High-security, compliance-driven</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="key-point">
+                    &#128161; Use whichever MAC system is native to your chosen OS. Do not disable it.
+                </div>
+                <aside class="notes">
+                    The most common mistake is disabling SELinux or AppArmor because it interferes with application deployment. This is a significant security regression.
+                </aside>
+            </section>
+
+            <!-- Slide 25: AppArmor Profile Example -->
+            <section>
+                <h2>AppArmor Profile for Containers</h2>
+                <pre><code class="language-bash"># /etc/apparmor.d/k8s-deny-write-etc
+#include &lt;tunables/global&gt;
+
+profile k8s-deny-write-etc flags=(attach_disconnected,mediate_deleted) {
+  #include &lt;abstractions/base&gt;
+
+  # Allow read access everywhere
+  file,
+
+  # Deny write access to sensitive paths
+  deny /etc/** w,
+  deny /proc/sys/** w,
+  deny /sys/** w,
+
+  # Allow container runtime needs
+  /dev/null rw,
+  /dev/zero rw,
+  /dev/urandom r,
+
+  # Allow tmp writes
+  /tmp/** rw,
+  /var/tmp/** rw,
+}</code></pre>
+                <pre><code class="language-bash"># Load the profile
+sudo apparmor_parser -r /etc/apparmor.d/k8s-deny-write-etc
+sudo aa-status | grep k8s-deny-write-etc</code></pre>
+                <aside class="notes">
+                    This is a practical profile that allows normal container operation while preventing writes to sensitive system directories. The attach_disconnected flag is needed for container runtimes.
+                </aside>
+            </section>
+
+            <!-- Slide 26: Applying AppArmor to Pods -->
+            <section>
+                <h2>Applying AppArmor to Pods</h2>
+                <pre><code class="language-yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: apparmor-demo
+spec:
+  containers:
+  - name: app
+    image: nginx:1.25
+    securityContext:
+      appArmorProfile:
+        type: Localhost
+        localhostProfile: k8s-deny-write-etc
+    resources:
+      limits:
+        memory: "128Mi"
+        cpu: "250m"</code></pre>
+                <div class="highlight-box success">
+                    <strong>Kubernetes 1.30+:</strong> Use the <code>securityContext.appArmorProfile</code> field
+                    (GA). Older clusters may require the annotation
+                    <code>container.apparmor.security.beta.kubernetes.io/&lt;name&gt;</code>.
+                </div>
+                <aside class="notes">
+                    The securityContext field is the modern approach. The annotation-based method is deprecated but still supported for backward compatibility.
+                </aside>
+            </section>
+
+            <!-- Slide 27: SELinux Configuration -->
+            <section>
+                <h2>SELinux Context Configuration</h2>
+                <pre><code class="language-yaml">apiVersion: v1
+kind: Pod
+metadata:
+  name: selinux-demo
+spec:
+  securityContext:
+    seLinuxOptions:
+      level: "s0:c123,c456"
+  containers:
+  - name: app
+    image: nginx:1.25
+    securityContext:
+      seLinuxOptions:
+        type: "container_t"
+        level: "s0:c123,c456"
+    resources:
+      limits:
+        memory: "128Mi"
+        cpu: "250m"</code></pre>
+                <pre><code class="language-bash"># Verify SELinux mode on the node
+getenforce
+# Expected: Enforcing
+
+# Check container process labels
+ps -eZ | grep container_t</code></pre>
+                <aside class="notes">
+                    SELinux uses Multi-Category Security (MCS) labels to isolate containers from each other. Each container gets a unique category pair by default.
+                </aside>
+            </section>
+
+            <!-- ===================== SECTION 5: CIS Benchmark ===================== -->
+
+            <!-- Slide 28: Section Divider -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2>&#128203; Section 5</h2>
+                <p>CIS Benchmark for Nodes</p>
+                <aside class="notes">
+                    The CIS Kubernetes Benchmark provides a comprehensive checklist for securing your cluster. Section 4 specifically addresses worker node security.
+                </aside>
+            </section>
+
+            <!-- Slide 29: CIS Benchmark Overview -->
+            <section>
+                <h2>CIS Kubernetes Benchmark &mdash; Section 4</h2>
+                <p>The CIS Benchmark for Kubernetes Worker Nodes covers:</p>
+                <div class="two-columns">
+                    <div>
+                        <h4>4.1 Worker Node Config Files</h4>
+                        <ul>
+                            <li>kubelet service file permissions</li>
+                            <li>kubelet.conf file permissions</li>
+                            <li>kubelet config.yaml permissions</li>
+                            <li>Certificate file ownership</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>4.2 Kubelet Configuration</h4>
+                        <ul>
+                            <li>Anonymous auth disabled</li>
+                            <li>Webhook authorization</li>
+                            <li>Read-only port disabled</li>
+                            <li>TLS configuration</li>
+                            <li>Certificate rotation</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    Section 4 has two subsections. 4.1 is about file permissions and ownership. 4.2 is about runtime configuration. Both are equally important.
+                </aside>
+            </section>
+
+            <!-- Slide 30: Key CIS Checks -->
+            <section>
+                <h2>Key CIS Checks for Nodes</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Check ID</th>
+                            <th>Description</th>
+                            <th>Expected Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>4.1.1</td>
+                            <td>kubelet service file permissions</td>
+                            <td>644 or more restrictive</td>
+                        </tr>
+                        <tr>
+                            <td>4.1.5</td>
+                            <td>kubelet.conf ownership</td>
+                            <td>root:root</td>
+                        </tr>
+                        <tr>
+                            <td>4.2.1</td>
+                            <td>Anonymous authentication</td>
+                            <td>false</td>
+                        </tr>
+                        <tr>
+                            <td>4.2.2</td>
+                            <td>Authorization mode</td>
+                            <td>Webhook</td>
+                        </tr>
+                        <tr>
+                            <td>4.2.4</td>
+                            <td>Read-only port</td>
+                            <td>0</td>
+                        </tr>
+                        <tr>
+                            <td>4.2.6</td>
+                            <td>Protect kernel defaults</td>
+                            <td>true</td>
+                        </tr>
+                        <tr>
+                            <td>4.2.10</td>
+                            <td>TLS cert and key configured</td>
+                            <td>Present</td>
+                        </tr>
+                        <tr>
+                            <td>4.2.11</td>
+                            <td>Certificate rotation</td>
+                            <td>true</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <aside class="notes">
+                    These are the most critical checks. Many compliance frameworks reference CIS Benchmarks directly, making them a practical compliance tool.
+                </aside>
+            </section>
+
+            <!-- Slide 31: Running kube-bench -->
+            <section>
+                <h2>Running kube-bench</h2>
+                <p><strong>kube-bench</strong> automates CIS Benchmark checks:</p>
+                <pre><code class="language-bash"># Run node-specific checks
+kube-bench run --targets node
+
+# Run as a Kubernetes Job
+kubectl apply -f https://raw.githubusercontent.com/aquasecurity/\
+  kube-bench/main/job-node.yaml
+
+# View results
+kubectl logs job/kube-bench-node
+
+# Run specific checks only
+kube-bench run --targets node --check 4.2.1,4.2.2,4.2.4</code></pre>
+                <div class="highlight-box">
+                    <strong>kube-bench</strong> outputs results as PASS, FAIL, WARN, or INFO for each check,
+                    with remediation instructions for failures.
+                </div>
+                <aside class="notes">
+                    kube-bench is the de facto standard tool for CIS compliance checking. Run it as a DaemonSet for continuous monitoring or as a one-off Job for audits.
+                </aside>
+            </section>
+
+            <!-- Slide 32: Interpreting kube-bench Results -->
+            <section>
+                <h2>Interpreting kube-bench Results</h2>
+                <pre><code class="language-text">[INFO] 4 Worker Node Security Configuration
+[INFO] 4.1 Worker Node Configuration Files
+[PASS] 4.1.1 Ensure kubelet service file permissions are set to 644
+[PASS] 4.1.2 Ensure kubelet service file ownership is root:root
+[FAIL] 4.2.1 Ensure anonymous-auth is set to false
+        * Fix: Set --anonymous-auth=false in kubelet config
+
+== Summary ==
+15 checks PASS
+2 checks FAIL
+1 checks WARN
+0 checks INFO
+
+== Remediations node ==
+4.2.1 Set the --anonymous-auth argument to false.
+If using a Kubelet config file, edit the file to set:
+  authentication:
+    anonymous:
+      enabled: false</code></pre>
+                <aside class="notes">
+                    Walk through a sample output. Focus on how to prioritize failures — authentication and authorization issues should be fixed immediately.
+                </aside>
+            </section>
+
+            <!-- ===================== SECTION 6: Node Maintenance ===================== -->
+
+            <!-- Slide 33: Section Divider -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #553c9a 0%, #6b46c1 100%)">
+                <h2>&#128260; Section 6</h2>
+                <p>Node Maintenance and Updates</p>
+                <aside class="notes">
+                    Hardening is not a one-time activity. Nodes need ongoing maintenance to stay secure as new vulnerabilities are discovered.
+                </aside>
+            </section>
+
+            <!-- Slide 34: Patch Management Strategy -->
+            <section>
+                <h2>Patch Management Strategy</h2>
+                <div class="three-columns">
+                    <div class="card danger">
+                        <h4>Critical (24h)</h4>
+                        <ul>
+                            <li>Actively exploited CVEs</li>
+                            <li>Container runtime escapes</li>
+                            <li>Kernel privilege escalation</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h4>High (7 days)</h4>
+                        <ul>
+                            <li>Remote code execution</li>
+                            <li>Authentication bypass</li>
+                            <li>Kubelet vulnerabilities</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Standard (30 days)</h4>
+                        <ul>
+                            <li>Non-critical kernel CVEs</li>
+                            <li>Library updates</li>
+                            <li>Minor version upgrades</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="key-point">
+                    &#128197; Define SLAs for each severity level and automate wherever possible.
+                </div>
+                <aside class="notes">
+                    These are example SLAs — adjust based on your organization's risk tolerance and compliance requirements. The key is having defined timelines rather than ad-hoc patching.
+                </aside>
+            </section>
+
+            <!-- Slide 35: Node Draining and Cordoning -->
+            <section>
+                <h2>Node Draining and Cordoning</h2>
+                <pre><code class="language-bash"># Mark node as unschedulable (no new pods)
+kubectl cordon worker-node-01
+
+# Drain node (evict all pods gracefully)
+kubectl drain worker-node-01 \
+  --ignore-daemonsets \
+  --delete-emptydir-data \
+  --grace-period=120 \
+  --timeout=300s
+
+# Perform maintenance (OS updates, kubelet upgrade)
+ssh worker-node-01 'sudo apt update && sudo apt upgrade -y'
+
+# Return node to service
+kubectl uncordon worker-node-01</code></pre>
+                <div class="highlight-box warning">
+                    <strong>Always</strong> ensure PodDisruptionBudgets (PDBs) are in place before draining
+                    to prevent service disruption.
+                </div>
+                <aside class="notes">
+                    Draining nodes safely requires PDBs to be configured on critical workloads. Without PDBs, a drain can take down all replicas of a service simultaneously.
+                </aside>
+            </section>
+
+            <!-- Slide 36: Automated Node Updates -->
+            <section>
+                <h2>Automated Node Updates</h2>
+                <div class="two-columns">
+                    <div class="card success">
+                        <h4>kured (Kubernetes Reboot Daemon)</h4>
+                        <ul>
+                            <li>Watches for <code>/var/run/reboot-required</code></li>
+                            <li>Cordons, drains, reboots, uncordons</li>
+                            <li>One node at a time (lock-based)</li>
+                            <li>Configurable maintenance windows</li>
+                        </ul>
+                        <pre><code class="language-bash">helm install kured \
+  kured/kured \
+  --set configuration.period=1h \
+  --set configuration.startTime="02:00" \
+  --set configuration.endTime="06:00"</code></pre>
+                    </div>
+                    <div class="card">
+                        <h4>node-problem-detector</h4>
+                        <ul>
+                            <li>Detects node health issues</li>
+                            <li>Kernel deadlocks, OOM events</li>
+                            <li>Container runtime failures</li>
+                            <li>Reports via node conditions</li>
+                        </ul>
+                        <pre><code class="language-bash">kubectl get nodes \
+  -o jsonpath='{range .items[*]}
+  {.metadata.name}:
+  {.status.conditions[*].type}
+  {"\n"}{end}'</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">
+                    kured automates the reboot cycle after OS updates. node-problem-detector identifies issues that may require node replacement. Together they provide automated node lifecycle management.
+                </aside>
+            </section>
+
+            <!-- Slide 37: Immutable Node Replacement -->
+            <section>
+                <h2>Immutable Node Replacement Pattern</h2>
+                <div class="concept-box">
+                    <p><strong>Instead of patching nodes in place, replace them entirely.</strong></p>
+                    <ol>
+                        <li>Build a new hardened node image (Packer, image builder)</li>
+                        <li>Launch replacement node with the new image</li>
+                        <li>Wait for the node to join the cluster and pass health checks</li>
+                        <li>Cordon and drain the old node</li>
+                        <li>Terminate the old node</li>
+                    </ol>
+                </div>
+                <div class="highlight-box success">
+                    <strong>Benefits:</strong> No configuration drift, guaranteed clean state, auditable image
+                    history, easy rollback by reverting to previous image version.
+                </div>
+                <aside class="notes">
+                    This is the gold standard for node management in cloud environments. It treats nodes as cattle, not pets. Works well with auto-scaling groups and managed node pools.
+                </aside>
+            </section>
+
+            <!-- Slide 38: Node Hardening Checklist -->
+            <section>
+                <h2>Node Hardening Checklist</h2>
+                <div class="two-columns">
+                    <div>
+                        <h4>OS &amp; Kernel</h4>
+                        <ul>
+                            <li>&#9989; Container-optimized OS</li>
+                            <li>&#9989; Hardened sysctl parameters</li>
+                            <li>&#9989; Minimal installed packages</li>
+                            <li>&#9989; SSH disabled or restricted</li>
+                            <li>&#9989; File permissions verified</li>
+                        </ul>
+                        <h4>MAC</h4>
+                        <ul>
+                            <li>&#9989; AppArmor or SELinux enforcing</li>
+                            <li>&#9989; Custom profiles for workloads</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Kubelet</h4>
+                        <ul>
+                            <li>&#9989; Anonymous auth disabled</li>
+                            <li>&#9989; Webhook authorization</li>
+                            <li>&#9989; Read-only port disabled</li>
+                            <li>&#9989; Certificate rotation enabled</li>
+                            <li>&#9989; TLS configured</li>
+                        </ul>
+                        <h4>Operations</h4>
+                        <ul>
+                            <li>&#9989; Patch management SLAs</li>
+                            <li>&#9989; Automated updates (kured)</li>
+                            <li>&#9989; CIS Benchmark passing</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    This checklist summarizes everything covered in the module. Use it as a reference when hardening your own cluster nodes.
+                </aside>
+            </section>
+
+            <!-- ===================== LAB CALLOUT ===================== -->
+
+            <!-- Slide 39: Lab Callout -->
+            <section class="lab-callout" data-background-color="#2b6cb0">
+                <h2>&#128736;&#65039; Lab 2: Hardening Worker Nodes</h2>
+                <p><strong>Duration: 60 minutes</strong></p>
+                <ul>
+                    <li>Harden kubelet configuration with secure flags</li>
+                    <li>Configure and apply AppArmor profiles to containers</li>
+                    <li>Set correct file permissions on node config files</li>
+                    <li>Run kube-bench node checks and remediate findings</li>
+                </ul>
+                <aside class="notes">
+                    Students will work through a hands-on lab that covers the key topics from this module. Ensure the lab environment has nodes with intentionally weak configurations for students to find and fix.
+                </aside>
+            </section>
+
+            <!-- ===================== TAKEAWAYS ===================== -->
+
+            <!-- Slide 40: Key Takeaways -->
+            <section>
+                <h2>Key Takeaways</h2>
+                <ul class="takeaway-list">
+                    <li>&#128737;&#65039; <strong>Nodes are the foundation</strong> &mdash; A compromised node provides a direct path to cluster compromise via kubelet credentials, runtime sockets, and service account tokens.</li>
+                    <li>&#128187; <strong>Use container-optimized OSes</strong> &mdash; Minimal, immutable OS images dramatically reduce the attack surface and simplify patching.</li>
+                    <li>&#9881;&#65039; <strong>Lock down the kubelet</strong> &mdash; Disable anonymous auth, enable webhook authorization, close the read-only port, and rotate certificates.</li>
+                    <li>&#128274; <strong>Enable MAC enforcement</strong> &mdash; AppArmor or SELinux provides mandatory access controls that limit damage from container escapes.</li>
+                    <li>&#128203; <strong>Validate with CIS Benchmarks</strong> &mdash; Use kube-bench to continuously verify node compliance and catch configuration drift.</li>
+                    <li>&#128260; <strong>Automate node lifecycle</strong> &mdash; Implement immutable node replacement and automated updates to maintain security posture over time.</li>
+                </ul>
+                <aside class="notes">
+                    Recap each takeaway and tie it back to the attack scenarios discussed at the beginning of the module.
+                </aside>
+            </section>
+
+            <!-- Slide 41: Questions -->
+            <section class="questions-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 50%, #2c5282 100%)">
+                <h2>Questions?</h2>
+                <p>Module 2: Hardening Nodes</p>
+                <p class="small-text" style="color: #a0aec0 !important; margin-top: 40px;">Up Next: Module 3</p>
+                <aside class="notes">
+                    Open the floor for questions. Common questions include: how to handle legacy nodes that cannot run container-optimized OSes, and how to balance security with developer access needs.
+                </aside>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/notes/notes.min.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: true,
+            plugins: [RevealHighlight, RevealNotes]
+        });
+    </script>
+</body>
+</html>
