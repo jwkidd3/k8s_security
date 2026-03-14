@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Module 4: Hardening Pods — Pod Policies</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reset.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reveal.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/theme/white.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/plugin/highlight/monokai.css">
+    <title>Module 4: Pod Security &amp; Security Contexts</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/theme/white.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/monokai.min.css">
     <style>
         :root {
             --heading-color: #1a365d;
@@ -271,8 +271,8 @@
             <!-- SLIDE 1: Title -->
             <!-- ============================================================ -->
             <section class="title-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
-                <h1>Hardening Pods</h1>
-                <h2>Module 4 — Pod Policies</h2>
+                <h1>Pod Security &amp; Security Contexts</h1>
+                <h2>Module 4</h2>
                 <p>Kubernetes Security Course</p>
                 <aside class="notes">
                     Welcome to Module 4. We'll focus on the pod — the smallest deployable unit in Kubernetes — and learn how to lock it down using SecurityContext, Pod Security Standards, Linux capabilities, seccomp, AppArmor, and resource limits.
@@ -1369,7 +1369,7 @@ spec:
             <!-- LAB CALLOUT -->
             <!-- ============================================================ -->
             <section class="lab-callout" data-background-color="#2f855a">
-                <h2>&#x1F9EA; Lab 4: Hardening Pods with Security Policies</h2>
+                <h2>&#x1F9EA; Lab 4: Pod Security Contexts</h2>
                 <p><strong>Duration: 45-60 minutes</strong></p>
                 <ul>
                     <li>Deploy a default pod and audit its security posture</li>
@@ -1460,8 +1460,8 @@ spec:
             <!-- ============================================================ -->
             <section class="questions-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
                 <h2 style="color: #fff;">&#x2753; Questions?</h2>
-                <p style="color: #e2e8f0; font-size: 1.2em;">Module 4: Hardening Pods — Pod Policies</p>
-                <p style="color: #cbd5e0;">Up Next: Module 5</p>
+                <p style="color: #e2e8f0; font-size: 1.2em;">Module 4: Pod Security &amp; Security Contexts</p>
+                <p style="color: #cbd5e0;">Up Next: Module 5 — Network Policies</p>
                 <aside class="notes">
                     Open the floor for questions. Common questions include: how do I know which capabilities my app needs? How do I handle pods that need to write to the filesystem? How do I migrate existing namespaces to Restricted PSA?
                 </aside>
@@ -1470,9 +1470,9 @@ spec:
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/dist/reveal.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/plugin/highlight/highlight.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/reveal.js@4.5.0/plugin/notes/notes.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/notes/notes.min.js"></script>
     <script>
         Reveal.initialize({
             hash: true,

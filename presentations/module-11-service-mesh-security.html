@@ -1,0 +1,1825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 11: Service Mesh Security</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/theme/white.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/monokai.min.css">
+
+    <style>
+        :root {
+            --heading-color: #1a365d;
+            --accent-color: #2b6cb0;
+            --success-color: #2f855a;
+            --warning-color: #c05621;
+            --danger-color: #c53030;
+            --text-color: #2d3748;
+        }
+
+        .reveal {
+            font-size: 28px;
+            color: var(--text-color);
+        }
+
+        .reveal h1 {
+            font-size: 1.8em;
+            color: var(--heading-color);
+        }
+
+        .reveal h2 {
+            font-size: 1.4em;
+            color: var(--heading-color);
+        }
+
+        .reveal h3 {
+            font-size: 1.1em;
+            color: var(--accent-color);
+        }
+
+        .reveal code {
+            font-size: 0.85em;
+        }
+
+        .reveal .slides section {
+            text-align: left;
+            padding: 20px 40px;
+        }
+
+        /* Title slide */
+        .title-slide {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .title-slide h1,
+        .title-slide h2,
+        .title-slide h3 {
+            color: white !important;
+        }
+
+        .title-slide h1 {
+            font-size: 2em !important;
+            margin-bottom: 0.3em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .title-slide h2 {
+            font-size: 1.3em !important;
+            font-weight: 300;
+            margin-bottom: 0.2em;
+        }
+
+        .title-slide h3 {
+            font-size: 1em !important;
+            font-weight: 300;
+            color: rgba(255,255,255,0.85) !important;
+        }
+
+        .course-badge {
+            display: inline-block;
+            padding: 10px 30px;
+            border: 2px solid rgba(255,255,255,0.8);
+            border-radius: 30px;
+            margin-top: 30px;
+            font-size: 0.85em;
+            color: white;
+            letter-spacing: 1px;
+        }
+
+        /* Section divider */
+        .section-divider {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .section-divider h2,
+        .section-divider h3 {
+            color: white !important;
+        }
+
+        .section-divider h2 {
+            font-size: 1.6em !important;
+        }
+
+        .section-divider h3 {
+            font-size: 1em !important;
+            font-weight: 300;
+            color: rgba(255,255,255,0.85) !important;
+        }
+
+        /* Highlight box */
+        .highlight-box {
+            background: linear-gradient(135deg, #ebf8ff 0%, #bee3f8 100%);
+            border-left: 4px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 15px 0;
+        }
+
+        .highlight-box.success {
+            background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);
+            border-left-color: var(--success-color);
+        }
+
+        .highlight-box.warning {
+            background: linear-gradient(135deg, #fffaf0 0%, #feebc8 100%);
+            border-left-color: var(--warning-color);
+        }
+
+        .highlight-box.danger {
+            background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+            border-left-color: var(--danger-color);
+        }
+
+        /* Columns */
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .three-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        /* Card */
+        .card {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .card.success {
+            border-top: 4px solid var(--success-color);
+        }
+
+        .card.warning {
+            border-top: 4px solid var(--warning-color);
+        }
+
+        .card.danger {
+            border-top: 4px solid var(--danger-color);
+        }
+
+        /* Concept box */
+        .concept-box {
+            background: white;
+            border: 2px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 10px 0;
+        }
+
+        /* Key point */
+        .key-point {
+            text-align: center !important;
+            font-style: italic;
+            font-size: 1.15em;
+            color: var(--accent-color);
+            padding: 20px;
+        }
+
+        /* Lab callout */
+        .lab-callout {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .lab-callout h2,
+        .lab-callout h3 {
+            color: white !important;
+        }
+
+        .lab-callout ul {
+            text-align: left;
+            display: inline-block;
+        }
+
+        .lab-callout li {
+            color: white;
+            margin-bottom: 8px;
+        }
+
+        .lab-badge {
+            display: inline-block;
+            padding: 8px 24px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.6);
+            border-radius: 20px;
+            color: white;
+            font-size: 0.8em;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+
+        .lab-description {
+            margin-top: 20px;
+        }
+
+        /* Takeaway list */
+        .takeaway-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .takeaway-list li {
+            padding: 10px 0 10px 35px;
+            position: relative;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .takeaway-list li::before {
+            content: "\2713";
+            position: absolute;
+            left: 0;
+            color: var(--success-color);
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        /* Questions slide */
+        .questions-slide {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .questions-slide h2 {
+            color: white !important;
+            font-size: 2em !important;
+        }
+
+        .questions-slide p {
+            color: rgba(255,255,255,0.85);
+        }
+
+        /* Tables */
+        .reveal table {
+            font-size: 0.75em;
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        .reveal table th {
+            background: var(--heading-color);
+            color: white;
+            padding: 10px 14px;
+            text-align: left;
+        }
+
+        .reveal table td {
+            padding: 8px 14px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .reveal table tr:nth-child(even) {
+            background: #f7fafc;
+        }
+
+        /* Stat boxes */
+        .stat-box {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .stat-box .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: var(--accent-color);
+            display: block;
+        }
+
+        .stat-box .stat-label {
+            font-size: 0.8em;
+            color: var(--text-color);
+        }
+
+        /* Small text */
+        .small-text {
+            font-size: 0.7em;
+            color: #718096;
+        }
+
+        /* Pre/code blocks */
+        .reveal pre {
+            width: 100%;
+            margin: 10px 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            border-radius: 8px;
+        }
+
+        .reveal pre code {
+            padding: 15px;
+            max-height: 450px;
+            font-size: 0.8em;
+        }
+
+        /* Architecture diagram styles */
+        .mesh-diagram {
+            text-align: center;
+            margin: 15px 0;
+        }
+
+        .mesh-layer {
+            border: 2px solid var(--accent-color);
+            border-radius: 10px;
+            padding: 12px 20px;
+            margin: 8px auto;
+            max-width: 80%;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .mesh-layer.control {
+            background: linear-gradient(135deg, #ebf8ff 0%, #bee3f8 100%);
+            border-color: var(--accent-color);
+        }
+
+        .mesh-layer.data {
+            background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);
+            border-color: var(--success-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- Slide 1: Title -->
+            <section class="title-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h1>&#x1F6E1;&#xFE0F; Service Mesh Security</h1>
+                <h2>Module 11</h2>
+                <h3>Kubernetes Security Course</h3>
+                <div class="course-badge">2-Day Hands-On Workshop</div>
+
+                <aside class="notes">
+                    Module 11 covers service mesh technologies that provide security at the network layer.
+                    We focus on Linkerd for hands-on labs due to its lighter footprint in kind clusters.
+                    Istio concepts are covered for completeness as it remains widely deployed.
+                </aside>
+            </section>
+
+            <!-- Slide 2: Agenda -->
+            <section>
+                <h2>&#x1F4CB; Module Agenda</h2>
+                <ol>
+                    <li><strong>Why Service Mesh</strong> — communication challenges and security gaps</li>
+                    <li><strong>Istio &amp; Linkerd Architecture</strong> — sidecar models and components</li>
+                    <li><strong>Mutual TLS (mTLS)</strong> — automatic encryption and identity</li>
+                    <li><strong>Authorization Policies</strong> — workload-to-workload access control</li>
+                    <li><strong>Linkerd Deep Dive</strong> — installation, injection, observability</li>
+                    <li><strong>Observability for Security</strong> — metrics, tracing, anomaly detection</li>
+                    <li><strong>Practical Adoption</strong> — incremental rollout and production readiness</li>
+                </ol>
+
+                <aside class="notes">
+                    We will cover both Istio and Linkerd but our lab exercises use Linkerd
+                    because it is lighter weight and better suited to kind clusters.
+                </aside>
+            </section>
+
+            <!-- ===================== SECTION 1: Why Service Mesh ===================== -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F310; Why Service Mesh?</h2>
+                <h3>Understanding the problem space</h3>
+
+                <aside class="notes">
+                    Before diving into tools, we need to understand what problems service meshes solve
+                    and when they are the right choice versus simpler alternatives.
+                </aside>
+            </section>
+
+            <!-- Slide 4: Service-to-Service Communication Challenges -->
+            <section>
+                <h2>Service-to-Service Communication Challenges</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Without a Mesh</h3>
+                        <ul>
+                            <li>Traffic is <strong>unencrypted</strong> by default within the cluster</li>
+                            <li>No mutual identity verification between services</li>
+                            <li>NetworkPolicy is L3/L4 only — no L7 controls</li>
+                            <li>No built-in retries, timeouts, or circuit breaking</li>
+                            <li>Limited observability into east-west traffic</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="highlight-box danger">
+                            <strong>&#x26A0;&#xFE0F; The Flat Network Problem</strong><br>
+                            By default, any pod can talk to any other pod. A compromised workload
+                            can freely probe and attack neighboring services.
+                        </div>
+                        <div class="highlight-box warning">
+                            <strong>NetworkPolicy helps</strong>, but cannot inspect HTTP methods,
+                            paths, or headers.
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="notes">
+                    Kubernetes networking is flat by default — every pod can reach every other pod.
+                    NetworkPolicy adds L3/L4 controls but cannot inspect application-layer traffic.
+                    A service mesh closes these gaps.
+                </aside>
+            </section>
+
+            <!-- Slide 5: What a Service Mesh Adds -->
+            <section>
+                <h2>What a Service Mesh Adds</h2>
+                <div class="three-columns">
+                    <div class="card success">
+                        <h3>&#x1F512; Security</h3>
+                        <ul>
+                            <li>Automatic mTLS</li>
+                            <li>Cryptographic identity</li>
+                            <li>L7 authorization policies</li>
+                            <li>Certificate rotation</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h3>&#x1F50D; Observability</h3>
+                        <ul>
+                            <li>Golden metrics per route</li>
+                            <li>Distributed tracing</li>
+                            <li>Service dependency maps</li>
+                            <li>Real-time traffic tapping</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3>&#x2699;&#xFE0F; Reliability</h3>
+                        <ul>
+                            <li>Retries &amp; timeouts</li>
+                            <li>Circuit breaking</li>
+                            <li>Traffic splitting</li>
+                            <li>Load balancing (L7)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <aside class="notes">
+                    The three pillars of a service mesh: security, observability, and reliability.
+                    From a security perspective, mTLS and authorization policies are the key features.
+                </aside>
+            </section>
+
+            <!-- Slide 6: When You Need a Mesh vs When You Don't -->
+            <section>
+                <h2>When Do You Need a Service Mesh?</h2>
+                <div class="two-columns">
+                    <div class="card success">
+                        <h3>&#x2705; Good Fit</h3>
+                        <ul>
+                            <li>Many microservices with complex communication patterns</li>
+                            <li>Regulatory requirement for encryption in transit</li>
+                            <li>Need L7 authorization between services</li>
+                            <li>Detailed observability into service-to-service traffic</li>
+                            <li>Zero-trust networking requirements</li>
+                        </ul>
+                    </div>
+                    <div class="card danger">
+                        <h3>&#x274C; Probably Not Needed</h3>
+                        <ul>
+                            <li>Small number of services (&lt;5-10)</li>
+                            <li>Simple request patterns (single API gateway)</li>
+                            <li>NetworkPolicy provides sufficient control</li>
+                            <li>Team lacks operational capacity for another layer</li>
+                            <li>Performance overhead is unacceptable</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="key-point">
+                    "A service mesh is powerful, but adds operational complexity. Adopt it when the security and observability benefits outweigh that cost."
+                </div>
+
+                <aside class="notes">
+                    Not every cluster needs a service mesh. For smaller deployments, NetworkPolicy
+                    combined with application-level TLS may be sufficient. Evaluate the trade-offs.
+                </aside>
+            </section>
+
+            <!-- ===================== SECTION 2: Architecture ===================== -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F3D7;&#xFE0F; Istio &amp; Linkerd Architecture</h2>
+                <h3>Data plane, control plane, and sidecar proxies</h3>
+            </section>
+
+            <!-- Slide 8: Sidecar Proxy Model -->
+            <section>
+                <h2>The Sidecar Proxy Model</h2>
+                <div class="concept-box">
+                    <strong>Core Idea:</strong> A lightweight proxy is injected alongside every application container.
+                    All inbound and outbound traffic flows through this proxy, enabling transparent security and observability.
+                </div>
+                <div class="mesh-diagram">
+                    <div class="mesh-layer control">Control Plane (configuration, certificates, policy)</div>
+                    <div class="mesh-layer data">Data Plane (sidecar proxies intercepting all traffic)</div>
+                </div>
+                <div class="highlight-box">
+                    <strong>Key Benefit:</strong> Applications do not need code changes. The mesh operates at the infrastructure layer,
+                    handling mTLS, retries, and authorization transparently.
+                </div>
+
+                <aside class="notes">
+                    The sidecar model means every pod gets a proxy container injected.
+                    This proxy intercepts all TCP traffic using iptables rules.
+                    The application is completely unaware of the mesh.
+                </aside>
+            </section>
+
+            <!-- Slide 9: Istio Architecture -->
+            <section>
+                <h2>Istio Architecture</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Control Plane: istiod</h3>
+                        <ul>
+                            <li><strong>Pilot</strong> — service discovery, traffic management</li>
+                            <li><strong>Citadel</strong> — certificate authority, identity</li>
+                            <li><strong>Galley</strong> — configuration validation</li>
+                        </ul>
+                        <p class="small-text">All consolidated into a single <code>istiod</code> binary since Istio 1.5+</p>
+
+                        <h3>Data Plane: Envoy</h3>
+                        <ul>
+                            <li>High-performance C++ proxy</li>
+                            <li>Extremely configurable (xDS APIs)</li>
+                            <li>Supports HTTP/1.1, HTTP/2, gRPC, TCP</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="highlight-box warning">
+                            <strong>Resource Overhead</strong><br>
+                            Envoy sidecars typically consume 50-100 MB memory each.
+                            Istiod requires 1-2 GB for large clusters. Consider this
+                            in resource-constrained environments.
+                        </div>
+                        <div class="highlight-box">
+                            <strong>Ambient Mode (newer)</strong><br>
+                            Istio's ambient mode removes sidecars entirely, using
+                            node-level ztunnel proxies + optional waypoint proxies
+                            for L7 features.
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="notes">
+                    Istio is the most feature-rich mesh but has the highest resource overhead.
+                    The ambient mode is a significant architectural shift that eliminates sidecars.
+                    For our labs, we use Linkerd due to lighter resource requirements.
+                </aside>
+            </section>
+
+            <!-- Slide 10: Linkerd Architecture -->
+            <section>
+                <h2>Linkerd Architecture</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Control Plane</h3>
+                        <ul>
+                            <li><strong>destination</strong> — service discovery, policy</li>
+                            <li><strong>identity</strong> — certificate authority (mTLS)</li>
+                            <li><strong>proxy-injector</strong> — mutating webhook for sidecar injection</li>
+                        </ul>
+
+                        <h3>Data Plane: linkerd-proxy</h3>
+                        <ul>
+                            <li>Ultra-lightweight Rust-based proxy</li>
+                            <li>Purpose-built for Kubernetes</li>
+                            <li>~10-20 MB memory per sidecar</li>
+                            <li>Sub-millisecond p99 latency overhead</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="highlight-box success">
+                            <strong>Why Linkerd for Labs?</strong>
+                            <ul>
+                                <li>5x less memory than Envoy sidecars</li>
+                                <li>Simpler installation and operation</li>
+                                <li>Automatic mTLS with zero configuration</li>
+                                <li>Well-suited for kind clusters</li>
+                                <li>CNCF graduated project</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="notes">
+                    Linkerd's Rust-based proxy is significantly lighter than Envoy.
+                    This makes it ideal for development clusters and resource-constrained environments.
+                    Linkerd graduated from CNCF in 2024.
+                </aside>
+            </section>
+
+            <!-- Slide 11: Comparing Architectures -->
+            <section>
+                <h2>Istio vs Linkerd Comparison</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Istio</th>
+                            <th>Linkerd</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Proxy</td>
+                            <td>Envoy (C++)</td>
+                            <td>linkerd-proxy (Rust)</td>
+                        </tr>
+                        <tr>
+                            <td>Memory per sidecar</td>
+                            <td>50-100 MB</td>
+                            <td>10-20 MB</td>
+                        </tr>
+                        <tr>
+                            <td>mTLS</td>
+                            <td>Configurable (permissive/strict)</td>
+                            <td>Automatic, always on</td>
+                        </tr>
+                        <tr>
+                            <td>L7 Authorization</td>
+                            <td>Rich policy model</td>
+                            <td>Server/route-based policies</td>
+                        </tr>
+                        <tr>
+                            <td>Traffic Management</td>
+                            <td>Very flexible (VirtualService)</td>
+                            <td>TrafficSplit, HTTPRoute</td>
+                        </tr>
+                        <tr>
+                            <td>Multi-cluster</td>
+                            <td>Full support</td>
+                            <td>Supported (multi-cluster link)</td>
+                        </tr>
+                        <tr>
+                            <td>Complexity</td>
+                            <td>Higher</td>
+                            <td>Lower</td>
+                        </tr>
+                        <tr>
+                            <td>CNCF Status</td>
+                            <td>Graduated</td>
+                            <td>Graduated</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <aside class="notes">
+                    Both are CNCF graduated projects and production-ready.
+                    The choice depends on your requirements: Istio for maximum flexibility,
+                    Linkerd for simplicity and performance.
+                </aside>
+            </section>
+
+            <!-- ===================== SECTION 3: mTLS ===================== -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2f855a 0%, #276749 100%)">
+                <h2>&#x1F512; Mutual TLS (mTLS)</h2>
+                <h3>Encrypting and authenticating every connection</h3>
+            </section>
+
+            <!-- Slide 13: What is mTLS -->
+            <section>
+                <h2>What is Mutual TLS?</h2>
+                <div class="concept-box">
+                    <strong>Standard TLS:</strong> Client verifies the server's identity.<br>
+                    <strong>Mutual TLS:</strong> Both client <em>and</em> server verify each other's identity.
+                    Every connection is encrypted AND authenticated in both directions.
+                </div>
+                <div class="two-columns">
+                    <div>
+                        <h3>mTLS Provides</h3>
+                        <ul>
+                            <li><strong>Confidentiality</strong> — traffic is encrypted</li>
+                            <li><strong>Integrity</strong> — data cannot be tampered with</li>
+                            <li><strong>Authentication</strong> — both ends prove identity</li>
+                            <li><strong>Authorization foundation</strong> — identity enables policy</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="highlight-box success">
+                            <strong>Zero-Trust Enabler</strong><br>
+                            mTLS is the foundation of zero-trust networking.
+                            Every connection is verified, regardless of network location.
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="notes">
+                    mTLS is the cornerstone security feature of any service mesh.
+                    It ensures that even if an attacker gains access to the network,
+                    they cannot eavesdrop on or impersonate legitimate services.
+                </aside>
+            </section>
+
+            <!-- Slide 14: How mTLS Works in a Mesh -->
+            <section>
+                <h2>How mTLS Works in a Mesh</h2>
+                <ol>
+                    <li><strong>Certificate Issuance</strong> — control plane CA issues short-lived certificates to each proxy</li>
+                    <li><strong>Identity Binding</strong> — certificates are bound to the pod's ServiceAccount identity</li>
+                    <li><strong>Connection Establishment</strong> — proxies perform TLS handshake with mutual verification</li>
+                    <li><strong>Automatic Rotation</strong> — certificates are rotated frequently (every 24h by default)</li>
+                </ol>
+                <div class="highlight-box">
+                    <strong>SPIFFE Identity Model:</strong> Both Istio and Linkerd use SPIFFE (Secure Production Identity Framework for Everyone).
+                    Identity URIs follow the format: <code>spiffe://trust-domain/ns/namespace/sa/service-account</code>
+                </div>
+
+                <aside class="notes">
+                    SPIFFE provides a standard identity format across mesh implementations.
+                    The identity is derived from the Kubernetes ServiceAccount, creating
+                    a cryptographic binding between workload identity and network identity.
+                </aside>
+            </section>
+
+            <!-- Slide 15: Automatic mTLS in Linkerd -->
+            <section>
+                <h2>Automatic mTLS in Linkerd</h2>
+                <div class="highlight-box success">
+                    <strong>Zero Configuration Required!</strong> Linkerd enables mTLS automatically for all
+                    meshed traffic. There are no modes to configure — it just works.
+                </div>
+                <h3>Verifying mTLS is Active</h3>
+                <pre><code class="language-bash"># Check if mTLS is active on a specific pod
+linkerd viz edges deployment -n my-namespace
+
+# View the identity of connected proxies
+linkerd identity -n my-namespace
+
+# Check connections with tap
+linkerd viz tap deployment/my-app -n my-namespace \
+  --to deployment/my-db | grep tls=true</code></pre>
+                <div class="highlight-box warning">
+                    <strong>Non-meshed traffic:</strong> Traffic from/to pods without the Linkerd proxy
+                    is <em>not</em> encrypted. This is visible in edges output as <code>tls=not_provided_by_remote</code>.
+                </div>
+
+                <aside class="notes">
+                    Linkerd's approach is opinionated: mTLS is always on for meshed workloads.
+                    There is no permissive mode to configure, which reduces misconfiguration risk.
+                    The tap command shows TLS status in real time for each connection.
+                </aside>
+            </section>
+
+            <!-- Slide 16: PeerAuthentication in Istio -->
+            <section>
+                <h2>PeerAuthentication in Istio</h2>
+                <pre><code class="language-yaml"># Enforce strict mTLS for the entire mesh
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: istio-system    # Mesh-wide when in istio-system
+spec:
+  mtls:
+    mode: STRICT             # Reject non-mTLS connections
+
+---
+# Per-namespace override
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: payment-service
+spec:
+  mtls:
+    mode: STRICT
+  portLevelMtls:
+    8080:
+      mode: PERMISSIVE       # Allow non-mTLS on health check port</code></pre>
+                <div class="highlight-box warning">
+                    <strong>Permissive vs Strict:</strong> Istio defaults to PERMISSIVE mode, which accepts both
+                    mTLS and plaintext. Always switch to STRICT after verifying all clients are meshed.
+                </div>
+
+                <aside class="notes">
+                    Istio's PeerAuthentication has three modes: DISABLE, PERMISSIVE, and STRICT.
+                    PERMISSIVE is useful during migration but should never remain in production.
+                    Port-level overrides are useful for health check endpoints that receive
+                    non-meshed traffic from kubelet.
+                </aside>
+            </section>
+
+            <!-- Slide 17: Certificate Management -->
+            <section>
+                <h2>Certificate Management</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Linkerd Certificates</h3>
+                        <ul>
+                            <li><strong>Trust anchor</strong> — root CA (bring your own or auto-generated)</li>
+                            <li><strong>Issuer certificate</strong> — intermediate CA used by identity controller</li>
+                            <li><strong>Workload certificates</strong> — issued per-proxy, 24h expiry</li>
+                        </ul>
+                        <pre><code class="language-bash"># Check certificate expiry
+linkerd check --proxy
+
+# Rotate issuer cert
+# (using cert-manager for
+# automatic rotation)</code></pre>
+                    </div>
+                    <div>
+                        <h3>Production Best Practices</h3>
+                        <div class="highlight-box danger">
+                            <strong>Never use auto-generated trust anchors in production!</strong>
+                            Always bring your own CA certificates and manage rotation
+                            with cert-manager or Vault.
+                        </div>
+                        <pre><code class="language-bash"># Generate trust anchor
+step certificate create \
+  root.linkerd.cluster.local \
+  ca.crt ca.key \
+  --profile root-ca \
+  --no-password \
+  --not-after=87600h</code></pre>
+                    </div>
+                </div>
+
+                <aside class="notes">
+                    Certificate management is critical for production mesh deployments.
+                    Auto-generated certificates are fine for development but create
+                    operational risk in production. Use cert-manager to automate rotation.
+                </aside>
+            </section>
+
+            <!-- ===================== SECTION 4: Authorization Policies ===================== -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #c05621 0%, #9c4221 100%)">
+                <h2>&#x1F6E1;&#xFE0F; Authorization Policies</h2>
+                <h3>Controlling workload-to-workload communication</h3>
+            </section>
+
+            <!-- Slide 19: Authorization in Linkerd -->
+            <section>
+                <h2>Linkerd Authorization Policies</h2>
+                <div class="concept-box">
+                    Linkerd uses a <strong>default-deny</strong> model with Server and ServerAuthorization resources
+                    (and the newer AuthorizationPolicy / HTTPRoute resources) to control which workloads
+                    can communicate.
+                </div>
+                <pre><code class="language-yaml"># Define a Server (what to protect)
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: api-server
+  namespace: my-app
+spec:
+  podSelector:
+    matchLabels:
+      app: api
+  port: 8080
+  proxyProtocol: HTTP/2</code></pre>
+                <p class="small-text">A Server resource identifies the port and pods that should receive authorization enforcement.</p>
+
+                <aside class="notes">
+                    The Server resource is the foundational policy primitive in Linkerd.
+                    It tells Linkerd which ports on which pods should have authorization enforced.
+                    Without a Server resource, traffic flows freely between meshed pods.
+                </aside>
+            </section>
+
+            <!-- Slide 20: ServerAuthorization -->
+            <section>
+                <h2>Linkerd ServerAuthorization</h2>
+                <pre><code class="language-yaml"># Allow only the frontend to call the API
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  name: allow-frontend-to-api
+  namespace: my-app
+spec:
+  server:
+    name: api-server
+  client:
+    meshTLS:
+      serviceAccounts:
+        - name: frontend
+          namespace: my-app</code></pre>
+                <div class="highlight-box">
+                    <strong>Identity-Based:</strong> Authorization is based on the client's mTLS identity
+                    (ServiceAccount), not IP addresses. This is resilient to pod rescheduling.
+                </div>
+
+                <aside class="notes">
+                    ServerAuthorization binds to a Server and specifies which clients can access it.
+                    Using ServiceAccount identity means policies survive pod restarts and IP changes.
+                    You can also use unauthenticatedTLS and authorizatedIdentities for more flexibility.
+                </aside>
+            </section>
+
+            <!-- Slide 21: Linkerd AuthorizationPolicy (newer API) -->
+            <section>
+                <h2>Linkerd AuthorizationPolicy (Newer API)</h2>
+                <pre><code class="language-yaml"># Fine-grained HTTP route authorization
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-get-orders
+  namespace: my-app
+spec:
+  targetRef:
+    group: policy.linkerd.io
+    kind: HTTPRoute
+    name: orders-get-route
+  requiredAuthenticationRefs:
+    - name: frontend-identity
+      kind: MeshTLSAuthentication
+      group: policy.linkerd.io
+
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: HTTPRoute
+metadata:
+  name: orders-get-route
+  namespace: my-app
+spec:
+  parentRefs:
+    - name: api-server
+      kind: Server
+      group: policy.linkerd.io
+  rules:
+    - matches:
+        - path:
+            value: /orders
+          method: GET</code></pre>
+
+                <aside class="notes">
+                    The newer AuthorizationPolicy API works with Gateway API HTTPRoute resources
+                    for fine-grained L7 authorization. You can control access by HTTP method
+                    and path, not just by workload identity.
+                </aside>
+            </section>
+
+            <!-- Slide 22: MeshTLSAuthentication -->
+            <section>
+                <h2>MeshTLSAuthentication</h2>
+                <pre><code class="language-yaml"># Define who the "frontend" identity is
+apiVersion: policy.linkerd.io/v1alpha1
+kind: MeshTLSAuthentication
+metadata:
+  name: frontend-identity
+  namespace: my-app
+spec:
+  identities:
+    - "frontend.my-app.serviceaccount.identity.linkerd.cluster.local"
+
+---
+# Network-level authentication (for non-meshed clients)
+apiVersion: policy.linkerd.io/v1alpha1
+kind: NetworkAuthentication
+metadata:
+  name: allow-monitoring
+  namespace: my-app
+spec:
+  networks:
+    - cidr: 10.0.0.0/8   # Allow from cluster network</code></pre>
+                <div class="highlight-box warning">
+                    <strong>Non-meshed clients:</strong> Use NetworkAuthentication for traffic that
+                    does not have mTLS identity (e.g., probes from kubelet, external load balancers).
+                </div>
+
+                <aside class="notes">
+                    MeshTLSAuthentication identifies clients by their SPIFFE identity string.
+                    NetworkAuthentication is a fallback for non-meshed traffic — use sparingly
+                    as it relies on IP ranges which are less secure than cryptographic identity.
+                </aside>
+            </section>
+
+            <!-- Slide 23: Istio AuthorizationPolicy -->
+            <section>
+                <h2>Istio AuthorizationPolicy</h2>
+                <pre><code class="language-yaml"># Allow only specific services to access the payment API
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: payment-api-policy
+  namespace: payment
+spec:
+  selector:
+    matchLabels:
+      app: payment-api
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals:
+              - "cluster.local/ns/checkout/sa/checkout-service"
+      to:
+        - operation:
+            methods: ["POST"]
+            paths: ["/api/v1/charge"]
+      when:
+        - key: request.headers[x-request-id]
+          notValues: [""]</code></pre>
+                <div class="highlight-box">
+                    <strong>Istio's model:</strong> Combines source identity, destination operations,
+                    and conditional rules in a single resource. Supports ALLOW, DENY, and CUSTOM actions.
+                </div>
+
+                <aside class="notes">
+                    Istio's AuthorizationPolicy is more feature-rich than Linkerd's, supporting
+                    header matching, JWT claims, IP ranges, and custom external authorization.
+                    The 'when' conditions enable very fine-grained access control.
+                </aside>
+            </section>
+
+            <!-- Slide 24: Default Deny Pattern -->
+            <section>
+                <h2>Default Deny Pattern</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Linkerd</h3>
+                        <pre><code class="language-yaml"># Creating a Server resource
+# without any ServerAuthorization
+# automatically denies all traffic
+# to that port
+
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: api-server
+  namespace: my-app
+spec:
+  podSelector:
+    matchLabels:
+      app: api
+  port: 8080
+  proxyProtocol: HTTP/2
+# No ServerAuthorization =
+# default deny!</code></pre>
+                    </div>
+                    <div>
+                        <h3>Istio</h3>
+                        <pre><code class="language-yaml"># Explicit deny-all policy
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-all
+  namespace: my-app
+spec:
+  {}
+# Empty spec = deny all traffic
+# to the namespace
+
+# Then add specific ALLOW rules
+# for permitted communication</code></pre>
+                    </div>
+                </div>
+                <div class="key-point">
+                    "Start with default-deny, then explicitly allow only the communication paths your application needs."
+                </div>
+
+                <aside class="notes">
+                    Default deny is a fundamental zero-trust principle.
+                    In Linkerd, merely defining a Server resource without authorization triggers deny.
+                    In Istio, an empty AuthorizationPolicy spec denies everything.
+                </aside>
+            </section>
+
+            <!-- ===================== SECTION 5: Linkerd Deep Dive ===================== -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F9D1;&#x200D;&#x1F4BB; Linkerd Deep Dive</h2>
+                <h3>Installation, injection, and observability</h3>
+            </section>
+
+            <!-- Slide 26: Installing Linkerd -->
+            <section>
+                <h2>Installing Linkerd on a kind Cluster</h2>
+                <pre><code class="language-bash"># 1. Install the Linkerd CLI
+curl --proto '=https' --tlsv1.2 -sSfL https://run.linkerd.io/install | sh
+export PATH=$HOME/.linkerd2/bin:$PATH
+
+# 2. Validate the cluster is ready
+linkerd check --pre
+
+# 3. Install the control plane
+linkerd install --crds | kubectl apply -f -
+linkerd install | kubectl apply -f -
+
+# 4. Verify installation
+linkerd check
+
+# 5. Install the viz extension (observability)
+linkerd viz install | kubectl apply -f -
+linkerd viz check</code></pre>
+                <div class="highlight-box success">
+                    <strong>That's it!</strong> Linkerd control plane is running with automatic mTLS.
+                    No additional configuration needed for encryption.
+                </div>
+
+                <aside class="notes">
+                    The linkerd check command validates over 40 different conditions.
+                    It is an excellent troubleshooting tool when something goes wrong.
+                    The viz extension adds Prometheus, Grafana, and the dashboard.
+                </aside>
+            </section>
+
+            <!-- Slide 27: Injecting Proxies -->
+            <section>
+                <h2>Injecting Linkerd Proxies</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Annotation-Based Injection</h3>
+                        <pre><code class="language-yaml"># Per-namespace injection
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: my-app
+  annotations:
+    linkerd.io/inject: enabled
+
+---
+# Per-deployment injection
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  template:
+    metadata:
+      annotations:
+        linkerd.io/inject: enabled</code></pre>
+                    </div>
+                    <div>
+                        <h3>CLI-Based Injection</h3>
+                        <pre><code class="language-bash"># Inject into existing resources
+kubectl get deploy -n my-app \
+  -o yaml | linkerd inject - | \
+  kubectl apply -f -
+
+# Verify injection
+linkerd check --proxy -n my-app
+
+# Check proxy status
+kubectl get pods -n my-app \
+  -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[*].name}{"\n"}{end}'</code></pre>
+                        <div class="highlight-box">
+                            Injected pods will have 2 containers: the app + <code>linkerd-proxy</code>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="notes">
+                    Namespace-level annotation is the recommended approach for production.
+                    The CLI injection method is useful for testing or when you cannot modify
+                    the namespace. Both result in the same proxy being added.
+                </aside>
+            </section>
+
+            <!-- Slide 28: Linkerd Viz Dashboard -->
+            <section>
+                <h2>Linkerd Viz Dashboard</h2>
+                <pre><code class="language-bash"># Open the dashboard in a browser
+linkerd viz dashboard &
+
+# View per-deployment metrics
+linkerd viz stat deployments -n my-app
+
+# Example output:
+# NAME    MESHED   SUCCESS    RPS   LATENCY_P50   LATENCY_P95   LATENCY_P99
+# api       1/1   100.00%   4.5rps        10ms          25ms          50ms
+# frontend  1/1    99.85%   8.2rps         5ms          15ms          30ms
+# db        1/1   100.00%   2.1rps         3ms           8ms          12ms</code></pre>
+                <div class="highlight-box">
+                    <strong>Security-Relevant Metrics:</strong>
+                    <ul>
+                        <li>Success rate drops may indicate unauthorized access attempts</li>
+                        <li>Unexpected traffic sources visible in topology view</li>
+                        <li>TLS status shown for all connections</li>
+                    </ul>
+                </div>
+
+                <aside class="notes">
+                    The viz dashboard provides a real-time view of all service-to-service communication.
+                    The topology view is particularly useful for security — you can immediately see
+                    unexpected communication patterns that might indicate a compromised workload.
+                </aside>
+            </section>
+
+            <!-- Slide 29: Tap, Stat, and Top -->
+            <section>
+                <h2>Tap, Stat, and Top Commands</h2>
+                <div class="three-columns">
+                    <div class="card">
+                        <h3>&#x1F50D; tap</h3>
+                        <p>Real-time request/response stream</p>
+                        <pre><code class="language-bash"># Watch live traffic
+linkerd viz tap \
+  deploy/api \
+  -n my-app \
+  --to deploy/db
+
+# Filter by path
+linkerd viz tap \
+  deploy/api \
+  --path /api/v1/users</code></pre>
+                    </div>
+                    <div class="card">
+                        <h3>&#x1F4CA; stat</h3>
+                        <p>Aggregated metrics over time</p>
+                        <pre><code class="language-bash"># Per-route stats
+linkerd viz stat \
+  deploy -n my-app
+
+# Between services
+linkerd viz stat \
+  deploy/api \
+  --to deploy/db \
+  -n my-app</code></pre>
+                    </div>
+                    <div class="card">
+                        <h3>&#x1F51D; top</h3>
+                        <p>Top routes by request volume</p>
+                        <pre><code class="language-bash"># Top routes for a
+# deployment
+linkerd viz top \
+  deploy/api \
+  -n my-app
+
+# Shows routes ranked
+# by request count</code></pre>
+                    </div>
+                </div>
+
+                <aside class="notes">
+                    Tap is especially powerful for security investigations.
+                    You can watch traffic in real time, filter by source, destination,
+                    path, and method. This is invaluable for incident response.
+                    All tap data shows TLS status per connection.
+                </aside>
+            </section>
+
+            <!-- Slide 30: Traffic Splitting -->
+            <section>
+                <h2>Traffic Splitting &amp; Retries</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Traffic Splitting (Canary)</h3>
+                        <pre><code class="language-yaml"># Split traffic between versions
+apiVersion: split.smi-spec.io/v1alpha2
+kind: TrafficSplit
+metadata:
+  name: api-canary
+  namespace: my-app
+spec:
+  service: api
+  backends:
+    - service: api-stable
+      weight: 900     # 90%
+    - service: api-canary
+      weight: 100     # 10%</code></pre>
+                    </div>
+                    <div>
+                        <h3>Retry Configuration</h3>
+                        <pre><code class="language-yaml"># Configure retries via
+# ServiceProfile
+apiVersion: linkerd.io/v1alpha2
+kind: ServiceProfile
+metadata:
+  name: api.my-app.svc.cluster.local
+  namespace: my-app
+spec:
+  routes:
+    - name: GET /api/v1/orders
+      condition:
+        method: GET
+        pathRegex: /api/v1/orders
+      isRetryable: true
+      timeout: 5s</code></pre>
+                    </div>
+                </div>
+                <div class="highlight-box">
+                    <strong>Security Note:</strong> Traffic splitting enables safe rollout of security policy changes.
+                    Apply new authorization rules to the canary first and verify before full rollout.
+                </div>
+
+                <aside class="notes">
+                    Traffic splitting uses the SMI TrafficSplit spec.
+                    This is useful for canary deployments and A/B testing.
+                    From a security perspective, it allows gradual rollout of policy changes.
+                </aside>
+            </section>
+
+            <!-- ===================== SECTION 6: Observability for Security ===================== -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2f855a 0%, #276749 100%)">
+                <h2>&#x1F4CA; Observability for Security</h2>
+                <h3>Detecting threats through metrics and traffic analysis</h3>
+            </section>
+
+            <!-- Slide 32: Golden Metrics -->
+            <section>
+                <h2>Golden Metrics for Security</h2>
+                <div class="two-columns">
+                    <div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Metric</th>
+                                    <th>Security Signal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Latency</strong></td>
+                                    <td>Unusual spikes may indicate data exfiltration or DoS</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Traffic Volume</strong></td>
+                                    <td>Unexpected surges suggest scanning or brute-force attacks</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Error Rate</strong></td>
+                                    <td>403/401 spikes indicate unauthorized access attempts</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Saturation</strong></td>
+                                    <td>Resource exhaustion may signal a DoS attack</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                        <div class="highlight-box danger">
+                            <strong>Security Anomalies to Watch</strong>
+                            <ul>
+                                <li>Service A suddenly talking to Service C (never before)</li>
+                                <li>4xx error rate spike on internal APIs</li>
+                                <li>Request volume 10x normal at unusual hours</li>
+                                <li>Non-TLS connections appearing in a meshed namespace</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="notes">
+                    The golden metrics — latency, traffic, errors, saturation — are well-known
+                    for SRE purposes, but they are equally valuable security signals.
+                    A service mesh gives you these metrics for free on every connection.
+                </aside>
+            </section>
+
+            <!-- Slide 33: Distributed Tracing -->
+            <section>
+                <h2>Distributed Tracing for Security</h2>
+                <div class="concept-box">
+                    <strong>Distributed tracing</strong> follows a request across multiple services,
+                    providing a complete picture of the request path. This is invaluable for security
+                    forensics — tracing the path of a suspicious request through your system.
+                </div>
+                <div class="two-columns">
+                    <div>
+                        <h3>Integration Options</h3>
+                        <ul>
+                            <li><strong>Jaeger</strong> — popular open-source tracing backend</li>
+                            <li><strong>Tempo (Grafana)</strong> — scalable trace storage</li>
+                            <li><strong>OpenTelemetry</strong> — vendor-neutral collection</li>
+                        </ul>
+                        <p class="small-text">Linkerd propagates trace headers (b3, w3c) automatically but requires application instrumentation for full traces.</p>
+                    </div>
+                    <div>
+                        <h3>Security Use Cases</h3>
+                        <ul>
+                            <li>Trace the full path of a malicious request</li>
+                            <li>Identify which services a compromised workload contacted</li>
+                            <li>Correlate authorization failures across services</li>
+                            <li>Verify request routing matches policy expectations</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <aside class="notes">
+                    Linkerd does not perform distributed tracing natively — it propagates headers.
+                    Applications must forward trace context headers for end-to-end traces.
+                    For security forensics, combining mesh metrics with traces gives a complete picture.
+                </aside>
+            </section>
+
+            <!-- Slide 34: Access Logging -->
+            <section>
+                <h2>Access Logging &amp; Audit Trails</h2>
+                <pre><code class="language-bash"># Enable access logging in Linkerd via proxy configuration
+# Add annotation to deployment
+annotations:
+  config.linkerd.io/access-log: apache  # or "json"
+
+# Example JSON access log entry:
+# {
+#   "remote_addr": "10.244.0.15",
+#   "method": "POST",
+#   "path": "/api/v1/payment",
+#   "status": 403,
+#   "bytes_sent": 0,
+#   "duration_ms": 2,
+#   "tls": "true",
+#   "client_id": "frontend.my-app.serviceaccount.identity.linkerd.cluster.local"
+# }</code></pre>
+                <div class="highlight-box warning">
+                    <strong>Performance Note:</strong> Access logging increases proxy CPU and memory usage.
+                    Enable selectively on security-critical services rather than mesh-wide.
+                </div>
+
+                <aside class="notes">
+                    Access logs from the proxy include the mTLS client identity,
+                    which is not available in application logs. This creates an audit trail
+                    of which service accessed which endpoint and when.
+                    Use JSON format for easier integration with log aggregation tools.
+                </aside>
+            </section>
+
+            <!-- Slide 35: Grafana Dashboards -->
+            <section>
+                <h2>Grafana Security Dashboards</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Built-in Linkerd Dashboards</h3>
+                        <ul>
+                            <li><strong>Top Line</strong> — cluster-wide success rate, RPS</li>
+                            <li><strong>Deployment</strong> — per-deployment metrics</li>
+                            <li><strong>Pod</strong> — individual pod health</li>
+                            <li><strong>Authority</strong> — per-destination metrics</li>
+                        </ul>
+                        <pre><code class="language-bash"># Access Grafana via viz
+linkerd viz dashboard &
+# Navigate to Grafana tab</code></pre>
+                    </div>
+                    <div>
+                        <h3>Custom Security Panels</h3>
+                        <div class="highlight-box">
+                            <strong>Recommended Alerts:</strong>
+                            <ul>
+                                <li>Success rate below 99% for internal APIs</li>
+                                <li>Non-TLS connections detected</li>
+                                <li>New source/destination pairs appearing</li>
+                                <li>Request rate exceeding baseline by 3x</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="notes">
+                    Linkerd viz includes Grafana with pre-built dashboards.
+                    For security, add custom panels and alerts based on the golden metrics.
+                    Prometheus queries for Linkerd metrics use the response_total and
+                    request_duration_seconds metrics.
+                </aside>
+            </section>
+
+            <!-- Slide 36: Detecting Anomalous Traffic -->
+            <section>
+                <h2>Detecting Anomalous Traffic Patterns</h2>
+                <pre><code class="language-bash"># Check for unexpected connections between services
+linkerd viz edges deployment -n my-app -o json | \
+  jq '.[] | select(.noTLS == true)'
+
+# Find services with high error rates
+linkerd viz stat deploy -n my-app -o json | \
+  jq '.[] | select(.successRate < 0.99)'
+
+# Watch for traffic to services that should not receive external requests
+linkerd viz tap deploy/internal-api -n my-app \
+  --to-resource=deploy/database \
+  --method=DELETE</code></pre>
+                <div class="highlight-box danger">
+                    <strong>Red Flags:</strong>
+                    <ul>
+                        <li>DELETE or PUT requests to services that should only receive GET</li>
+                        <li>Traffic from unexpected namespaces or ServiceAccounts</li>
+                        <li>Connections without mTLS in a fully-meshed namespace</li>
+                    </ul>
+                </div>
+
+                <aside class="notes">
+                    Combine tap, stat, and edges commands to build a picture of normal traffic.
+                    Any deviation from the baseline should trigger investigation.
+                    Consider automating these checks and feeding them into alerting systems.
+                </aside>
+            </section>
+
+            <!-- ===================== SECTION 7: Practical Adoption ===================== -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #c05621 0%, #9c4221 100%)">
+                <h2>&#x1F680; Practical Adoption</h2>
+                <h3>From evaluation to production</h3>
+            </section>
+
+            <!-- Slide 38: Incremental Adoption Strategy -->
+            <section>
+                <h2>Incremental Adoption Strategy</h2>
+                <ol>
+                    <li><strong>Evaluate</strong> — install mesh in a dev/staging cluster, measure overhead</li>
+                    <li><strong>Observe</strong> — mesh one namespace, monitor metrics without enforcing policy</li>
+                    <li><strong>Encrypt</strong> — verify mTLS is active on all meshed connections</li>
+                    <li><strong>Authorize</strong> — add Server resources and ServerAuthorizations incrementally</li>
+                    <li><strong>Enforce</strong> — enable default-deny, ensure all communication is explicitly authorized</li>
+                    <li><strong>Expand</strong> — roll out namespace by namespace to production</li>
+                </ol>
+                <div class="highlight-box success">
+                    <strong>Key Principle:</strong> Never enable authorization enforcement on all namespaces
+                    at once. Roll out one namespace at a time, validate, then move to the next.
+                </div>
+
+                <aside class="notes">
+                    The incremental approach reduces risk significantly.
+                    Observation before enforcement lets you discover all legitimate communication
+                    patterns before creating policies that might break them.
+                </aside>
+            </section>
+
+            <!-- Slide 39: Namespace-by-Namespace Rollout -->
+            <section>
+                <h2>Namespace-by-Namespace Rollout</h2>
+                <pre><code class="language-bash"># Phase 1: Inject proxy (observe only)
+kubectl annotate namespace staging linkerd.io/inject=enabled
+kubectl rollout restart deploy -n staging
+
+# Phase 2: Verify mTLS
+linkerd viz edges deployment -n staging
+# Confirm all edges show tls=true
+
+# Phase 3: Add Server resources (enables authorization)
+kubectl apply -f policies/staging-servers.yaml
+
+# Phase 4: Add ServerAuthorizations (allow known traffic)
+kubectl apply -f policies/staging-authz.yaml
+
+# Phase 5: Verify no unexpected denials
+linkerd viz stat deploy -n staging
+# Watch for success rate drops
+
+# Phase 6: Move to next namespace
+kubectl annotate namespace production linkerd.io/inject=enabled</code></pre>
+
+                <aside class="notes">
+                    Each phase should run for a sufficient period — typically a few days at minimum.
+                    This allows you to observe the full range of traffic patterns including
+                    batch jobs, scheduled tasks, and less-frequent communication paths.
+                </aside>
+            </section>
+
+            <!-- Slide 40: Handling Non-Meshed Traffic -->
+            <section>
+                <h2>Handling Non-Meshed Traffic</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Common Sources</h3>
+                        <ul>
+                            <li><strong>Kubelet</strong> — health probes (liveness, readiness)</li>
+                            <li><strong>Ingress controllers</strong> — may not be meshed</li>
+                            <li><strong>Jobs/CronJobs</strong> — short-lived pods</li>
+                            <li><strong>External services</strong> — outside the cluster</li>
+                            <li><strong>Monitoring tools</strong> — Prometheus scraping</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <pre><code class="language-yaml"># Allow kubelet health probes
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-health-probes
+  namespace: my-app
+spec:
+  targetRef:
+    group: policy.linkerd.io
+    kind: Server
+    name: health-server
+  requiredAuthenticationRefs:
+    - name: kubelet
+      kind: NetworkAuthentication
+      group: policy.linkerd.io
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: NetworkAuthentication
+metadata:
+  name: kubelet
+  namespace: my-app
+spec:
+  networks:
+    - cidr: 0.0.0.0/0</code></pre>
+                    </div>
+                </div>
+
+                <aside class="notes">
+                    Kubelet health probes are the most common source of non-meshed traffic.
+                    The kubelet runs on the host network and does not have a mesh proxy.
+                    You must explicitly allow this traffic or your pods will be killed
+                    when they fail health checks.
+                </aside>
+            </section>
+
+            <!-- Slide 41: Performance Overhead -->
+            <section>
+                <h2>Performance Overhead</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Linkerd</th>
+                            <th>Istio (sidecar)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Latency overhead (p99)</td>
+                            <td>&lt;1ms</td>
+                            <td>2-5ms</td>
+                        </tr>
+                        <tr>
+                            <td>Memory per sidecar</td>
+                            <td>10-20 MB</td>
+                            <td>50-100 MB</td>
+                        </tr>
+                        <tr>
+                            <td>CPU per sidecar (idle)</td>
+                            <td>~10m</td>
+                            <td>~50m</td>
+                        </tr>
+                        <tr>
+                            <td>Control plane memory</td>
+                            <td>~500 MB</td>
+                            <td>~1-2 GB</td>
+                        </tr>
+                        <tr>
+                            <td>Pod startup overhead</td>
+                            <td>~100ms</td>
+                            <td>~1-2s</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="highlight-box">
+                    <strong>Tip:</strong> Set resource requests and limits on sidecar containers.
+                    Linkerd allows this via annotations:
+                    <code>config.linkerd.io/proxy-cpu-request</code>,
+                    <code>config.linkerd.io/proxy-memory-limit</code>
+                </div>
+
+                <aside class="notes">
+                    These numbers are approximate and depend on traffic volume.
+                    For kind clusters with limited resources, Linkerd's lighter footprint
+                    is a significant advantage. In production, always benchmark with your
+                    actual workload before committing to a mesh.
+                </aside>
+            </section>
+
+            <!-- Slide 42: Troubleshooting Common Issues -->
+            <section>
+                <h2>Troubleshooting Common Issues</h2>
+                <div class="two-columns">
+                    <div class="card danger">
+                        <h3>Proxy Not Injected</h3>
+                        <pre><code class="language-bash"># Check annotation
+kubectl get ns my-app \
+  -o jsonpath='{.metadata.annotations}'
+
+# Verify webhook
+kubectl get \
+  mutatingwebhookconfigurations
+
+# Force re-injection
+kubectl rollout restart \
+  deploy -n my-app</code></pre>
+                    </div>
+                    <div class="card warning">
+                        <h3>Connection Refused (Policy)</h3>
+                        <pre><code class="language-bash"># Check which Server
+# resources exist
+kubectl get servers -n my-app
+
+# Check authorizations
+kubectl get \
+  serverauthorizations \
+  -n my-app
+
+# Check policy logs
+linkerd viz tap deploy/api \
+  -n my-app | grep :status</code></pre>
+                    </div>
+                </div>
+                <div class="highlight-box">
+                    <strong>The Ultimate Debugging Tool:</strong>
+                    <code>linkerd check</code> validates 40+ conditions and provides actionable remediation steps.
+                </div>
+
+                <aside class="notes">
+                    The most common issues are: proxy not injected (missing annotation),
+                    connections refused after adding Server resources (forgot to add authorization),
+                    and certificate expiry (forgot to set up rotation).
+                    Always start troubleshooting with linkerd check.
+                </aside>
+            </section>
+
+            <!-- Slide 43: Production Readiness Checklist -->
+            <section>
+                <h2>Production Readiness Checklist</h2>
+                <ul class="takeaway-list">
+                    <li>Trust anchor certificates are externally managed (not auto-generated)</li>
+                    <li>Certificate rotation is automated via cert-manager or Vault</li>
+                    <li>All namespaces have injection annotations</li>
+                    <li>Server resources defined for all security-critical ports</li>
+                    <li>ServerAuthorizations enforce least-privilege communication</li>
+                    <li>Health probe ports have NetworkAuthentication for kubelet</li>
+                    <li>Grafana alerts configured for success rate drops and non-TLS connections</li>
+                    <li>Access logging enabled on sensitive services</li>
+                    <li>Resource requests/limits set on proxy containers</li>
+                    <li>Linkerd control plane is monitored and has HA configuration</li>
+                </ul>
+
+                <aside class="notes">
+                    This checklist covers the essential items for production mesh deployments.
+                    Each item should be verified and documented before going live.
+                    The HA configuration requires running multiple replicas of control plane
+                    components and using PodDisruptionBudgets.
+                </aside>
+            </section>
+
+            <!-- ===================== LAB CALLOUT ===================== -->
+            <section class="lab-callout" data-background="linear-gradient(135deg, #2f855a 0%, #276749 100%)">
+                <div class="lab-badge">Hands-On Exercise</div>
+                <h2>&#x1F9EA; Lab 11: Service Mesh Security</h2>
+                <h3>60 minutes</h3>
+                <div class="lab-description">
+                    <ul>
+                        <li>Install Linkerd on a kind cluster</li>
+                        <li>Enable automatic mTLS and verify encryption</li>
+                        <li>Deploy a demo application with injected proxies</li>
+                        <li>Configure Server and ServerAuthorization policies</li>
+                        <li>Observe traffic with <code>linkerd viz</code> (stat, tap, edges)</li>
+                    </ul>
+                </div>
+
+                <aside class="notes">
+                    Students will work through installing Linkerd, injecting proxies into
+                    a multi-service demo application, and then progressively adding
+                    authorization policies. The key learning is seeing how mTLS is automatic
+                    and how Server resources enable default-deny behavior.
+                </aside>
+            </section>
+
+            <!-- Slide 45: Key Takeaways -->
+            <section>
+                <h2>&#x1F4DD; Module 11 Key Takeaways</h2>
+                <ul class="takeaway-list">
+                    <li>Service meshes add mTLS, L7 authorization, and observability to Kubernetes networking</li>
+                    <li>Linkerd provides automatic mTLS with zero configuration — encryption is always on</li>
+                    <li>Authorization policies should follow a default-deny pattern using Server resources</li>
+                    <li>SPIFFE identities bind cryptographic identity to ServiceAccounts</li>
+                    <li>Golden metrics from the mesh are powerful security signals for anomaly detection</li>
+                    <li>Adopt incrementally: observe first, enforce later, one namespace at a time</li>
+                    <li>Production deployments require externally managed certificates and HA control planes</li>
+                </ul>
+
+                <aside class="notes">
+                    Reinforce these key points before moving to the next module.
+                    The most important takeaway is the incremental adoption strategy —
+                    rushing mesh adoption causes outages.
+                </aside>
+            </section>
+
+            <!-- Slide 46: Up Next -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2>Up Next</h2>
+                <h3>Module 12 — Incident Response &amp; Forensics</h3>
+                <p style="color: rgba(255,255,255,0.8); text-align: center;">
+                    Preparing for and responding to security incidents in Kubernetes environments
+                </p>
+
+                <aside class="notes">
+                    Module 12 covers incident response procedures, forensic analysis techniques,
+                    and building an incident response plan for Kubernetes environments.
+                </aside>
+            </section>
+
+            <!-- Slide 47: Questions -->
+            <section class="questions-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2>&#x2753; Questions?</h2>
+                <p>Module 11: Service Mesh Security</p>
+
+                <aside class="notes">
+                    Open the floor for questions. Common topics include mesh vs NetworkPolicy,
+                    Istio vs Linkerd selection criteria, and mTLS performance impact.
+                </aside>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/notes/notes.min.js"></script>
+
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: true,
+            plugins: [RevealHighlight, RevealNotes]
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+# Kubernetes Audit Policy
+# Used with kind-config-audit.yaml for Labs 03, 10, 12
+apiVersion: audit.k8s.io/v1
+kind: Policy
+rules:
+  # Do not log requests to the following API endpoints
+  - level: None
+    nonResourceURLs:
+      - /healthz*
+      - /readyz*
+      - /livez*
+
+  # Do not log watch requests by the kube-system service accounts
+  - level: None
+    users:
+      - system:kube-proxy
+      - system:kube-controller-manager
+      - system:kube-scheduler
+    verbs: ["watch", "list"]
+
+  # Log secret access at Metadata level
+  - level: Metadata
+    resources:
+      - group: ""
+        resources: ["secrets"]
+
+  # Log pod exec/attach at RequestResponse level
+  - level: RequestResponse
+    resources:
+      - group: ""
+        resources: ["pods/exec", "pods/attach", "pods/portforward"]
+
+  # Log RBAC changes at RequestResponse level
+  - level: RequestResponse
+    resources:
+      - group: "rbac.authorization.k8s.io"
+        resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+
+  # Log all other resources at Metadata level
+  - level: Metadata
+    resources:
+      - group: ""
+      - group: "apps"
+      - group: "batch"
+      - group: "networking.k8s.io"
+
+  # Default: log at Metadata level
+  - level: Metadata

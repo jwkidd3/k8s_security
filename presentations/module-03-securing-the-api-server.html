@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 3: Securing the API Server</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/theme/white.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/monokai.min.css">
+
+    <style>
+        :root {
+            --heading-color: #1a365d;
+            --accent-color: #2b6cb0;
+            --success-color: #2f855a;
+            --warning-color: #c05621;
+            --danger-color: #c53030;
+            --text-color: #2d3748;
+        }
+
+        .reveal {
+            font-size: 28px;
+            color: var(--text-color);
+        }
+
+        .reveal h1 {
+            font-size: 1.8em;
+            color: var(--heading-color);
+        }
+
+        .reveal h2 {
+            font-size: 1.4em;
+            color: var(--heading-color);
+        }
+
+        .reveal h3 {
+            font-size: 1.1em;
+            color: var(--accent-color);
+        }
+
+        .reveal code {
+            font-size: 0.85em;
+        }
+
+        .reveal .slides section {
+            text-align: left;
+            padding: 20px 40px;
+        }
+
+        /* Title slide */
+        .title-slide {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .title-slide h1,
+        .title-slide h2,
+        .title-slide h3 {
+            color: white !important;
+        }
+
+        .title-slide h1 {
+            font-size: 2em !important;
+            margin-bottom: 0.3em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .title-slide h2 {
+            font-size: 1.3em !important;
+            font-weight: 300;
+            margin-bottom: 0.2em;
+        }
+
+        .title-slide h3 {
+            font-size: 1em !important;
+            font-weight: 300;
+            color: rgba(255,255,255,0.85) !important;
+        }
+
+        .course-badge {
+            display: inline-block;
+            padding: 10px 30px;
+            border: 2px solid rgba(255,255,255,0.8);
+            border-radius: 30px;
+            margin-top: 30px;
+            font-size: 0.85em;
+            color: white;
+            letter-spacing: 1px;
+        }
+
+        /* Section divider */
+        .section-divider {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .section-divider h2,
+        .section-divider h3 {
+            color: white !important;
+        }
+
+        .section-divider h2 {
+            font-size: 1.6em !important;
+        }
+
+        .section-divider h3 {
+            font-size: 1em !important;
+            font-weight: 300;
+            color: rgba(255,255,255,0.85) !important;
+        }
+
+        /* Highlight box */
+        .highlight-box {
+            background: linear-gradient(135deg, #ebf8ff 0%, #bee3f8 100%);
+            border-left: 4px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 15px 0;
+        }
+
+        .highlight-box.success {
+            background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);
+            border-left-color: var(--success-color);
+        }
+
+        .highlight-box.warning {
+            background: linear-gradient(135deg, #fffaf0 0%, #feebc8 100%);
+            border-left-color: var(--warning-color);
+        }
+
+        .highlight-box.danger {
+            background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+            border-left-color: var(--danger-color);
+        }
+
+        /* Columns */
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .three-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        /* Card */
+        .card {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .card.success {
+            border-top: 4px solid var(--success-color);
+        }
+
+        .card.warning {
+            border-top: 4px solid var(--warning-color);
+        }
+
+        .card.danger {
+            border-top: 4px solid var(--danger-color);
+        }
+
+        /* Concept box */
+        .concept-box {
+            background: white;
+            border: 2px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 10px 0;
+        }
+
+        /* Key point */
+        .key-point {
+            text-align: center !important;
+            font-style: italic;
+            font-size: 1.15em;
+            color: var(--accent-color);
+            padding: 20px;
+        }
+
+        /* Lab callout */
+        .lab-callout {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .lab-callout h2,
+        .lab-callout h3 {
+            color: white !important;
+        }
+
+        .lab-callout ul {
+            text-align: left;
+            display: inline-block;
+        }
+
+        .lab-callout li {
+            color: white;
+            margin-bottom: 8px;
+        }
+
+        .lab-badge {
+            display: inline-block;
+            padding: 8px 24px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.6);
+            border-radius: 20px;
+            color: white;
+            font-size: 0.8em;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+
+        .lab-description {
+            margin-top: 20px;
+        }
+
+        /* Takeaway list */
+        .takeaway-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .takeaway-list li {
+            padding: 10px 0 10px 35px;
+            position: relative;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .takeaway-list li::before {
+            content: "\2713";
+            position: absolute;
+            left: 0;
+            color: var(--success-color);
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        /* Questions slide */
+        .questions-slide {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .questions-slide h2 {
+            color: white !important;
+            font-size: 2em !important;
+        }
+
+        .questions-slide p {
+            color: rgba(255,255,255,0.85);
+        }
+
+        /* Tables */
+        .reveal table {
+            font-size: 0.75em;
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        .reveal table th {
+            background: var(--heading-color);
+            color: white;
+            padding: 10px 14px;
+            text-align: left;
+        }
+
+        .reveal table td {
+            padding: 8px 14px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .reveal table tr:nth-child(even) {
+            background: #f7fafc;
+        }
+
+        /* Stat boxes */
+        .stat-box {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .stat-box .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: var(--accent-color);
+            display: block;
+        }
+
+        .stat-box .stat-label {
+            font-size: 0.8em;
+            color: var(--text-color);
+        }
+
+        /* Code blocks */
+        .reveal pre {
+            width: 100%;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            border-radius: 8px;
+            font-size: 0.55em;
+        }
+
+        .reveal pre code {
+            padding: 15px 20px;
+            max-height: 500px;
+        }
+
+        /* Small text helper */
+        .small-text {
+            font-size: 0.75em;
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- ============================================================ -->
+            <!-- TITLE SLIDE -->
+            <!-- ============================================================ -->
+            <section class="title-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 50%, #2c5282 100%)">
+                <h1>Securing the API Server</h1>
+                <h2>Module 3</h2>
+                <h3>Kubernetes Security Course</h3>
+                <div class="course-badge">2-Day Hands-On Workshop</div>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- MODULE OVERVIEW -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>Module Overview</h2>
+                <p>The API server is the central control point of every Kubernetes cluster. In this module, we secure it end to end &mdash; from the request flow through authentication and authorization to the backing datastore.</p>
+                <div class="two-columns" style="margin-top: 20px;">
+                    <div>
+                        <h3>What We Will Cover</h3>
+                        <ul class="small-text">
+                            <li>API server architecture &amp; request flow</li>
+                            <li>Authentication configuration</li>
+                            <li>Authorization modes</li>
+                            <li>TLS &amp; endpoint hardening</li>
+                            <li>Kubelet security</li>
+                            <li>etcd security</li>
+                            <li>API rate limiting &amp; availability</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>Prerequisites</h3>
+                        <ul class="small-text">
+                            <li>Module 1: Security fundamentals</li>
+                            <li>Module 2: RBAC &amp; authentication concepts</li>
+                            <li>Familiarity with <code>kubectl</code> and cluster admin tasks</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">This module is heavily focused on the control plane. We move from understanding how the API server processes every request to hardening every component it touches.</aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 1: API SERVER ARCHITECTURE & REQUEST FLOW -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2>&#x1F3DB; API Server Architecture &amp; Request Flow</h2>
+                <h3>Understanding the front door to your cluster</h3>
+            </section>
+
+            <section>
+                <h2>The API Server &mdash; Cluster Front Door</h2>
+                <div class="highlight-box">
+                    <strong>kube-apiserver</strong> is the only component that talks directly to etcd. Every other component &mdash; scheduler, controller-manager, kubelet, kubectl &mdash; communicates through it.
+                </div>
+                <div class="two-columns" style="margin-top: 15px;">
+                    <div class="card">
+                        <h3>Responsibilities</h3>
+                        <ul class="small-text">
+                            <li>REST API for all cluster operations</li>
+                            <li>Authentication &amp; authorization</li>
+                            <li>Admission control</li>
+                            <li>API aggregation layer</li>
+                            <li>Watch/notification mechanism</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h3>Security Implication</h3>
+                        <ul class="small-text">
+                            <li>Single point of policy enforcement</li>
+                            <li>Compromise = full cluster control</li>
+                            <li>Must be hardened, monitored, and rate-limited</li>
+                            <li>Network exposure must be minimized</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">Emphasize that kube-apiserver is effectively the brain of the cluster. If an attacker reaches it with valid credentials, the game is over.</aside>
+            </section>
+
+            <section>
+                <h2>API Server Ports</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Port</th>
+                            <th>Purpose</th>
+                            <th>Security Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>6443</code> (default secure)</td>
+                            <td>HTTPS API endpoint</td>
+                            <td>TLS required, all authn/authz enforced</td>
+                        </tr>
+                        <tr>
+                            <td><code>8080</code> (legacy insecure)</td>
+                            <td>HTTP &mdash; no auth</td>
+                            <td style="color: var(--danger-color);"><strong>Removed in v1.20+</strong>. Never enable.</td>
+                        </tr>
+                        <tr>
+                            <td><code>443</code> (cloud LBs)</td>
+                            <td>Load-balanced endpoint</td>
+                            <td>TLS termination at LB or passthrough</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="highlight-box danger" style="margin-top: 15px;">
+                    <strong>&#x26A0; Historical Risk:</strong> The insecure port (<code>--insecure-port</code>) bypassed all authentication and authorization. Clusters running Kubernetes &lt; 1.20 must explicitly set <code>--insecure-port=0</code>.
+                </div>
+            </section>
+
+            <section>
+                <h2>Request Lifecycle</h2>
+                <div class="concept-box">
+                    <p class="small-text" style="text-align: center; margin: 0;">
+                        <strong>Client Request</strong> &rarr;
+                        <strong>Authentication</strong> &rarr;
+                        <strong>Authorization</strong> &rarr;
+                        <strong>Admission Control</strong> &rarr;
+                        <strong>Validation</strong> &rarr;
+                        <strong>etcd</strong>
+                    </p>
+                </div>
+                <div class="three-columns" style="margin-top: 20px;">
+                    <div class="card success">
+                        <h3 style="color: var(--success-color);">1. Authentication</h3>
+                        <p class="small-text">Who are you? Client certs, bearer tokens, OIDC, webhook &mdash; at least one must succeed.</p>
+                    </div>
+                    <div class="card warning">
+                        <h3 style="color: var(--warning-color);">2. Authorization</h3>
+                        <p class="small-text">Are you allowed? RBAC, Node, Webhook, ABAC &mdash; checked in order until one allows or all deny.</p>
+                    </div>
+                    <div class="card">
+                        <h3 style="color: var(--accent-color);">3. Admission</h3>
+                        <p class="small-text">Should we modify or reject? Mutating then validating webhooks, plus built-in plugins.</p>
+                    </div>
+                </div>
+                <aside class="notes">Walk through a kubectl create pod request. Show how each stage can reject. Emphasize that authorization is not RBAC alone &mdash; the chain is configurable.</aside>
+            </section>
+
+            <section>
+                <h2>How kubectl Talks to the API Server</h2>
+                <pre><code class="language-yaml"># ~/.kube/config (simplified)
+apiVersion: v1
+kind: Config
+clusters:
+- cluster:
+    server: https://api.mycluster.example.com:6443
+    certificate-authority-data: LS0tLS1CRUdJ...   # CA cert
+  name: production
+users:
+- name: admin
+  user:
+    client-certificate-data: LS0tLS1CRUdJ...      # Client cert
+    client-key-data: LS0tLS1CRUdJ...               # Client key
+contexts:
+- context:
+    cluster: production
+    user: admin
+    namespace: default
+  name: admin@production
+current-context: admin@production</code></pre>
+                <div class="highlight-box" style="margin-top: 10px;">
+                    <strong>Key Point:</strong> The kubeconfig establishes mutual TLS &mdash; the client verifies the server CA, and the server verifies the client certificate.
+                </div>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 2: AUTHENTICATION CONFIGURATION -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2>&#x1F511; Authentication Configuration</h2>
+                <h3>Verifying identity at the cluster gate</h3>
+            </section>
+
+            <section>
+                <h2>Authentication Methods Overview</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Mechanism</th>
+                            <th>Production Use</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>X.509 Client Certificates</td>
+                            <td>TLS mutual auth</td>
+                            <td style="color: var(--success-color);">&#x2713; Recommended</td>
+                        </tr>
+                        <tr>
+                            <td>OIDC Tokens</td>
+                            <td>Identity provider integration</td>
+                            <td style="color: var(--success-color);">&#x2713; Recommended</td>
+                        </tr>
+                        <tr>
+                            <td>Webhook Token Auth</td>
+                            <td>External token verification</td>
+                            <td style="color: var(--success-color);">&#x2713; Recommended</td>
+                        </tr>
+                        <tr>
+                            <td>Bootstrap Tokens</td>
+                            <td>Cluster bootstrapping</td>
+                            <td style="color: var(--warning-color);">&#x26A0; Limited scope only</td>
+                        </tr>
+                        <tr>
+                            <td>Static Token File</td>
+                            <td>CSV file on disk</td>
+                            <td style="color: var(--danger-color);">&#x2718; Never in production</td>
+                        </tr>
+                        <tr>
+                            <td>Static Password File</td>
+                            <td>CSV file on disk</td>
+                            <td style="color: var(--danger-color);">&#x2718; Removed in v1.19</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <aside class="notes">Multiple authenticators run simultaneously. The first one that can parse the credential returns the identity. If none succeed, the request is rejected as 401 Unauthorized.</aside>
+            </section>
+
+            <section>
+                <h2>X.509 Client Certificates</h2>
+                <p>The most common method for system components and admin access.</p>
+                <pre><code class="language-bash"># Generate a client certificate
+openssl genrsa -out jane.key 2048
+
+# Create a CSR with user/group information embedded
+openssl req -new -key jane.key -out jane.csr \
+  -subj "/CN=jane/O=developers/O=qa"
+# CN = username, O = groups
+
+# Sign with the cluster CA
+openssl x509 -req -in jane.csr -out jane.crt \
+  -CA /etc/kubernetes/pki/ca.crt \
+  -CAkey /etc/kubernetes/pki/ca.key \
+  -CAcreateserial -days 365</code></pre>
+                <div class="highlight-box warning">
+                    <strong>&#x26A0; Limitation:</strong> Certificates cannot be revoked individually. The only option is to rotate the entire CA &mdash; a disruptive operation. Prefer OIDC for human users.
+                </div>
+                <aside class="notes">This is why many organizations use certificates only for system components and kubeadm bootstrapping, then switch human users to OIDC or webhook-based auth.</aside>
+            </section>
+
+            <section>
+                <h2>Static Token Files &mdash; Why Not</h2>
+                <div class="two-columns">
+                    <div>
+                        <pre><code class="language-bash"># API server flag
+--token-auth-file=/etc/kubernetes/tokens.csv
+
+# tokens.csv format:
+# token,user,uid,"groups"
+abc123,admin,1,"system:masters"
+def456,developer,2,"developers"</code></pre>
+                    </div>
+                    <div>
+                        <div class="card danger">
+                            <h3 style="color: var(--danger-color);">Security Risks</h3>
+                            <ul class="small-text">
+                                <li>Tokens stored in plaintext on disk</li>
+                                <li>No expiration mechanism</li>
+                                <li>Requires API server restart to update</li>
+                                <li>No audit trail for token creation</li>
+                                <li>Cannot be rotated without downtime</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="highlight-box danger" style="margin-top: 15px;">
+                    <strong>CIS Benchmark 1.2.2:</strong> Ensure that the <code>--token-auth-file</code> parameter is not set. This is a scored check.
+                </div>
+            </section>
+
+            <section>
+                <h2>Webhook Token Authentication</h2>
+                <p>Delegate authentication to an external service.</p>
+                <pre><code class="language-yaml"># webhook-config.yaml
+apiVersion: v1
+kind: Config
+clusters:
+- name: authn-service
+  cluster:
+    server: https://authn.example.com/authenticate
+    certificate-authority: /etc/kubernetes/pki/webhook-ca.crt
+users:
+- name: kube-apiserver
+  user:
+    client-certificate: /etc/kubernetes/pki/webhook-client.crt
+    client-key: /etc/kubernetes/pki/webhook-client.key
+current-context: webhook
+contexts:
+- context:
+    cluster: authn-service
+    user: kube-apiserver
+  name: webhook</code></pre>
+                <pre><code class="language-bash"># API server flag
+--authentication-token-webhook-config-file=/etc/kubernetes/webhook-config.yaml
+--authentication-token-webhook-cache-ttl=2m  # Cache valid responses</code></pre>
+                <aside class="notes">Webhook auth is powerful for integration with existing enterprise identity systems. The external service receives the bearer token and returns user info or a rejection.</aside>
+            </section>
+
+            <section>
+                <h2>Bootstrap Tokens</h2>
+                <div class="two-columns">
+                    <div>
+                        <p>Used by <code>kubeadm</code> to join new nodes to the cluster.</p>
+                        <pre><code class="language-yaml"># Bootstrap token secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: bootstrap-token-07401b
+  namespace: kube-system
+type: bootstrap.kubernetes.io/token
+stringData:
+  token-id: "07401b"
+  token-secret: "f395accd246ae52d"
+  usage-bootstrap-authentication: "true"
+  usage-bootstrap-signing: "true"
+  expiration: "2026-04-01T00:00:00Z"</code></pre>
+                    </div>
+                    <div>
+                        <div class="card success">
+                            <h3 style="color: var(--success-color);">Security Properties</h3>
+                            <ul class="small-text">
+                                <li>Time-limited (TTL-based expiration)</li>
+                                <li>Scoped to node bootstrapping</li>
+                                <li>Stored as Secrets in kube-system</li>
+                                <li>Can be revoked by deleting the Secret</li>
+                            </ul>
+                        </div>
+                        <div class="highlight-box warning" style="margin-top: 15px;">
+                            <strong>Best Practice:</strong> Set short TTLs and delete bootstrap token secrets after node join completes.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 3: AUTHORIZATION MODES -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2>&#x1F6E1; Authorization Modes</h2>
+                <h3>Controlling who can do what</h3>
+            </section>
+
+            <section>
+                <h2>Authorization Mode Chain</h2>
+                <pre><code class="language-bash"># API server flag — order matters!
+--authorization-mode=Node,RBAC</code></pre>
+                <div class="highlight-box" style="margin-top: 10px;">
+                    <strong>How It Works:</strong> Each authorizer is checked in order. If one <em>allows</em>, the request proceeds. If one <em>denies</em>, the next authorizer is checked. If all deny, the request is rejected.
+                </div>
+                <table style="margin-top: 15px;">
+                    <thead>
+                        <tr>
+                            <th>Mode</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>RBAC</strong></td>
+                            <td>Role-based access control via Roles/ClusterRoles</td>
+                            <td style="color: var(--success-color);">Standard</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Node</strong></td>
+                            <td>Restricts kubelet access to its own node resources</td>
+                            <td style="color: var(--success-color);">Standard</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Webhook</strong></td>
+                            <td>External HTTP(S) authorization service</td>
+                            <td style="color: var(--success-color);">Specialized</td>
+                        </tr>
+                        <tr>
+                            <td><strong>ABAC</strong></td>
+                            <td>Attribute-based policies from a JSON file</td>
+                            <td style="color: var(--warning-color);">Legacy</td>
+                        </tr>
+                        <tr>
+                            <td><strong>AlwaysAllow</strong></td>
+                            <td>Permits all requests</td>
+                            <td style="color: var(--danger-color);">Never in prod</td>
+                        </tr>
+                        <tr>
+                            <td><strong>AlwaysDeny</strong></td>
+                            <td>Blocks all requests</td>
+                            <td style="color: var(--warning-color);">Testing only</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <aside class="notes">The recommended production configuration is Node,RBAC. Node must come first so kubelet requests are handled efficiently before falling through to the full RBAC evaluation.</aside>
+            </section>
+
+            <section>
+                <h2>Node Authorization</h2>
+                <div class="two-columns">
+                    <div>
+                        <div class="concept-box">
+                            <h3>Purpose</h3>
+                            <p class="small-text">Restricts kubelets to only access resources related to pods scheduled on their node. Prevents a compromised node from reading secrets belonging to pods on other nodes.</p>
+                        </div>
+                        <div class="highlight-box success" style="margin-top: 15px;">
+                            <strong>Requires:</strong> The <code>NodeRestriction</code> admission plugin must also be enabled to prevent kubelets from modifying their own Node object labels with the <code>node-restriction.kubernetes.io/</code> prefix.
+                        </div>
+                    </div>
+                    <div>
+                        <h3>Kubelet Can Access</h3>
+                        <ul class="small-text">
+                            <li>Read Secrets for pods on its node</li>
+                            <li>Read ConfigMaps for pods on its node</li>
+                            <li>Read PV/PVCs for pods on its node</li>
+                            <li>Write Node status for its own node</li>
+                            <li>Create/update pod status</li>
+                        </ul>
+                        <h3 style="color: var(--danger-color);">Cannot Access</h3>
+                        <ul class="small-text">
+                            <li>Secrets for pods on other nodes</li>
+                            <li>Other nodes' status</li>
+                            <li>Cluster-scoped admin operations</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2>RBAC Recap &amp; Webhook Authorization</h2>
+                <div class="two-columns">
+                    <div>
+                        <div class="card success">
+                            <h3 style="color: var(--success-color);">RBAC (Covered in Module 2)</h3>
+                            <ul class="small-text">
+                                <li>Roles / ClusterRoles define permissions</li>
+                                <li>RoleBindings / ClusterRoleBindings grant them</li>
+                                <li>Deny-by-default &mdash; no implicit permissions</li>
+                                <li>Namespace-scoped and cluster-scoped variants</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="card">
+                            <h3>Webhook Authorization</h3>
+                            <ul class="small-text">
+                                <li>Sends SubjectAccessReview to an external URL</li>
+                                <li>Enables integration with external policy engines</li>
+                                <li>Can implement custom authorization logic</li>
+                                <li>Used by OPA/Gatekeeper, Kyverno, etc.</li>
+                            </ul>
+                        </div>
+                        <pre><code class="language-bash"># API server flag
+--authorization-mode=Node,RBAC,Webhook
+--authorization-webhook-config-file=\
+  /etc/kubernetes/webhook-authz.yaml</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2>ABAC &mdash; Legacy Mode</h2>
+                <pre><code class="language-json">// abac-policy.json — one rule per line
+{"apiVersion": "abac.authorization.kubernetes.io/v1beta1", "kind": "Policy",
+ "spec": {"user": "jane", "namespace": "dev", "resource": "pods", "readonly": true}}
+{"apiVersion": "abac.authorization.kubernetes.io/v1beta1", "kind": "Policy",
+ "spec": {"user": "bob", "namespace": "*", "resource": "*", "readonly": false}}</code></pre>
+                <div class="two-columns" style="margin-top: 15px;">
+                    <div class="card danger">
+                        <h3 style="color: var(--danger-color);">Why ABAC Is Discouraged</h3>
+                        <ul class="small-text">
+                            <li>Requires API server restart for policy changes</li>
+                            <li>No dynamic management via the API</li>
+                            <li>Difficult to audit and version control</li>
+                            <li>No namespace-level delegation</li>
+                        </ul>
+                    </div>
+                    <div class="card success">
+                        <h3 style="color: var(--success-color);">Migration Path</h3>
+                        <ul class="small-text">
+                            <li>Convert ABAC policies to RBAC Roles</li>
+                            <li>Run both modes during transition: <code>--authorization-mode=ABAC,RBAC</code></li>
+                            <li>Monitor audit logs for ABAC-only grants</li>
+                            <li>Remove ABAC once RBAC covers all cases</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 4: SECURING THE ENDPOINT -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2>&#x1F512; Securing the Endpoint</h2>
+                <h3>TLS, network restrictions, and certificate management</h3>
+            </section>
+
+            <section>
+                <h2>API Server TLS Configuration</h2>
+                <pre><code class="language-bash"># Essential TLS flags for kube-apiserver
+--tls-cert-file=/etc/kubernetes/pki/apiserver.crt
+--tls-private-key-file=/etc/kubernetes/pki/apiserver.key
+--client-ca-file=/etc/kubernetes/pki/ca.crt
+
+# TLS cipher suite hardening
+--tls-min-version=VersionTLS12
+--tls-cipher-suites=TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,\
+  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,\
+  TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,\
+  TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+
+# Kubelet communication
+--kubelet-client-certificate=/etc/kubernetes/pki/apiserver-kubelet-client.crt
+--kubelet-client-key=/etc/kubernetes/pki/apiserver-kubelet-client.key</code></pre>
+                <div class="highlight-box success">
+                    <strong>CIS Benchmark:</strong> Verify TLS 1.2+ is enforced. TLS 1.0 and 1.1 have known vulnerabilities and must be disabled.
+                </div>
+                <aside class="notes">With kubeadm, these are set by default. On manually bootstrapped clusters, every flag must be verified. Use kube-bench to automate the check.</aside>
+            </section>
+
+            <section>
+                <h2>Certificate Rotation</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>kubeadm Certificate Management</h3>
+                        <pre><code class="language-bash"># Check certificate expiration
+kubeadm certs check-expiration
+
+# Renew all certificates
+kubeadm certs renew all
+
+# Renew specific certificate
+kubeadm certs renew apiserver
+
+# Auto-renewal via kubeadm upgrade
+# Certificates renew on every
+# control plane upgrade</code></pre>
+                    </div>
+                    <div>
+                        <div class="card warning">
+                            <h3 style="color: var(--warning-color);">Default Lifetime</h3>
+                            <p class="small-text">kubeadm certificates expire after <strong>1 year</strong>. The CA certificate expires after <strong>10 years</strong>.</p>
+                        </div>
+                        <div class="highlight-box danger" style="margin-top: 15px;">
+                            <strong>Common Outage:</strong> Expired certificates are one of the most frequent causes of cluster outages. Automate monitoring of certificate expiration dates.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2>Restricting Network Access</h2>
+                <div class="three-columns">
+                    <div class="card success">
+                        <h3 style="color: var(--success-color);">Network Level</h3>
+                        <ul class="small-text">
+                            <li>Firewall rules: only allow known CIDR blocks</li>
+                            <li>VPN or bastion host for admin access</li>
+                            <li>Separate management network for control plane</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h3 style="color: var(--warning-color);">Cloud Provider</h3>
+                        <ul class="small-text">
+                            <li>Private clusters (no public endpoint)</li>
+                            <li>Authorized networks / IP whitelisting</li>
+                            <li>VPC peering for cross-account access</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3>Kubernetes Level</h3>
+                        <ul class="small-text">
+                            <li><code>--advertise-address</code> on private IP</li>
+                            <li><code>--bind-address</code> restrict listening interface</li>
+                            <li>API server audit logging</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="key-point" style="margin-top: 15px;">
+                    The API server should never be directly reachable from the public internet. Use authorized network ranges or a private endpoint.
+                </div>
+            </section>
+
+            <section>
+                <h2>kubeadm Configuration Patch</h2>
+                <p>Harden the API server at cluster creation time:</p>
+                <pre><code class="language-yaml"># kubeadm-config.yaml
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: ClusterConfiguration
+apiServer:
+  extraArgs:
+    # Authentication
+    anonymous-auth: "false"
+    # Authorization
+    authorization-mode: "Node,RBAC"
+    # TLS
+    tls-min-version: "VersionTLS12"
+    # Admission plugins
+    enable-admission-plugins: >-
+      NodeRestriction,PodSecurity,EventRateLimit
+    # Audit logging
+    audit-log-path: "/var/log/kubernetes/audit.log"
+    audit-log-maxage: "30"
+    audit-log-maxbackup: "10"
+    audit-log-maxsize: "100"
+    audit-policy-file: "/etc/kubernetes/audit-policy.yaml"
+  extraVolumes:
+  - name: audit-log
+    hostPath: /var/log/kubernetes
+    mountPath: /var/log/kubernetes
+    pathType: DirectoryOrCreate
+  - name: audit-policy
+    hostPath: /etc/kubernetes/audit-policy.yaml
+    mountPath: /etc/kubernetes/audit-policy.yaml
+    readOnly: true
+    pathType: File</code></pre>
+                <aside class="notes">This is the single most important configuration file for hardening a kubeadm cluster. Every flag here maps directly to a CIS Benchmark check.</aside>
+            </section>
+
+            <section>
+                <h2>Audit Logging Configuration</h2>
+                <pre><code class="language-yaml"># /etc/kubernetes/audit-policy.yaml
+apiVersion: audit.k8s.io/v1
+kind: Policy
+rules:
+  # Log no requests to the RequestReceived stage
+  - level: None
+    stage:
+      - "RequestReceived"
+  # Log secret access at Metadata level (do not log secret data)
+  - level: Metadata
+    resources:
+      - group: ""
+        resources: ["secrets", "configmaps"]
+  # Log changes to core resources at RequestResponse level
+  - level: RequestResponse
+    resources:
+      - group: ""
+        resources: ["pods", "services", "namespaces"]
+    verbs: ["create", "update", "patch", "delete"]
+  # Log everything else at Metadata level
+  - level: Metadata
+    omitStages:
+      - "RequestReceived"</code></pre>
+                <div class="highlight-box success">
+                    <strong>Best Practice:</strong> Never log secret data (use <code>Metadata</code> level for secrets). Ship audit logs to a SIEM for analysis and alerting.
+                </div>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 5: KUBELET SECURITY -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2>&#x2699;&#xFE0F; Kubelet Security</h2>
+                <h3>Hardening the node agent</h3>
+            </section>
+
+            <section>
+                <h2>Kubelet Attack Surface</h2>
+                <div class="highlight-box danger">
+                    <strong>The kubelet runs on every node</strong> and has the ability to create, modify, and delete pods. A compromised kubelet means full control of the node and access to all pod secrets on that node.
+                </div>
+                <div class="two-columns" style="margin-top: 15px;">
+                    <div class="card">
+                        <h3>Kubelet API Endpoints</h3>
+                        <ul class="small-text">
+                            <li><code>/pods</code> &mdash; list running pods</li>
+                            <li><code>/run</code> &mdash; execute commands in containers</li>
+                            <li><code>/exec</code> &mdash; stream exec sessions</li>
+                            <li><code>/logs</code> &mdash; read container logs</li>
+                            <li><code>/metrics</code> &mdash; node and pod metrics</li>
+                        </ul>
+                    </div>
+                    <div class="card danger">
+                        <h3 style="color: var(--danger-color);">Default Risks</h3>
+                        <ul class="small-text">
+                            <li>Anonymous authentication enabled by default</li>
+                            <li>Read-only port (10255) exposes pod info</li>
+                            <li>No authorization by default (AlwaysAllow)</li>
+                            <li>Kubelet API accessible on port 10250</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">This is a frequently exploited attack vector. Show a curl to the kubelet API at port 10250 with anonymous auth — it returns all running pods and can execute arbitrary commands.</aside>
+            </section>
+
+            <section>
+                <h2>Hardening the Kubelet</h2>
+                <pre><code class="language-yaml"># /var/lib/kubelet/config.yaml
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+# Disable anonymous access
+authentication:
+  anonymous:
+    enabled: false
+  webhook:
+    enabled: true        # Use API server for authn
+    cacheTTL: "2m0s"
+  x509:
+    clientCAFile: "/etc/kubernetes/pki/ca.crt"
+# Enable webhook authorization
+authorization:
+  mode: Webhook          # NOT AlwaysAllow
+  webhook:
+    cacheAuthorizedTTL: "5m0s"
+    cacheUnauthorizedTTL: "30s"
+# Disable the read-only port
+readOnlyPort: 0          # Default is 10255
+# Protect kernel defaults
+protectKernelDefaults: true
+# Enable certificate rotation
+rotateCertificates: true
+serverTLSBootstrap: true</code></pre>
+                <aside class="notes">Walk through each setting. The webhook authorization mode means the kubelet asks the API server whether a given request is authorized — enforcing RBAC at the node level.</aside>
+            </section>
+
+            <section>
+                <h2>Kubelet TLS Bootstrapping</h2>
+                <div class="concept-box">
+                    <h3>Problem</h3>
+                    <p class="small-text">New nodes need TLS certificates to communicate securely with the API server, but they do not have certificates yet when they first join.</p>
+                </div>
+                <div class="two-columns" style="margin-top: 15px;">
+                    <div>
+                        <h3>Bootstrap Flow</h3>
+                        <ol class="small-text">
+                            <li>Node uses a <strong>bootstrap token</strong> for initial auth</li>
+                            <li>Kubelet generates a key pair and CSR</li>
+                            <li>CSR sent to the API server</li>
+                            <li>CSR approved (manually or auto-approved)</li>
+                            <li>Signed certificate returned to kubelet</li>
+                            <li>Kubelet uses the certificate for future requests</li>
+                        </ol>
+                    </div>
+                    <div>
+                        <pre><code class="language-bash"># View pending CSRs
+kubectl get csr
+
+# Approve a CSR
+kubectl certificate approve \
+  node-csr-abc123
+
+# kubelet flags
+--bootstrap-kubeconfig=\
+  /etc/kubernetes/bootstrap-kubelet.conf
+--rotate-certificates=true
+--rotate-server-certificates=true</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2>Kubelet Certificate Rotation</h2>
+                <div class="two-columns">
+                    <div>
+                        <div class="card success">
+                            <h3 style="color: var(--success-color);">Client Certificate Rotation</h3>
+                            <p class="small-text">Enabled via <code>rotateCertificates: true</code> in the kubelet config. The kubelet automatically requests new certificates before the current one expires.</p>
+                            <div class="highlight-box success">
+                                <strong>Default since v1.19:</strong> Enabled automatically by kubeadm.
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="card warning">
+                            <h3 style="color: var(--warning-color);">Server Certificate Rotation</h3>
+                            <p class="small-text">Controlled by <code>RotateKubeletServerCertificate</code> feature gate and <code>serverTLSBootstrap: true</code>.</p>
+                            <div class="highlight-box warning">
+                                <strong>Note:</strong> Server certificate CSRs require manual or automated approval. Consider using a CSR signing controller.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <pre><code class="language-bash"># Verify kubelet certificate rotation is working
+journalctl -u kubelet | grep -i "certificate rotation"
+
+# Check current kubelet serving certificate
+openssl x509 -in /var/lib/kubelet/pki/kubelet.crt -noout -dates</code></pre>
+            </section>
+
+            <section>
+                <h2>Kubelet Security Checklist</h2>
+                <ul class="takeaway-list">
+                    <li>Disable anonymous authentication (<code>authentication.anonymous.enabled: false</code>)</li>
+                    <li>Enable webhook authorization (<code>authorization.mode: Webhook</code>)</li>
+                    <li>Disable the read-only port (<code>readOnlyPort: 0</code>)</li>
+                    <li>Enable TLS bootstrapping and certificate rotation</li>
+                    <li>Enable <code>RotateKubeletServerCertificate</code></li>
+                    <li>Set <code>protectKernelDefaults: true</code></li>
+                    <li>Enable the <code>NodeRestriction</code> admission plugin on the API server</li>
+                    <li>Restrict network access to kubelet port 10250</li>
+                </ul>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 6: ETCD SECURITY -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2>&#x1F451; etcd Security</h2>
+                <h3>Protecting the crown jewels</h3>
+            </section>
+
+            <section>
+                <h2>Why etcd Is the Crown Jewel</h2>
+                <div class="highlight-box danger">
+                    <strong>etcd stores all cluster state</strong> &mdash; every Secret, ConfigMap, RBAC policy, pod spec, and service account token. Direct access to etcd bypasses all Kubernetes authentication and authorization.
+                </div>
+                <div class="three-columns" style="margin-top: 20px;">
+                    <div class="card danger">
+                        <h3 style="color: var(--danger-color);">Impact of Compromise</h3>
+                        <ul class="small-text">
+                            <li>Read all secrets in plaintext</li>
+                            <li>Modify RBAC to grant admin access</li>
+                            <li>Inject malicious workloads</li>
+                            <li>Destroy cluster state entirely</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h3 style="color: var(--warning-color);">Common Mistakes</h3>
+                        <ul class="small-text">
+                            <li>etcd exposed without TLS</li>
+                            <li>Shared network with worker nodes</li>
+                            <li>No encryption at rest configured</li>
+                            <li>Backups stored unencrypted</li>
+                        </ul>
+                    </div>
+                    <div class="card success">
+                        <h3 style="color: var(--success-color);">Defense Strategy</h3>
+                        <ul class="small-text">
+                            <li>mTLS for all etcd communication</li>
+                            <li>Dedicated network segment</li>
+                            <li>Encryption at rest</li>
+                            <li>Encrypted, access-controlled backups</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">If an attacker can reach etcd directly, they own the cluster. No RBAC, no admission control, nothing stands between them and the data. This is why etcd must be on a separate network segment.</aside>
+            </section>
+
+            <section>
+                <h2>etcd TLS Configuration</h2>
+                <pre><code class="language-yaml"># etcd configuration (via kubeadm or etcd config file)
+# Peer communication (etcd node to etcd node)
+peer-transport-security:
+  cert-file: /etc/kubernetes/pki/etcd/peer.crt
+  key-file: /etc/kubernetes/pki/etcd/peer.key
+  client-cert-auth: true
+  trusted-ca-file: /etc/kubernetes/pki/etcd/ca.crt
+
+# Client communication (API server to etcd)
+client-transport-security:
+  cert-file: /etc/kubernetes/pki/etcd/server.crt
+  key-file: /etc/kubernetes/pki/etcd/server.key
+  client-cert-auth: true
+  trusted-ca-file: /etc/kubernetes/pki/etcd/ca.crt</code></pre>
+                <pre><code class="language-bash"># Corresponding API server flags
+--etcd-servers=https://127.0.0.1:2379
+--etcd-cafile=/etc/kubernetes/pki/etcd/ca.crt
+--etcd-certfile=/etc/kubernetes/pki/apiserver-etcd-client.crt
+--etcd-keyfile=/etc/kubernetes/pki/apiserver-etcd-client.key</code></pre>
+                <aside class="notes">Note the separate CA for etcd. This is a best practice — the etcd CA is distinct from the Kubernetes cluster CA, providing defense in depth.</aside>
+            </section>
+
+            <section>
+                <h2>Encryption at Rest</h2>
+                <pre><code class="language-yaml"># /etc/kubernetes/enc/encryption-config.yaml
+apiVersion: apiserver.config.k8s.io/v1
+kind: EncryptionConfiguration
+resources:
+  - resources:
+      - secrets
+      - configmaps
+    providers:
+      # Preferred provider (used for new writes)
+      - aescbc:
+          keys:
+            - name: key1
+              secret: c2VjcmV0LWtleS0xLWJhc2U2NC1lbmNvZGVk  # base64
+      # Fallback for reading existing unencrypted data
+      - identity: {}</code></pre>
+                <pre><code class="language-bash"># API server flag
+--encryption-provider-config=/etc/kubernetes/enc/encryption-config.yaml
+
+# After enabling, re-encrypt all existing secrets
+kubectl get secrets --all-namespaces -o json | \
+  kubectl replace -f -</code></pre>
+                <div class="highlight-box warning">
+                    <strong>Key Management:</strong> The encryption key is stored in a file on the control plane node. For production, use a KMS provider (AWS KMS, Azure Key Vault, GCP Cloud KMS, HashiCorp Vault).
+                </div>
+            </section>
+
+            <section>
+                <h2>KMS Provider Integration</h2>
+                <pre><code class="language-yaml"># EncryptionConfiguration with KMS v2
+apiVersion: apiserver.config.k8s.io/v1
+kind: EncryptionConfiguration
+resources:
+  - resources:
+      - secrets
+    providers:
+      - kms:
+          apiVersion: v2
+          name: my-kms-provider
+          endpoint: unix:///var/run/kmsplugin/socket.sock
+          timeout: 3s
+      - identity: {}</code></pre>
+                <div class="two-columns" style="margin-top: 15px;">
+                    <div class="card success">
+                        <h3 style="color: var(--success-color);">KMS Advantages</h3>
+                        <ul class="small-text">
+                            <li>Key never leaves the KMS</li>
+                            <li>Key rotation without re-encrypting data</li>
+                            <li>Hardware security module (HSM) backing</li>
+                            <li>Centralized key management and audit trail</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3>Supported KMS Providers</h3>
+                        <ul class="small-text">
+                            <li>AWS KMS via <code>aws-encryption-provider</code></li>
+                            <li>Azure Key Vault via <code>k8s-azure-kms</code></li>
+                            <li>GCP Cloud KMS (built into GKE)</li>
+                            <li>HashiCorp Vault via plugin</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2>etcd Backup Security</h2>
+                <div class="two-columns">
+                    <div>
+                        <pre><code class="language-bash"># Take an etcd snapshot
+ETCDCTL_API=3 etcdctl snapshot save \
+  /backup/etcd-$(date +%Y%m%d).db \
+  --endpoints=https://127.0.0.1:2379 \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  --cert=/etc/kubernetes/pki/etcd/server.crt \
+  --key=/etc/kubernetes/pki/etcd/server.key
+
+# Encrypt the backup
+gpg --symmetric --cipher-algo AES256 \
+  /backup/etcd-20260313.db
+
+# Verify snapshot integrity
+ETCDCTL_API=3 etcdctl snapshot status \
+  /backup/etcd-20260313.db --write-out=table</code></pre>
+                    </div>
+                    <div>
+                        <div class="card danger">
+                            <h3 style="color: var(--danger-color);">Backup Risks</h3>
+                            <ul class="small-text">
+                                <li>Unencrypted backups contain all secrets</li>
+                                <li>Backups stored with loose file permissions</li>
+                                <li>No access controls on backup storage</li>
+                                <li>Backup retention without rotation</li>
+                            </ul>
+                        </div>
+                        <div class="highlight-box success" style="margin-top: 15px;">
+                            <strong>Best Practice:</strong> Encrypt backups at rest, transmit over TLS, store with strict access controls, and test restore procedures regularly.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 7: API RATE LIMITING & AVAILABILITY -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2>&#x26A1; API Rate Limiting &amp; Availability</h2>
+                <h3>Protecting the API server from overload</h3>
+            </section>
+
+            <section>
+                <h2>API Priority and Fairness (APF)</h2>
+                <div class="highlight-box">
+                    <strong>Replaced <code>--max-requests-inflight</code>:</strong> APF provides fine-grained, priority-based request management. Enabled by default since Kubernetes v1.20.
+                </div>
+                <div class="two-columns" style="margin-top: 15px;">
+                    <div>
+                        <div class="concept-box">
+                            <h3>FlowSchema</h3>
+                            <p class="small-text">Matches incoming requests by user, group, namespace, verb, or resource, and assigns them to a PriorityLevelConfiguration.</p>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="concept-box">
+                            <h3>PriorityLevelConfiguration</h3>
+                            <p class="small-text">Defines the concurrency level and queuing behavior for a class of requests. Higher-priority traffic is served first.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="concept-box" style="margin-top: 15px;">
+                    <p class="small-text" style="text-align: center; margin: 0;">
+                        <strong>Request</strong> &rarr;
+                        <strong>FlowSchema Match</strong> &rarr;
+                        <strong>Priority Level</strong> &rarr;
+                        <strong>Queue</strong> &rarr;
+                        <strong>Execute or Reject (429)</strong>
+                    </p>
+                </div>
+                <aside class="notes">APF replaces the older max-requests-inflight flag with a much more nuanced system. The key insight is that not all API requests are equal — a node heartbeat is more important than a list-all-pods request from a dashboard.</aside>
+            </section>
+
+            <section>
+                <h2>FlowSchema &amp; PriorityLevel Examples</h2>
+                <pre><code class="language-yaml"># Protect critical system requests
+apiVersion: flowcontrol.apiserver.k8s.io/v1
+kind: FlowSchema
+metadata:
+  name: system-critical
+spec:
+  priorityLevelConfiguration:
+    name: system
+  matchingPrecedence: 100
+  rules:
+    - subjects:
+        - kind: Group
+          group:
+            name: "system:masters"
+      resourceRules:
+        - verbs: ["*"]
+          apiGroups: ["*"]
+          resources: ["*"]
+          namespaces: ["*"]
+---
+# Limit noisy controllers
+apiVersion: flowcontrol.apiserver.k8s.io/v1
+kind: PriorityLevelConfiguration
+metadata:
+  name: batch-controllers
+spec:
+  type: Limited
+  limited:
+    nominalConcurrencyShares: 10
+    lendablePercent: 50
+    limitResponse:
+      type: Queue
+      queuing:
+        queues: 64
+        handSize: 6
+        queueLengthLimit: 50</code></pre>
+            </section>
+
+            <section>
+                <h2>EventRateLimit Admission Plugin</h2>
+                <pre><code class="language-yaml"># /etc/kubernetes/eventconfig.yaml
+apiVersion: eventratelimit.admission.k8s.io/v1alpha1
+kind: Configuration
+limits:
+  - type: Namespace
+    qps: 50
+    burst: 100
+    cacheSize: 2000
+  - type: User
+    qps: 10
+    burst: 50
+  - type: Server
+    qps: 500
+    burst: 1500</code></pre>
+                <pre><code class="language-bash"># Enable the admission plugin
+--enable-admission-plugins=...,EventRateLimit
+--admission-control-config-file=/etc/kubernetes/eventconfig.yaml</code></pre>
+                <div class="highlight-box warning">
+                    <strong>Use Case:</strong> Prevents a single namespace, user, or source IP from flooding the API server with events — a common pattern in misconfigured controllers or deliberate DoS attacks.
+                </div>
+            </section>
+
+            <section>
+                <h2>Protecting Against DoS</h2>
+                <div class="three-columns">
+                    <div class="card success">
+                        <h3 style="color: var(--success-color);">API Server Level</h3>
+                        <ul class="small-text">
+                            <li>APF with proper priority levels</li>
+                            <li>EventRateLimit admission plugin</li>
+                            <li><code>--request-timeout</code> (default 60s)</li>
+                            <li>Audit logging for detection</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h3 style="color: var(--warning-color);">Network Level</h3>
+                        <ul class="small-text">
+                            <li>Load balancer rate limiting</li>
+                            <li>Cloud WAF / DDoS protection</li>
+                            <li>Network-level IP blocking</li>
+                            <li>Connection limits per source</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3>Operational</h3>
+                        <ul class="small-text">
+                            <li>HA control plane (3+ API servers)</li>
+                            <li>Watch-based controllers vs. polling</li>
+                            <li>Client-side rate limiting in SDKs</li>
+                            <li>Monitor <code>apiserver_request_total</code> metrics</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">Combine multiple layers. APF alone is not sufficient — you also need network-level controls and application-level best practices in your controllers.</aside>
+            </section>
+
+            <section>
+                <h2>Monitoring API Server Health</h2>
+                <pre><code class="language-bash"># Key Prometheus metrics to monitor
+apiserver_request_total                    # Total request count by verb/resource/code
+apiserver_request_duration_seconds         # Request latency histogram
+apiserver_current_inflight_requests        # Current in-flight requests
+apiserver_flowcontrol_rejected_requests_total  # APF rejections
+apiserver_flowcontrol_dispatched_requests_total # APF dispatches
+etcd_request_duration_seconds              # etcd latency (indicates backend pressure)
+
+# Example alert rule (Prometheus)
+# Alert if API server error rate exceeds 1% for 5 minutes
+- alert: KubeAPIServerHighErrorRate
+  expr: |
+    sum(rate(apiserver_request_total{code=~"5.."}[5m]))
+    / sum(rate(apiserver_request_total[5m])) > 0.01
+  for: 5m
+  labels:
+    severity: critical</code></pre>
+                <div class="highlight-box">
+                    <strong>Key Metric:</strong> Watch <code>apiserver_flowcontrol_rejected_requests_total</code> to detect when APF is throttling legitimate traffic &mdash; this may indicate your priority levels need tuning.
+                </div>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- KEY TAKEAWAYS -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>Module 3 &mdash; Key Takeaways</h2>
+                <ul class="takeaway-list">
+                    <li>The API server is the single point of policy enforcement &mdash; secure it first</li>
+                    <li>Use X.509 certificates or OIDC for authentication; never use static token files</li>
+                    <li>Set <code>--authorization-mode=Node,RBAC</code> and enable the NodeRestriction admission plugin</li>
+                    <li>Enforce TLS 1.2+ and harden cipher suites</li>
+                    <li>Disable kubelet anonymous auth, enable webhook authorization, disable the read-only port</li>
+                    <li>Treat etcd as the crown jewel &mdash; mTLS, separate network, encryption at rest</li>
+                    <li>Use API Priority and Fairness to protect against overload and DoS</li>
+                    <li>Monitor API server metrics and ship audit logs to a SIEM</li>
+                </ul>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- LAB CALLOUT -->
+            <!-- ============================================================ -->
+            <section class="lab-callout" data-background="linear-gradient(135deg, #2f855a 0%, #276749 100%)">
+                <div class="lab-badge">Hands-On Lab</div>
+                <h2>Lab 3: API Server Hardening</h2>
+                <h3>Duration: 60 minutes</h3>
+                <div class="lab-description">
+                    <ul>
+                        <li>Configure kubelet security settings</li>
+                        <li>Enable and configure audit logging</li>
+                        <li>Set up encryption at rest for secrets</li>
+                        <li>Test API server authorization modes</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- UP NEXT -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>Up Next</h2>
+                <div class="concept-box" style="text-align: center;">
+                    <h3>Module 4 &mdash; Pod Security &amp; Security Contexts</h3>
+                    <p>In the next module, we will dive into:</p>
+                    <ul class="small-text">
+                        <li>Pod Security Standards (Privileged, Baseline, Restricted)</li>
+                        <li>Security contexts at the pod and container level</li>
+                        <li>Running containers as non-root</li>
+                        <li>Capabilities, seccomp profiles, and AppArmor</li>
+                        <li>Read-only root filesystems and privilege escalation prevention</li>
+                    </ul>
+                </div>
+                <div class="key-point" style="margin-top: 20px;">
+                    With the control plane secured, we now shift focus to hardening the workloads that run on the cluster.
+                </div>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- QUESTIONS -->
+            <!-- ============================================================ -->
+            <section class="questions-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2>Questions?</h2>
+                <p>Module 3: Securing the API Server</p>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/notes/notes.min.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: true,
+            plugins: [RevealHighlight, RevealNotes]
+        });
+    </script>
+</body>
+</html>

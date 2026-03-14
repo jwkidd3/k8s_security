@@ -1,0 +1,1669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 12: Incident Response &amp; Forensics</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/theme/white.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/monokai.min.css">
+    <style>
+        :root {
+            --heading-color: #1a365d;
+            --accent-color: #2b6cb0;
+            --success-color: #2f855a;
+            --warning-color: #c05621;
+            --danger-color: #c53030;
+            --text-color: #2d3748;
+        }
+
+        .reveal {
+            font-size: 28px;
+            color: var(--text-color);
+        }
+
+        .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
+            color: var(--heading-color);
+            text-transform: none;
+        }
+
+        .reveal section {
+            text-align: left;
+            padding: 20px 40px;
+        }
+
+        /* Title Slide */
+        .title-slide {
+            text-align: center !important;
+        }
+
+        .title-slide h1 {
+            font-size: 2.2em;
+            color: #fff !important;
+            margin-bottom: 0.2em;
+        }
+
+        .title-slide h2 {
+            font-size: 1.4em;
+            color: #e2e8f0 !important;
+            margin-bottom: 0.5em;
+        }
+
+        .title-slide p {
+            font-size: 1.1em;
+            color: #cbd5e0 !important;
+        }
+
+        /* Section Divider */
+        .section-divider {
+            text-align: center !important;
+        }
+
+        .section-divider h2 {
+            font-size: 1.9em;
+            color: #fff !important;
+        }
+
+        .section-divider p {
+            font-size: 1.2em;
+            color: #e2e8f0 !important;
+        }
+
+        /* Highlight Boxes */
+        .highlight-box {
+            border-left: 5px solid var(--accent-color);
+            background: #ebf8ff;
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+
+        .highlight-box.success {
+            border-left-color: var(--success-color);
+            background: #f0fff4;
+        }
+
+        .highlight-box.warning {
+            border-left-color: var(--warning-color);
+            background: #fffaf0;
+        }
+
+        .highlight-box.danger {
+            border-left-color: var(--danger-color);
+            background: #fff5f5;
+        }
+
+        /* Two Columns */
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        /* Three Columns */
+        .three-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        /* Cards */
+        .card {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            border-top: 4px solid var(--accent-color);
+        }
+
+        .card.success {
+            border-top-color: var(--success-color);
+        }
+
+        .card.warning {
+            border-top-color: var(--warning-color);
+        }
+
+        .card.danger {
+            border-top-color: var(--danger-color);
+        }
+
+        .card h3, .card h4 {
+            margin-top: 0;
+        }
+
+        /* Concept Box */
+        .concept-box {
+            background: #ebf8ff;
+            border: 2px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .concept-box h4 {
+            color: var(--accent-color);
+            margin-top: 0;
+        }
+
+        /* Key Point */
+        .key-point {
+            background: linear-gradient(135deg, #ebf8ff, #f0fff4);
+            border-left: 5px solid var(--accent-color);
+            padding: 15px 20px;
+            border-radius: 0 8px 8px 0;
+            margin: 15px 0;
+            font-size: 1.05em;
+        }
+
+        /* Lab Callout */
+        .lab-callout {
+            text-align: center !important;
+            border: none !important;
+        }
+
+        .lab-callout h2 {
+            color: #fff !important;
+            font-size: 1.8em;
+        }
+
+        .lab-callout p, .lab-callout li {
+            color: #f0fff4 !important;
+            font-size: 1.1em;
+        }
+
+        .lab-callout ul {
+            display: inline-block;
+            text-align: left;
+        }
+
+        .lab-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            padding: 5px 20px;
+            color: #fff !important;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .lab-description {
+            font-size: 1.05em;
+            color: #f0fff4 !important;
+            margin-bottom: 15px;
+        }
+
+        /* Takeaway List */
+        .takeaway-list li {
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        .takeaway-list li::marker {
+            color: var(--success-color);
+        }
+
+        /* Questions Slide */
+        .questions-slide {
+            text-align: center !important;
+        }
+
+        .questions-slide h2 {
+            font-size: 2em;
+        }
+
+        /* Table styling */
+        .reveal table {
+            font-size: 0.75em;
+            border-collapse: collapse;
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .reveal table th {
+            background: var(--heading-color);
+            color: #fff;
+            padding: 10px 12px;
+            text-align: left;
+        }
+
+        .reveal table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .reveal table tr:nth-child(even) {
+            background: #f7fafc;
+        }
+
+        /* Code blocks */
+        .reveal pre {
+            width: 100%;
+            font-size: 0.55em;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 6px;
+        }
+
+        .reveal pre code {
+            padding: 15px 20px;
+            max-height: 500px;
+        }
+
+        .reveal code {
+            color: var(--accent-color);
+            font-size: 0.9em;
+        }
+
+        /* Lists */
+        .reveal ul, .reveal ol {
+            margin-left: 0.5em;
+        }
+
+        .reveal li {
+            margin-bottom: 0.4em;
+            line-height: 1.5;
+        }
+
+        /* Fragment highlight */
+        .reveal .fragment.highlight-current-blue.current-fragment {
+            color: var(--accent-color);
+        }
+
+        /* Small text helper */
+        .small-text {
+            font-size: 0.8em;
+            color: #718096;
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 1: Title -->
+            <!-- ============================================================ -->
+            <section class="title-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h1>Incident Response &amp; Forensics</h1>
+                <h2>Module 12</h2>
+                <p>Kubernetes Security Course</p>
+                <p>2-Day Hands-On Workshop</p>
+                <aside class="notes">
+                    Welcome to the final module of the course. Incident response is where all our security knowledge comes together. No matter how well you harden a cluster, incidents will happen — and your ability to detect, respond, and recover determines the real-world impact.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 2: Agenda -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>Module Agenda</h2>
+                <ol>
+                    <li><strong>IR Framework for Kubernetes</strong> — NIST lifecycle adapted for containers</li>
+                    <li><strong>Detection &amp; Triage</strong> — alert sources, severity, blast radius</li>
+                    <li><strong>Containment Strategies</strong> — isolation, quarantine, lockdown</li>
+                    <li><strong>Evidence Collection</strong> — forensic capture before ephemeral data is lost</li>
+                    <li><strong>Post-Incident Analysis</strong> — root cause, IOCs, lessons learned</li>
+                    <li><strong>Recovery &amp; Hardening</strong> — remediation and prevention</li>
+                    <li><strong>Tabletop Exercises</strong> — practicing IR with realistic scenarios</li>
+                    <li><strong>Lab 12</strong> — Incident Response Tabletop</li>
+                </ol>
+                <aside class="notes">
+                    This module ties together everything we have learned. We will walk through the complete incident response lifecycle, from preparation through recovery, with a focus on the unique challenges that Kubernetes and containers introduce.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 3: Why IR is Different in Kubernetes -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x26A0;&#xFE0F; Why IR is Different in Kubernetes</h2>
+                <div class="two-columns">
+                    <div class="card warning">
+                        <h4>Traditional IR</h4>
+                        <ul>
+                            <li>Long-lived servers</li>
+                            <li>Persistent filesystems</li>
+                            <li>Well-known host forensic tools</li>
+                            <li>Static network topology</li>
+                            <li>Evidence persists on disk</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Kubernetes IR</h4>
+                        <ul>
+                            <li>Ephemeral pods and containers</li>
+                            <li>Layered, read-only filesystems</li>
+                            <li>Minimal container images lack tools</li>
+                            <li>Dynamic service mesh networking</li>
+                            <li>Evidence vanishes on pod restart</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="highlight-box danger" style="margin-top: 15px;">
+                    <strong>Critical challenge:</strong> A crashed or restarted pod destroys all in-memory and filesystem evidence instantly.
+                </div>
+                <aside class="notes">
+                    The ephemeral nature of containers is the single biggest challenge for Kubernetes IR. Traditional forensics assumes you can image a disk — in Kubernetes, there may be no disk to image. Speed of evidence collection is paramount.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 1: IR FRAMEWORK FOR KUBERNETES -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F6E1;&#xFE0F; Section 1</h2>
+                <p>IR Framework for Kubernetes</p>
+                <aside class="notes">
+                    Let's start with the foundational framework. We will adapt the NIST incident response lifecycle specifically for Kubernetes environments.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 5: NIST IR Lifecycle -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F504; NIST IR Lifecycle</h2>
+                <div class="concept-box">
+                    <h4>The Five Phases</h4>
+                    <ol>
+                        <li><strong>Preparation</strong> — tools, runbooks, team training</li>
+                        <li><strong>Detection &amp; Analysis</strong> — identify and validate the incident</li>
+                        <li><strong>Containment, Eradication &amp; Recovery</strong> — stop the bleeding, remove the threat, restore</li>
+                        <li><strong>Post-Incident Activity</strong> — lessons learned, process improvements</li>
+                    </ol>
+                </div>
+                <div class="key-point">
+                    This lifecycle is iterative — you may cycle between phases as new evidence emerges.
+                </div>
+                <aside class="notes">
+                    NIST SP 800-61 provides the standard framework. While the phases are the same for Kubernetes, the specific actions within each phase differ significantly due to the container orchestration layer.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 6: Preparation Phase -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F4CB; Preparation Phase</h2>
+                <div class="two-columns">
+                    <div>
+                        <h4>Tools &amp; Infrastructure</h4>
+                        <ul>
+                            <li>Runtime detection (Falco, Tetragon)</li>
+                            <li>Centralized logging (EFK/PLG stack)</li>
+                            <li>Audit log pipeline configured</li>
+                            <li>Forensic namespace pre-created</li>
+                            <li>Ephemeral debug container images ready</li>
+                            <li>Network capture tools available</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>People &amp; Process</h4>
+                        <ul>
+                            <li>IR team roles defined</li>
+                            <li>Runbooks for common scenarios</li>
+                            <li>Escalation paths documented</li>
+                            <li>Communication channels established</li>
+                            <li>Regular tabletop exercises</li>
+                            <li>Access to cluster pre-provisioned</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    Preparation is everything. When an incident hits, you do not want to be figuring out tooling or permissions. Pre-staging a forensic namespace with the right tools and RBAC is a game-changer for response time.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 7: IR Team Roles -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F465; IR Team Roles for Kubernetes</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Role</th>
+                            <th>Responsibility</th>
+                            <th>K8s-Specific Skills</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Incident Commander</strong></td>
+                            <td>Coordinates response, makes decisions</td>
+                            <td>Cluster architecture understanding</td>
+                        </tr>
+                        <tr>
+                            <td><strong>K8s Platform Engineer</strong></td>
+                            <td>Executes containment actions</td>
+                            <td>kubectl, RBAC, NetworkPolicies</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Forensic Analyst</strong></td>
+                            <td>Collects and analyzes evidence</td>
+                            <td>Container runtimes, log analysis</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Security Analyst</strong></td>
+                            <td>Threat analysis, IOC identification</td>
+                            <td>Audit logs, Falco rules, MITRE ATT&CK</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Communications Lead</strong></td>
+                            <td>Stakeholder updates</td>
+                            <td>Translating K8s concepts for leadership</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <aside class="notes">
+                    In smaller organizations, individuals may wear multiple hats. The key is that these responsibilities are assigned before an incident occurs. During an incident is not the time to figure out who does what.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 8: IR Runbook Template -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F4D6; Kubernetes IR Runbook Template</h2>
+                <div class="card">
+                    <h4>Runbook Structure</h4>
+                    <pre><code class="language-yaml"># incident-runbook-compromised-pod.yaml
+scenario: "Suspected Compromised Pod"
+severity: P1
+detection_sources:
+  - Falco alert: "Terminal shell in container"
+  - Audit log: unexpected exec into pod
+
+immediate_actions:
+  1. Identify affected pod, namespace, node
+  2. Capture pod state (kubectl describe, logs)
+  3. Apply deny-all NetworkPolicy
+  4. Snapshot container filesystem
+  5. Notify Incident Commander
+
+escalation:
+  - If lateral movement detected → P0
+  - If secrets accessed → rotate immediately
+  - If node compromise suspected → cordon node</code></pre>
+                </div>
+                <aside class="notes">
+                    Runbooks should be version-controlled, reviewed regularly, and tested during tabletop exercises. Each common scenario should have its own runbook with clear, step-by-step actions.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 2: DETECTION & TRIAGE -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F50D; Section 2</h2>
+                <p>Detection &amp; Triage</p>
+                <aside class="notes">
+                    Detection is the first real test of your security posture. The faster you detect, the smaller the blast radius. Let's look at what signals to monitor and how to triage effectively.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 10: Alert Sources -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F514; Alert Sources in Kubernetes</h2>
+                <div class="three-columns">
+                    <div class="card danger">
+                        <h4>Runtime Detection</h4>
+                        <ul>
+                            <li>Falco alerts</li>
+                            <li>Tetragon events</li>
+                            <li>Seccomp violations</li>
+                            <li>AppArmor denials</li>
+                            <li>OPA/Gatekeeper violations</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h4>Platform Signals</h4>
+                        <ul>
+                            <li>K8s audit logs</li>
+                            <li>API server anomalies</li>
+                            <li>etcd access patterns</li>
+                            <li>Node-level syslog</li>
+                            <li>Cloud provider alerts</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Application Signals</h4>
+                        <ul>
+                            <li>Pod crash loops</li>
+                            <li>Unexpected outbound traffic</li>
+                            <li>Resource usage spikes</li>
+                            <li>Service mesh telemetry</li>
+                            <li>Application error rates</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    No single source catches everything. A mature detection capability correlates signals across all three categories. For example, a Falco alert about a shell in a container, combined with unusual outbound traffic and an audit log showing exec, paints a clear picture of compromise.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 11: Initial Triage Checklist -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x2705; Initial Triage Checklist</h2>
+                <div class="card">
+                    <h4>First 5 Minutes</h4>
+                    <ol>
+                        <li>&#x2610; <strong>What triggered the alert?</strong> — Identify source and rule name</li>
+                        <li>&#x2610; <strong>Which pod/container?</strong> — <code>kubectl get pod -o wide</code></li>
+                        <li>&#x2610; <strong>Which namespace/node?</strong> — Determine scope</li>
+                        <li>&#x2610; <strong>What ServiceAccount?</strong> — Check RBAC permissions</li>
+                        <li>&#x2610; <strong>What Secrets are mounted?</strong> — Assess credential exposure</li>
+                        <li>&#x2610; <strong>Network access?</strong> — Check existing NetworkPolicies</li>
+                        <li>&#x2610; <strong>Is the pod still running?</strong> — Preserve before it is gone</li>
+                    </ol>
+                </div>
+                <div class="highlight-box danger">
+                    <strong>Time is critical:</strong> Every second the pod runs, the attacker may be exfiltrating data or moving laterally.
+                </div>
+                <aside class="notes">
+                    This checklist should be memorized by anyone in the IR rotation. The answers to these questions determine your next actions and severity classification. If the pod has already been restarted, your forensic options are significantly limited.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 12: Severity Classification -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F6A8; Severity Classification</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Severity</th>
+                            <th>Criteria</th>
+                            <th>Response Time</th>
+                            <th>Example</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong style="color: var(--danger-color);">P0 — Critical</strong></td>
+                            <td>Active exploitation, data exfil</td>
+                            <td>&lt; 15 minutes</td>
+                            <td>Reverse shell from prod pod</td>
+                        </tr>
+                        <tr>
+                            <td><strong style="color: var(--warning-color);">P1 — High</strong></td>
+                            <td>Confirmed compromise, contained</td>
+                            <td>&lt; 1 hour</td>
+                            <td>Crypto miner in staging</td>
+                        </tr>
+                        <tr>
+                            <td><strong style="color: var(--accent-color);">P2 — Medium</strong></td>
+                            <td>Suspicious activity, unconfirmed</td>
+                            <td>&lt; 4 hours</td>
+                            <td>Unusual API calls from SA</td>
+                        </tr>
+                        <tr>
+                            <td><strong style="color: var(--success-color);">P3 — Low</strong></td>
+                            <td>Policy violation, no exploitation</td>
+                            <td>&lt; 24 hours</td>
+                            <td>Pod running as root in dev</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <aside class="notes">
+                    Severity classification drives response urgency and resource allocation. Over-classification leads to alert fatigue; under-classification leads to missed incidents. Calibrate through regular review and post-incident analysis.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 13: Determining Blast Radius -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F4A5; Determining Blast Radius</h2>
+                <pre><code class="language-bash"># 1. What can this ServiceAccount access?
+kubectl auth can-i --list --as=system:serviceaccount:app:compromised-sa
+
+# 2. What secrets are available in this namespace?
+kubectl get secrets -n app-namespace
+
+# 3. What other pods share this node?
+kubectl get pods --field-selector spec.nodeName=node-01 --all-namespaces
+
+# 4. What NetworkPolicies are in effect?
+kubectl get networkpolicies -n app-namespace -o yaml
+
+# 5. Are there any cluster-wide resources accessible?
+kubectl auth can-i get clusterroles \
+  --as=system:serviceaccount:app:compromised-sa</code></pre>
+                <div class="key-point">
+                    Blast radius = RBAC permissions + network access + mounted secrets + node co-tenants
+                </div>
+                <aside class="notes">
+                    Think of blast radius as the total damage potential. A pod with cluster-admin privileges on a node with other sensitive workloads has a massive blast radius. A pod with no RBAC, deny-all network policy, and no secrets has a minimal one.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 14: Timeline Construction -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F553; Timeline Construction</h2>
+                <div class="concept-box">
+                    <h4>Correlating Events Across Sources</h4>
+                    <pre><code class="language-bash"># Pull audit logs for the affected ServiceAccount
+kubectl logs -n kube-system kube-apiserver-master \
+  | jq 'select(.user.username == "system:serviceaccount:app:web-sa")'
+
+# Check Falco alerts in the time window
+kubectl logs -n falco -l app=falco --since=2h \
+  | grep "app-namespace"
+
+# Correlate with pod events
+kubectl get events -n app-namespace --sort-by='.lastTimestamp'
+
+# Check node-level logs
+journalctl -u kubelet --since "2 hours ago" | grep "suspect-pod"</code></pre>
+                </div>
+                <p class="small-text">Tip: Synchronize timestamps across all sources using UTC to build an accurate timeline.</p>
+                <aside class="notes">
+                    Timeline construction is one of the most important forensic activities. Having centralized, timestamped logs makes this dramatically easier. If your logs are scattered across different systems with different time zones, correlation becomes extremely difficult.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 3: CONTAINMENT STRATEGIES -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F6D1; Section 3</h2>
+                <p>Containment Strategies</p>
+                <aside class="notes">
+                    Once you have triaged and assessed, the next priority is containment — stopping the bleeding while preserving evidence. This is the most time-sensitive phase.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 16: Network Isolation -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F310; Network Isolation with NetworkPolicies</h2>
+                <pre><code class="language-yaml"># deny-all-quarantine.yaml
+# Apply immediately to isolate compromised pod
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: quarantine-deny-all
+  namespace: app-namespace
+spec:
+  podSelector:
+    matchLabels:
+      quarantine: "true"     # Applied to suspect pods
+  policyTypes:
+    - Ingress
+    - Egress
+  # No ingress or egress rules = deny all traffic</code></pre>
+                <div class="highlight-box warning">
+                    <strong>Important:</strong> Apply the NetworkPolicy <em>before</em> relabeling the pod. The policy must exist first to take effect when labels match.
+                </div>
+                <aside class="notes">
+                    Network isolation is usually the first containment action. It cuts off communication while keeping the pod running for evidence collection. The order matters: create the policy, then label the pod. If you reverse the order, there is a window where the pod is labeled but not yet isolated.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 17: Pod Quarantine -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F3F7;&#xFE0F; Pod Quarantine Procedure</h2>
+                <pre><code class="language-bash"># Step 1: Ensure deny-all NetworkPolicy exists (from previous slide)
+kubectl apply -f deny-all-quarantine.yaml
+
+# Step 2: Label the pod for quarantine (triggers NetworkPolicy)
+kubectl label pod suspect-pod -n app-namespace quarantine=true
+
+# Step 3: Remove the pod from any Service selectors
+kubectl label pod suspect-pod -n app-namespace app- role-
+
+# Step 4: Cordon the node to prevent new workloads
+kubectl cordon node-01
+
+# Step 5: Prevent the controller from replacing the pod
+kubectl scale deployment compromised-app -n app-namespace --replicas=0
+
+# NOTE: Do NOT delete the pod yet — collect evidence first!</code></pre>
+                <div class="key-point">
+                    Quarantine keeps the pod alive but isolated. This is essential for evidence collection.
+                </div>
+                <aside class="notes">
+                    Notice we scale the deployment to zero replicas rather than deleting the pod. If we just delete the pod, the ReplicaSet controller will create a new one. Scaling to zero prevents replacement while keeping the current pod running thanks to the quarantine label that no longer matches the deployment selector.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 18: RBAC Lockdown -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F512; RBAC Lockdown</h2>
+                <div class="two-columns">
+                    <div>
+                        <h4>Immediate Actions</h4>
+                        <pre><code class="language-bash"># Revoke ServiceAccount permissions
+kubectl delete rolebinding \
+  web-sa-binding -n app-namespace
+
+# Invalidate tokens
+kubectl delete secret \
+  web-sa-token -n app-namespace
+
+# Delete and recreate the SA
+kubectl delete serviceaccount \
+  web-sa -n app-namespace</code></pre>
+                    </div>
+                    <div>
+                        <h4>Credential Rotation</h4>
+                        <ul>
+                            <li>Rotate all Secrets in the namespace</li>
+                            <li>Rotate cloud provider credentials</li>
+                            <li>Invalidate any JWT/OAuth tokens</li>
+                            <li>Rotate TLS certificates if exposed</li>
+                            <li>Update external service passwords</li>
+                            <li>Rotate etcd encryption keys</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="highlight-box danger">
+                    <strong>Assume all mounted secrets are compromised.</strong> Rotate every credential the pod had access to.
+                </div>
+                <aside class="notes">
+                    Credential rotation is often the most impactful containment action but also the most disruptive. Coordinate with application teams because rotating secrets will cause outages for services using those credentials. Better a planned brief outage than ongoing unauthorized access.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 19: Preserving Evidence During Containment -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F4BE; Preserving Evidence During Containment</h2>
+                <div class="card success">
+                    <h4>Evidence Preservation Checklist</h4>
+                    <ol>
+                        <li>&#x2610; Capture full <code>kubectl describe pod</code> output</li>
+                        <li>&#x2610; Export pod logs (<code>kubectl logs --all-containers</code>)</li>
+                        <li>&#x2610; Save pod YAML spec (<code>kubectl get pod -o yaml</code>)</li>
+                        <li>&#x2610; Snapshot container filesystem (before deletion)</li>
+                        <li>&#x2610; Record network connections at time of detection</li>
+                        <li>&#x2610; Screenshot any running processes in the container</li>
+                        <li>&#x2610; Save the container image hash for later analysis</li>
+                        <li>&#x2610; Preserve node-level logs for the affected node</li>
+                    </ol>
+                </div>
+                <p class="small-text">All evidence should be timestamped, hashed (SHA-256), and stored in a secure, tamper-evident location.</p>
+                <aside class="notes">
+                    Chain of custody matters, even for internal investigations. Hash every piece of evidence you collect. Store it in an immutable storage location such as an S3 bucket with object locking enabled.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 4: EVIDENCE COLLECTION -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F50E; Section 4</h2>
+                <p>Evidence Collection</p>
+                <aside class="notes">
+                    Now that we have contained the threat, let's look at the specific techniques and commands for collecting forensic evidence from Kubernetes environments.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 21: Capturing Pod State -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F4F8; Capturing Pod State</h2>
+                <pre><code class="language-bash">#!/bin/bash
+# forensic-capture.sh — Run immediately upon detection
+POD="suspect-pod"
+NS="app-namespace"
+EVIDENCE_DIR="./evidence/$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$EVIDENCE_DIR"
+
+# Full pod description
+kubectl describe pod "$POD" -n "$NS" > "$EVIDENCE_DIR/describe.txt"
+
+# Pod YAML specification
+kubectl get pod "$POD" -n "$NS" -o yaml > "$EVIDENCE_DIR/pod-spec.yaml"
+
+# All container logs (current and previous)
+kubectl logs "$POD" -n "$NS" --all-containers > "$EVIDENCE_DIR/logs-current.txt"
+kubectl logs "$POD" -n "$NS" --all-containers --previous > "$EVIDENCE_DIR/logs-previous.txt" 2>/dev/null
+
+# Events for the namespace
+kubectl get events -n "$NS" --sort-by='.lastTimestamp' > "$EVIDENCE_DIR/events.txt"
+
+# Hash all evidence files
+sha256sum "$EVIDENCE_DIR"/* > "$EVIDENCE_DIR/checksums.sha256"
+echo "Evidence captured in $EVIDENCE_DIR"</code></pre>
+                <aside class="notes">
+                    This script should be pre-written, tested, and available in your IR toolkit. When an incident occurs, you should not be writing scripts from scratch. Run it immediately, even before containment if possible, because pods can terminate at any time.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 22: Container Filesystem Snapshots -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F4C2; Container Filesystem Snapshots</h2>
+                <pre><code class="language-bash"># Method 1: Copy files from a running container
+kubectl cp "$NS/$POD:/etc/passwd" "$EVIDENCE_DIR/passwd"
+kubectl cp "$NS/$POD:/tmp/" "$EVIDENCE_DIR/tmp-contents/"
+
+# Method 2: Export the entire container filesystem
+# Get the container ID from the node
+CONTAINER_ID=$(kubectl get pod "$POD" -n "$NS" \
+  -o jsonpath='{.status.containerStatuses[0].containerID}' \
+  | sed 's|containerd://||')
+
+# On the node — export the full filesystem
+ctr -n k8s.io snapshot view forensic-snap "$CONTAINER_ID"
+ctr -n k8s.io content export "$EVIDENCE_DIR/container-fs.tar" "$CONTAINER_ID"
+
+# Method 3: Use crictl on the node
+crictl inspect "$CONTAINER_ID" > "$EVIDENCE_DIR/container-inspect.json"</code></pre>
+                <div class="highlight-box">
+                    <strong>Note:</strong> Methods 2 and 3 require SSH or privileged access to the underlying node.
+                </div>
+                <aside class="notes">
+                    kubectl cp is the simplest method but requires a shell in the container. For containers with minimal images and no shell, you need to go to the node level and use container runtime tools like crictl or ctr directly. This is why having node access pre-configured in your IR plan is essential.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 23: Log Collection -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F4DC; Comprehensive Log Collection</h2>
+                <div class="two-columns">
+                    <div>
+                        <h4>Kubernetes Logs</h4>
+                        <pre><code class="language-bash"># Pod logs with timestamps
+kubectl logs "$POD" -n "$NS" \
+  --timestamps --all-containers
+
+# Previous instance logs
+kubectl logs "$POD" -n "$NS" \
+  --previous
+
+# Logs from all pods with a label
+kubectl logs -n "$NS" \
+  -l app=web --all-containers
+
+# Audit logs (API server)
+kubectl logs -n kube-system \
+  kube-apiserver-master \
+  | jq '.| select(.verb != "get")'</code></pre>
+                    </div>
+                    <div>
+                        <h4>Node &amp; System Logs</h4>
+                        <pre><code class="language-bash"># kubelet logs
+journalctl -u kubelet \
+  --since "4h ago"
+
+# Container runtime logs
+journalctl -u containerd \
+  --since "4h ago"
+
+# Kernel/security logs
+journalctl -k --since "4h ago"
+
+# Falco alerts
+kubectl logs -n falco \
+  -l app=falco --since=4h \
+  | jq '.'</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">
+                    Ideally, all these logs are already flowing into a centralized system. If they are not, you need to collect them manually and quickly. Remember that log rotation and pod restarts can destroy logs, so capture early and capture broadly.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 24: Ephemeral Debug Containers -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F41B; Ephemeral Debug Containers</h2>
+                <pre><code class="language-bash"># Attach a debug container to a running pod
+# Shares the process namespace — can see all processes
+kubectl debug -it "$POD" -n "$NS" \
+  --image=busybox:latest \
+  --target=app-container \
+  -- sh
+
+# Inside the debug container:
+# List processes (sees target container's processes)
+ps aux
+
+# Check network connections
+netstat -tlnp
+
+# Examine filesystem of the target container
+ls /proc/1/root/
+
+# Check environment variables (may contain secrets)
+cat /proc/1/environ | tr '\0' '\n'</code></pre>
+                <div class="highlight-box success">
+                    <strong>Advantage:</strong> Debug containers work even with distroless images that have no shell or forensic tools.
+                </div>
+                <aside class="notes">
+                    Ephemeral containers, introduced as stable in Kubernetes 1.25, are a critical forensic tool. They let you attach diagnostic tooling to a running pod without modifying the pod spec. Use a purpose-built forensic image that includes tools like strace, tcpdump, and lsof.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 25: Forensic kubectl Commands -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F527; Essential Forensic kubectl Commands</h2>
+                <pre><code class="language-bash"># Check who/what accessed the API recently
+kubectl get events --all-namespaces --sort-by='.metadata.creationTimestamp' \
+  | tail -50
+
+# Inspect ServiceAccount token mount
+kubectl get pod "$POD" -n "$NS" -o jsonpath='{.spec.volumes[*].name}'
+
+# Check environment variables (may reveal injected secrets)
+kubectl set env pod/"$POD" -n "$NS" --list
+
+# View resource consumption (detect crypto miners)
+kubectl top pod -n "$NS" --containers
+
+# Check image pull history
+kubectl get pod "$POD" -n "$NS" \
+  -o jsonpath='{.status.containerStatuses[*].imageID}'
+
+# Inspect node conditions
+kubectl describe node "$(kubectl get pod $POD -n $NS \
+  -o jsonpath='{.spec.nodeName}')"</code></pre>
+                <aside class="notes">
+                    Keep a cheat sheet of these commands in your runbook. During a high-pressure incident, you do not want to be looking up jsonpath syntax. Consider creating aliases or scripts for the most commonly used forensic commands.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 5: POST-INCIDENT ANALYSIS -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F4CA; Section 5</h2>
+                <p>Post-Incident Analysis</p>
+                <aside class="notes">
+                    After containment and evidence collection, we shift to analysis. This is where we understand what happened, how it happened, and how to prevent it from happening again.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 27: Root Cause Analysis -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F3AF; Root Cause Analysis</h2>
+                <div class="concept-box">
+                    <h4>The Five Whys — Kubernetes Example</h4>
+                    <ol>
+                        <li><strong>Why</strong> did the attacker gain access? — Container had a known CVE.</li>
+                        <li><strong>Why</strong> was a vulnerable image deployed? — No image scanning in CI/CD.</li>
+                        <li><strong>Why</strong> was there no image scanning? — Admission controller was in audit mode.</li>
+                        <li><strong>Why</strong> was it still in audit mode? — Migration plan was never completed.</li>
+                        <li><strong>Why</strong> was the migration not completed? — No owner assigned after initial setup.</li>
+                    </ol>
+                </div>
+                <div class="key-point">
+                    Root cause is usually a process or organizational gap, not a single technical failure.
+                </div>
+                <aside class="notes">
+                    The Five Whys technique helps peel back the layers. Notice how we moved from a technical vulnerability to an organizational accountability gap. Addressing only the technical issue means you will have a similar incident in the future.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 28: Attack Timeline Reconstruction -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F4C5; Attack Timeline Reconstruction</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time (UTC)</th>
+                            <th>Source</th>
+                            <th>Event</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>14:22:01</td>
+                            <td>Audit Log</td>
+                            <td>Pod <code>web-app-7d4f</code> created in <code>prod</code></td>
+                        </tr>
+                        <tr>
+                            <td>14:35:17</td>
+                            <td>Falco</td>
+                            <td>Shell spawned in container <code>web-app</code></td>
+                        </tr>
+                        <tr>
+                            <td>14:35:42</td>
+                            <td>Falco</td>
+                            <td>Sensitive file read: <code>/etc/shadow</code></td>
+                        </tr>
+                        <tr>
+                            <td>14:36:05</td>
+                            <td>Audit Log</td>
+                            <td>SA token used to list secrets in namespace</td>
+                        </tr>
+                        <tr>
+                            <td>14:37:12</td>
+                            <td>Network</td>
+                            <td>Outbound connection to <code>45.33.x.x:443</code></td>
+                        </tr>
+                        <tr>
+                            <td>14:38:00</td>
+                            <td>Alert</td>
+                            <td>SOC analyst acknowledges Falco alert</td>
+                        </tr>
+                        <tr>
+                            <td>14:42:30</td>
+                            <td>K8s</td>
+                            <td>Quarantine NetworkPolicy applied</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p class="small-text">Mean Time to Detect (MTTD): 3 min | Mean Time to Contain (MTTC): 7 min</p>
+                <aside class="notes">
+                    An accurate timeline is the foundation of your post-incident report. It shows the dwell time, the speed of response, and any gaps in detection. MTTD and MTTC are key metrics to track and improve over time.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 29: Indicators of Compromise -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F6A9; Indicators of Compromise (IOCs)</h2>
+                <div class="two-columns">
+                    <div class="card danger">
+                        <h4>Kubernetes-Specific IOCs</h4>
+                        <ul>
+                            <li>Unexpected <code>exec</code> into pods</li>
+                            <li>New ServiceAccounts or RoleBindings</li>
+                            <li>Pods with <code>privileged: true</code></li>
+                            <li>DaemonSets in non-system namespaces</li>
+                            <li>CronJobs with base64-encoded commands</li>
+                            <li>Pods mounting <code>hostPath</code> volumes</li>
+                            <li>Unknown images or tags</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h4>Network &amp; System IOCs</h4>
+                        <ul>
+                            <li>Outbound connections to C2 IPs</li>
+                            <li>DNS queries to crypto mining pools</li>
+                            <li>Unusual port scanning from pods</li>
+                            <li>High CPU from non-critical pods</li>
+                            <li>Binary downloads via curl/wget</li>
+                            <li>Modified system binaries in containers</li>
+                            <li>Unexpected processes (miners, shells)</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    Document every IOC you discover and share them with the team. These IOCs should be fed back into your detection rules — for example, creating Falco rules for the specific techniques used by the attacker.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 30: Blameless Postmortems -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F4DD; Blameless Postmortems</h2>
+                <div class="card">
+                    <h4>Postmortem Document Template</h4>
+                    <ul>
+                        <li><strong>Incident Summary:</strong> One-paragraph description</li>
+                        <li><strong>Timeline:</strong> Chronological event log with sources</li>
+                        <li><strong>Impact:</strong> What was affected, for how long, data exposure</li>
+                        <li><strong>Root Cause:</strong> Technical and process/organizational causes</li>
+                        <li><strong>What Went Well:</strong> Detection, response, tooling that worked</li>
+                        <li><strong>What Needs Improvement:</strong> Gaps, delays, missing capabilities</li>
+                        <li><strong>Action Items:</strong> Specific, owned, time-bound improvements</li>
+                        <li><strong>Lessons Learned:</strong> Insights for the broader organization</li>
+                    </ul>
+                </div>
+                <div class="highlight-box success">
+                    <strong>Blameless culture:</strong> Focus on systems and processes, not individuals. "How did the system allow this?" not "Who caused this?"
+                </div>
+                <aside class="notes">
+                    Blameless postmortems are critical for organizational learning. If people fear blame, they will hide information. The goal is to make the system better, not to punish individuals. Every incident is a learning opportunity.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 6: RECOVERY & HARDENING -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F504; Section 6</h2>
+                <p>Recovery &amp; Hardening</p>
+                <aside class="notes">
+                    With the incident analyzed and documented, we move to recovery — restoring services and hardening the environment to prevent recurrence.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 32: Remediation Steps -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F6E0;&#xFE0F; Remediation Steps</h2>
+                <div class="three-columns">
+                    <div class="card danger">
+                        <h4>Immediate</h4>
+                        <ul>
+                            <li>Delete compromised pods</li>
+                            <li>Deploy patched images</li>
+                            <li>Complete credential rotation</li>
+                            <li>Uncordon nodes after verification</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h4>Short-Term</h4>
+                        <ul>
+                            <li>Patch vulnerable images</li>
+                            <li>Tighten RBAC policies</li>
+                            <li>Add missing NetworkPolicies</li>
+                            <li>Enable admission controllers</li>
+                        </ul>
+                    </div>
+                    <div class="card success">
+                        <h4>Long-Term</h4>
+                        <ul>
+                            <li>Implement image scanning in CI</li>
+                            <li>Automate policy enforcement</li>
+                            <li>Improve monitoring coverage</li>
+                            <li>Schedule regular exercises</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    Remediation has three timescales. Immediate actions restore service. Short-term actions close the specific gap that was exploited. Long-term actions address the systemic issues identified in the root cause analysis.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 33: Validating Clean State -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x2705; Validating Clean State</h2>
+                <pre><code class="language-bash"># Verify no unauthorized workloads remain
+kubectl get pods --all-namespaces -o wide | grep -v kube-system
+
+# Check for rogue ServiceAccounts and RoleBindings
+kubectl get sa --all-namespaces | grep -v default
+kubectl get rolebindings,clusterrolebindings --all-namespaces
+
+# Scan all running images for vulnerabilities
+kubectl get pods --all-namespaces \
+  -o jsonpath='{.items[*].spec.containers[*].image}' | tr ' ' '\n' | sort -u
+
+# Verify NetworkPolicies are enforced
+kubectl get networkpolicies --all-namespaces
+
+# Check for hostPath mounts or privileged pods
+kubectl get pods --all-namespaces -o json | \
+  jq '.items[] | select(.spec.volumes[]?.hostPath != null) |
+  {namespace: .metadata.namespace, name: .metadata.name}'
+
+# Verify no unexpected CronJobs or DaemonSets
+kubectl get cronjobs,daemonsets --all-namespaces</code></pre>
+                <aside class="notes">
+                    After remediation, you must validate that the cluster is clean. An attacker may have established persistence mechanisms — DaemonSets, CronJobs, or modified RBAC — that survive the initial cleanup. Check everything systematically.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 34: Policy Updates -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F4C4; Policy Updates Based on Findings</h2>
+                <div class="two-columns">
+                    <div>
+                        <h4>Detection Rule Updates</h4>
+                        <pre><code class="language-yaml"># New Falco rule from IOCs
+- rule: Detect C2 Communication
+  desc: Outbound connection to
+        known C2 infrastructure
+  condition: >
+    evt.type = connect and
+    fd.sip in (c2_ip_list) and
+    container
+  output: >
+    C2 connection detected
+    (pod=%k8s.pod.name
+     ip=%fd.sip)
+  priority: CRITICAL</code></pre>
+                    </div>
+                    <div>
+                        <h4>Admission Policy Updates</h4>
+                        <pre><code class="language-yaml"># OPA/Gatekeeper constraint
+apiVersion: constraints
+         .gatekeeper.sh/v1beta1
+kind: K8sBlockHostPath
+metadata:
+  name: block-host-path
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    excludedNamespaces:
+      - kube-system
+  parameters:
+    allowedPaths: []</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">
+                    Every incident should result in updated detection rules and policies. Feed the IOCs directly into your Falco rules. Add new admission controller constraints to prevent the attack vector from being exploitable in the future.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 35: Communication Plan -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F4E2; Communication Plan</h2>
+                <div class="card">
+                    <h4>Stakeholder Communication Matrix</h4>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Audience</th>
+                                <th>When</th>
+                                <th>Content</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>IR Team</td>
+                                <td>Immediately</td>
+                                <td>Technical details, actions needed</td>
+                            </tr>
+                            <tr>
+                                <td>Engineering Leadership</td>
+                                <td>Within 1 hour</td>
+                                <td>Impact summary, ETA for resolution</td>
+                            </tr>
+                            <tr>
+                                <td>Executive Team</td>
+                                <td>Within 4 hours</td>
+                                <td>Business impact, risk assessment</td>
+                            </tr>
+                            <tr>
+                                <td>Legal / Compliance</td>
+                                <td>Within 24 hours</td>
+                                <td>Data exposure, regulatory implications</td>
+                            </tr>
+                            <tr>
+                                <td>Customers (if applicable)</td>
+                                <td>Per regulation</td>
+                                <td>Impact, remediation, next steps</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <aside class="notes">
+                    Communication is often the most under-practiced aspect of IR. Technical teams focus on the technical response, but stakeholder communication is equally important. Pre-draft communication templates for each audience and severity level.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SECTION 7: TABLETOP EXERCISES -->
+            <!-- ============================================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F3AE; Section 7</h2>
+                <p>Tabletop Exercises</p>
+                <aside class="notes">
+                    Tabletop exercises are how you test your IR plan without the pressure of a real incident. They build muscle memory, expose gaps in your process, and improve team coordination.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 37: Why Tabletop Exercises -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F3AF; Why Tabletop Exercises?</h2>
+                <div class="two-columns">
+                    <div class="card success">
+                        <h4>Benefits</h4>
+                        <ul>
+                            <li>Test IR procedures without risk</li>
+                            <li>Identify gaps in runbooks</li>
+                            <li>Build team communication skills</li>
+                            <li>Validate tooling and access</li>
+                            <li>Train new team members</li>
+                            <li>Meet compliance requirements</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Frequency &amp; Format</h4>
+                        <ul>
+                            <li><strong>Quarterly:</strong> Full team tabletop (2-3 hours)</li>
+                            <li><strong>Monthly:</strong> Mini scenarios (30-60 min)</li>
+                            <li><strong>After incidents:</strong> Replay the real event</li>
+                            <li><strong>Rotate facilitators</strong> for fresh perspectives</li>
+                            <li><strong>Include non-technical</strong> stakeholders periodically</li>
+                            <li><strong>Document outcomes</strong> and action items</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    Organizations that run regular tabletop exercises consistently outperform those that do not in actual incident response. It is like a fire drill — you practice so the real event is not the first time you execute the plan.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 38: Designing Tabletop Scenarios -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F4DD; Designing Effective Scenarios</h2>
+                <div class="concept-box">
+                    <h4>Scenario Design Principles</h4>
+                    <ul>
+                        <li><strong>Realistic:</strong> Based on actual attack patterns (MITRE ATT&CK for Containers)</li>
+                        <li><strong>Progressive:</strong> Start simple, introduce complications via "injects"</li>
+                        <li><strong>Role-specific:</strong> Each participant has defined responsibilities</li>
+                        <li><strong>Time-pressured:</strong> Include realistic constraints and deadlines</li>
+                        <li><strong>Decision-focused:</strong> Force trade-off decisions (availability vs. security)</li>
+                    </ul>
+                </div>
+                <div class="highlight-box warning">
+                    <strong>Avoid:</strong> Scenarios that are impossible to solve or that have only one "correct" answer. The goal is to exercise the process, not to trick participants.
+                </div>
+                <aside class="notes">
+                    Good scenarios have multiple valid response paths. The discussion about which path to take is where the real learning happens. Include realistic complications like tool failures, key personnel being unavailable, or a second incident occurring during response.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 39: Example Scenario -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F4A1; Example Scenario: Compromised Container</h2>
+                <div class="card danger">
+                    <h4>Scenario: Lateral Movement from Compromised Pod</h4>
+                    <p class="small-text"><strong>Setting:</strong> Production Kubernetes cluster running an e-commerce platform</p>
+                </div>
+                <div class="highlight-box" style="margin-top: 10px;">
+                    <strong>Inject 1 (T+0):</strong> Falco alert — "Shell spawned in container <code>checkout-svc</code> in namespace <code>prod</code>."
+                </div>
+                <div class="highlight-box warning" style="margin-top: 5px;">
+                    <strong>Inject 2 (T+10 min):</strong> Audit log shows the pod's ServiceAccount listing secrets across three namespaces.
+                </div>
+                <div class="highlight-box danger" style="margin-top: 5px;">
+                    <strong>Inject 3 (T+20 min):</strong> Network monitoring detects outbound data transfer to an external IP. Database credentials were among the listed secrets.
+                </div>
+                <div class="highlight-box" style="margin-top: 5px;">
+                    <strong>Inject 4 (T+30 min):</strong> A new DaemonSet appears in the <code>kube-system</code> namespace running an unknown image.
+                </div>
+                <aside class="notes">
+                    This scenario escalates progressively. Inject 1 is detection. Inject 2 reveals lateral movement. Inject 3 introduces data exfiltration. Inject 4 shows persistence. Each inject forces the team to reassess and make decisions about priorities.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 40: Scenario Discussion Points -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x2753; Scenario Discussion Points</h2>
+                <div class="two-columns">
+                    <div>
+                        <h4>Decision Points</h4>
+                        <ul>
+                            <li>Do you kill the pod immediately or preserve it for evidence?</li>
+                            <li>When do you escalate to P0?</li>
+                            <li>Do you shut down the entire namespace or isolate surgically?</li>
+                            <li>When do you notify customers?</li>
+                            <li>How do you handle the rogue DaemonSet in kube-system?</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Evaluation Criteria</h4>
+                        <ul>
+                            <li>Time to first containment action</li>
+                            <li>Evidence preserved before deletion</li>
+                            <li>Correct severity escalation timing</li>
+                            <li>Credential rotation completeness</li>
+                            <li>Communication cadence and clarity</li>
+                            <li>Clean-state validation thoroughness</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    There are trade-offs at every step. Killing the pod stops the attacker but destroys evidence. Isolating surgically is slower but preserves more. These discussions build judgment that you cannot get from reading a runbook alone.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 41: Running the Exercise -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F3C3; Running the Exercise</h2>
+                <div class="card">
+                    <h4>Exercise Flow</h4>
+                    <ol>
+                        <li><strong>Briefing (10 min):</strong> Set the scene, assign roles, review ground rules</li>
+                        <li><strong>Inject Phase (40 min):</strong> Deliver injects, observe and record team responses</li>
+                        <li><strong>Hot Wash (15 min):</strong> Immediate reactions — what went well, what was confusing</li>
+                        <li><strong>Debrief (20 min):</strong> Structured discussion of decision points and alternatives</li>
+                        <li><strong>Action Items (5 min):</strong> Assign owners for identified improvements</li>
+                    </ol>
+                </div>
+                <div class="key-point">
+                    The facilitator's job is to create pressure, not to judge. Let the team make decisions, then explore alternatives in the debrief.
+                </div>
+                <aside class="notes">
+                    The hot wash immediately after is critical — capture reactions while the experience is fresh. The debrief is where the deeper learning happens. Always end with concrete, owned action items that improve the IR process.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- SLIDE 42: IR Maturity Model -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F4C8; IR Maturity Model</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Level</th>
+                            <th>Description</th>
+                            <th>Characteristics</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>1 — Reactive</strong></td>
+                            <td>No formal process</td>
+                            <td>Ad-hoc response, no runbooks, hero-dependent</td>
+                        </tr>
+                        <tr>
+                            <td><strong>2 — Defined</strong></td>
+                            <td>Documented procedures</td>
+                            <td>Runbooks exist, roles assigned, basic tools</td>
+                        </tr>
+                        <tr>
+                            <td><strong>3 — Practiced</strong></td>
+                            <td>Regular exercises</td>
+                            <td>Tabletops, metrics tracked, continuous improvement</td>
+                        </tr>
+                        <tr>
+                            <td><strong>4 — Automated</strong></td>
+                            <td>Automated response</td>
+                            <td>Auto-containment, SOAR integration, ML-driven detection</td>
+                        </tr>
+                        <tr>
+                            <td><strong>5 — Optimized</strong></td>
+                            <td>Proactive threat hunting</td>
+                            <td>Red team exercises, threat intelligence-driven, minimal MTTD</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="key-point">
+                    Most organizations are between Level 1 and 2. This course aims to get you to Level 3.
+                </div>
+                <aside class="notes">
+                    Be honest about where your organization sits on this maturity model. It is more useful to be solidly at Level 2 than to claim Level 4 with untested automation. Each level builds on the one before it.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- LAB CALLOUT -->
+            <!-- ============================================================ -->
+            <section class="lab-callout" data-background-color="#2f855a">
+                <h2>&#x1F9EA; Lab 12: Incident Response Tabletop</h2>
+                <p><strong>Duration: 60 minutes</strong></p>
+                <ul>
+                    <li>Investigate a pre-staged compromise scenario</li>
+                    <li>Collect forensic evidence from running pods</li>
+                    <li>Perform containment using NetworkPolicies and RBAC</li>
+                    <li>Document findings and create an incident report</li>
+                </ul>
+                <aside class="notes">
+                    This is the capstone lab. Students will work through a realistic incident scenario where a compromised pod is running in the cluster. They need to triage, collect evidence, contain the threat, and write up their findings. Emphasize the importance of evidence collection before containment actions that might destroy data.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- KEY TAKEAWAYS -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F4CC; Key Takeaways</h2>
+                <ul class="takeaway-list">
+                    <li><strong>Preparation is paramount</strong> — have runbooks, tools, and roles defined before an incident occurs</li>
+                    <li><strong>Speed of evidence collection</strong> is the biggest K8s IR challenge — ephemeral pods destroy evidence on restart</li>
+                    <li><strong>Contain surgically</strong> — use NetworkPolicies and label changes to isolate while preserving evidence</li>
+                    <li><strong>Collect evidence before containment</strong> when possible — you cannot capture what no longer exists</li>
+                    <li><strong>Ephemeral debug containers</strong> are essential for forensics on minimal or distroless images</li>
+                    <li><strong>Blameless postmortems</strong> drive organizational learning and improve future response</li>
+                    <li><strong>Tabletop exercises</strong> build muscle memory — practice regularly so the real event is not the first time</li>
+                    <li><strong>Feed IOCs back</strong> into detection rules and admission policies to prevent recurrence</li>
+                </ul>
+                <aside class="notes">
+                    These are the essential takeaways for incident response in Kubernetes. The overarching theme is: prepare, detect fast, preserve evidence, contain carefully, learn thoroughly, and practice regularly.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- IR QUICK REFERENCE -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F4CB; IR Quick Reference Card</h2>
+                <div class="two-columns">
+                    <div>
+                        <h4>Phase 1: Detect &amp; Triage</h4>
+                        <ul class="small-text">
+                            <li>&#x2610; Identify alert source and affected resources</li>
+                            <li>&#x2610; Classify severity (P0-P3)</li>
+                            <li>&#x2610; Assess blast radius (RBAC + network + secrets)</li>
+                            <li>&#x2610; Notify Incident Commander</li>
+                        </ul>
+                        <h4>Phase 2: Collect Evidence</h4>
+                        <ul class="small-text">
+                            <li>&#x2610; Run forensic capture script</li>
+                            <li>&#x2610; Attach ephemeral debug container</li>
+                            <li>&#x2610; Snapshot container filesystem</li>
+                            <li>&#x2610; Hash and store all evidence</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Phase 3: Contain</h4>
+                        <ul class="small-text">
+                            <li>&#x2610; Apply deny-all NetworkPolicy</li>
+                            <li>&#x2610; Quarantine pod (relabel)</li>
+                            <li>&#x2610; Revoke RBAC and rotate credentials</li>
+                            <li>&#x2610; Cordon affected node</li>
+                        </ul>
+                        <h4>Phase 4: Recover &amp; Improve</h4>
+                        <ul class="small-text">
+                            <li>&#x2610; Deploy patched workloads</li>
+                            <li>&#x2610; Validate clean state</li>
+                            <li>&#x2610; Conduct blameless postmortem</li>
+                            <li>&#x2610; Update detection rules and policies</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    Print this quick reference card and keep it accessible to the IR team. It serves as a rapid checklist during high-pressure incidents when detailed runbooks may be too verbose to follow.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- FURTHER READING -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>&#x1F4DA; Further Reading</h2>
+                <ul>
+                    <li><a href="https://nvlpubs.nist.gov/nistpubs/specialpublications/nist.sp.800-61r2.pdf">NIST SP 800-61r2</a> — Computer Security Incident Handling Guide</li>
+                    <li><a href="https://attack.mitre.org/matrices/enterprise/containers/">MITRE ATT&CK for Containers</a> — attack techniques matrix</li>
+                    <li><a href="https://kubernetes.io/docs/tasks/debug/debug-application/debug-running-pod/#ephemeral-container">Ephemeral Containers</a> — Kubernetes documentation</li>
+                    <li><a href="https://falco.org/docs/rules/">Falco Rules Reference</a> — runtime detection rules</li>
+                    <li><a href="https://kubernetes.io/docs/tasks/debug/debug-cluster/audit/">Kubernetes Audit Logging</a> — configuration and analysis</li>
+                    <li>NSA/CISA Kubernetes Hardening Guide — comprehensive hardening reference</li>
+                </ul>
+                <aside class="notes">
+                    These resources provide deeper coverage of the topics we discussed. The NIST guide is the foundational document for IR. The MITRE ATT&CK matrix for containers maps specific attack techniques to detection and mitigation strategies.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- COURSE WRAP-UP -->
+            <!-- ============================================================ -->
+            <section>
+                <h2>Course Wrap-Up</h2>
+                <div class="card" style="max-width: 700px;">
+                    <h3>Your Kubernetes Security Journey</h3>
+                    <p>Over 12 modules, you have covered:</p>
+                    <ul class="small-text">
+                        <li>Modules 1-3: Foundation — Security overview, RBAC, API server</li>
+                        <li>Modules 4-6: Workload — Pod security, network policies, secrets</li>
+                        <li>Modules 7-9: Supply chain — Images, admission control, runtime</li>
+                        <li>Modules 10-12: Operations — Compliance, service mesh, incident response</li>
+                    </ul>
+                </div>
+                <div class="key-point" style="margin-top: 20px;">
+                    Security is a journey, not a destination. Keep learning, keep hardening, keep practicing.
+                </div>
+                <aside class="notes">
+                    Congratulate the students on completing the course. Emphasize that security is continuous — the threat landscape evolves, and so must their skills and their cluster configurations. Encourage them to take the checklists, runbooks, and techniques back to their organizations and apply them immediately.
+                </aside>
+            </section>
+
+            <!-- ============================================================ -->
+            <!-- QUESTIONS -->
+            <!-- ============================================================ -->
+            <section class="questions-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2 style="color: #fff;">&#x2753; Questions?</h2>
+                <p style="color: #e2e8f0; font-size: 1.2em;">Module 12: Incident Response &amp; Forensics</p>
+                <p style="color: #cbd5e0;">Thank you for completing the Kubernetes Security Course!</p>
+                <aside class="notes">
+                    Open the floor for final questions. This is a good time to discuss how students can continue their learning — certifications like CKS, community resources, and staying current with Kubernetes security advisories.
+                </aside>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/notes/notes.min.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: true,
+            plugins: [RevealHighlight, RevealNotes]
+        });
+    </script>
+</body>
+</html>

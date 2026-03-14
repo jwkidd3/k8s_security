@@ -1,0 +1,1559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 9: Runtime Security &amp; Monitoring</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/theme/white.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/monokai.min.css">
+
+    <style>
+        :root {
+            --heading-color: #1a365d;
+            --accent-color: #2b6cb0;
+            --success-color: #2f855a;
+            --warning-color: #c05621;
+            --danger-color: #c53030;
+            --text-color: #2d3748;
+        }
+
+        .reveal {
+            font-size: 28px;
+            color: var(--text-color);
+        }
+
+        .reveal h1 {
+            font-size: 1.8em;
+            color: var(--heading-color);
+        }
+
+        .reveal h2 {
+            font-size: 1.4em;
+            color: var(--heading-color);
+        }
+
+        .reveal h3 {
+            font-size: 1.1em;
+            color: var(--accent-color);
+        }
+
+        .reveal code {
+            font-size: 0.85em;
+        }
+
+        .reveal .slides section {
+            text-align: left;
+            padding: 20px 40px;
+        }
+
+        /* Title slide */
+        .title-slide {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .title-slide h1,
+        .title-slide h2,
+        .title-slide h3 {
+            color: white !important;
+        }
+
+        .title-slide h1 {
+            font-size: 2em !important;
+            margin-bottom: 0.3em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .title-slide h2 {
+            font-size: 1.3em !important;
+            font-weight: 300;
+            margin-bottom: 0.2em;
+        }
+
+        .title-slide h3 {
+            font-size: 1em !important;
+            font-weight: 300;
+            color: rgba(255,255,255,0.85) !important;
+        }
+
+        .course-badge {
+            display: inline-block;
+            padding: 10px 30px;
+            border: 2px solid rgba(255,255,255,0.8);
+            border-radius: 30px;
+            margin-top: 30px;
+            font-size: 0.85em;
+            color: white;
+            letter-spacing: 1px;
+        }
+
+        /* Section divider */
+        .section-divider {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .section-divider h2,
+        .section-divider h3 {
+            color: white !important;
+        }
+
+        .section-divider h2 {
+            font-size: 1.6em !important;
+        }
+
+        .section-divider h3 {
+            font-size: 1em !important;
+            font-weight: 300;
+            color: rgba(255,255,255,0.85) !important;
+        }
+
+        /* Highlight box */
+        .highlight-box {
+            background: linear-gradient(135deg, #ebf8ff 0%, #bee3f8 100%);
+            border-left: 4px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 15px 0;
+        }
+
+        .highlight-box.success {
+            background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);
+            border-left-color: var(--success-color);
+        }
+
+        .highlight-box.warning {
+            background: linear-gradient(135deg, #fffaf0 0%, #feebc8 100%);
+            border-left-color: var(--warning-color);
+        }
+
+        .highlight-box.danger {
+            background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+            border-left-color: var(--danger-color);
+        }
+
+        /* Columns */
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .three-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        /* Card */
+        .card {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .card.success {
+            border-top: 4px solid var(--success-color);
+        }
+
+        .card.warning {
+            border-top: 4px solid var(--warning-color);
+        }
+
+        .card.danger {
+            border-top: 4px solid var(--danger-color);
+        }
+
+        /* Concept box */
+        .concept-box {
+            background: white;
+            border: 2px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 10px 0;
+        }
+
+        /* Key point */
+        .key-point {
+            text-align: center !important;
+            font-style: italic;
+            font-size: 1.15em;
+            color: var(--accent-color);
+            padding: 20px;
+        }
+
+        /* Lab callout */
+        .lab-callout {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .lab-callout h2,
+        .lab-callout h3 {
+            color: white !important;
+        }
+
+        .lab-callout ul {
+            text-align: left;
+            display: inline-block;
+        }
+
+        .lab-callout li {
+            color: white;
+            margin-bottom: 8px;
+        }
+
+        .lab-badge {
+            display: inline-block;
+            padding: 8px 24px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.6);
+            border-radius: 20px;
+            color: white;
+            font-size: 0.8em;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+
+        .lab-description {
+            margin-top: 20px;
+        }
+
+        /* Takeaway list */
+        .takeaway-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .takeaway-list li {
+            padding: 10px 0 10px 35px;
+            position: relative;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .takeaway-list li::before {
+            content: "\2713";
+            position: absolute;
+            left: 0;
+            color: var(--success-color);
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        /* Questions slide */
+        .questions-slide {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .questions-slide h2 {
+            color: white !important;
+            font-size: 2em !important;
+        }
+
+        .questions-slide p {
+            color: rgba(255,255,255,0.85);
+        }
+
+        /* Tables */
+        .reveal table {
+            font-size: 0.75em;
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        .reveal table th {
+            background: var(--heading-color);
+            color: white;
+            padding: 10px 14px;
+            text-align: left;
+        }
+
+        .reveal table td {
+            padding: 8px 14px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .reveal table tr:nth-child(even) {
+            background: #f7fafc;
+        }
+
+        /* Stat boxes */
+        .stat-box {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .stat-box .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: var(--accent-color);
+            display: block;
+        }
+
+        .stat-box .stat-label {
+            font-size: 0.8em;
+            color: var(--text-color);
+        }
+
+        /* Small text */
+        .small-text {
+            font-size: 0.7em;
+            color: #718096;
+        }
+
+        /* Pre/code */
+        .reveal pre {
+            width: 100%;
+            margin: 10px 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+
+        .reveal pre code {
+            padding: 15px;
+            max-height: 450px;
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- Slide 1: Title -->
+            <section class="title-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h1>Runtime Security &amp; Monitoring</h1>
+                <h2>Module 9</h2>
+                <h3>Kubernetes Security Course</h3>
+                <div class="course-badge">2-Day Hands-On Workshop</div>
+                <aside class="notes">Module 9 focuses on what happens after deployment — detecting and responding to threats at runtime. This is where proactive security meets real-time defense.</aside>
+            </section>
+
+            <!-- Slide 2: Module Overview -->
+            <section>
+                <h2>Module Overview</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>What We'll Cover</h3>
+                        <ul>
+                            <li>Runtime threat landscape</li>
+                            <li>Falco architecture &amp; custom rules</li>
+                            <li>Node-level monitoring</li>
+                            <li>Kubernetes-native monitoring</li>
+                            <li>Tetragon &amp; eBPF</li>
+                            <li>Detection pipelines</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <div class="highlight-box warning">
+                            <strong>Why Runtime Security?</strong><br>
+                            Prevention is ideal, but detection is essential. Attackers who bypass admission controls must still be caught at runtime.
+                        </div>
+                    </div>
+                </div>
+                <aside class="notes">Runtime security complements all the preventive controls we've studied. Even with perfect policies, you need visibility into what's actually happening inside your cluster.</aside>
+            </section>
+
+            <!-- ===================== SECTION 1: RUNTIME THREATS ===================== -->
+
+            <!-- Slide 3: Section Divider - Runtime Threats -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #c53030 0%, #e53e3e 100%)">
+                <h2>Runtime Threats</h2>
+                <h3>Understanding What Attackers Do Post-Compromise</h3>
+                <aside class="notes">Before building detection, we need to understand what we're detecting. Let's map the common runtime attack patterns.</aside>
+            </section>
+
+            <!-- Slide 4: Container Escape Techniques -->
+            <section>
+                <h2>Container Escape Techniques</h2>
+                <div class="two-columns">
+                    <div class="card danger">
+                        <h3>Privileged Container Escape</h3>
+                        <ul>
+                            <li>Mount host filesystem via <code>/dev</code></li>
+                            <li>Access host PID namespace</li>
+                            <li>Load kernel modules</li>
+                            <li>Exploit <code>CAP_SYS_ADMIN</code></li>
+                        </ul>
+                    </div>
+                    <div class="card danger">
+                        <h3>Kernel Exploit Escape</h3>
+                        <ul>
+                            <li>CVE-2022-0185 (filesystem context)</li>
+                            <li>CVE-2022-0492 (cgroups escape)</li>
+                            <li>Dirty Pipe (CVE-2022-0847)</li>
+                            <li>runc vulnerabilities</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="highlight-box danger" style="margin-top: 15px;">
+                    <strong>Detection signal:</strong> Processes accessing <code>/proc/1/root</code>, mounting block devices, or writing to host paths from within containers.
+                </div>
+                <aside class="notes">Container escapes are the most critical runtime threat. A successful escape gives the attacker full host access, which typically means access to all containers on that node.</aside>
+            </section>
+
+            <!-- Slide 5: Common Runtime Attack Patterns -->
+            <section>
+                <h2>Common Runtime Attack Patterns</h2>
+                <div class="three-columns">
+                    <div class="card danger">
+                        <h3>Crypto Mining</h3>
+                        <ul>
+                            <li>High CPU usage</li>
+                            <li>Connections to mining pools</li>
+                            <li>Unexpected binaries</li>
+                            <li>Stratum protocol traffic</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h3>Reverse Shells</h3>
+                        <ul>
+                            <li>Outbound connections</li>
+                            <li>Shell spawned by web server</li>
+                            <li>stdin/stdout redirection</li>
+                            <li>Netcat/socat usage</li>
+                        </ul>
+                    </div>
+                    <div class="card danger">
+                        <h3>Privilege Escalation</h3>
+                        <ul>
+                            <li>SUID binary exploitation</li>
+                            <li>Service account token theft</li>
+                            <li>kubectl exec abuse</li>
+                            <li>Node-to-cluster pivoting</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">These are the top three categories of post-exploitation activity in Kubernetes environments. Crypto mining is the most common — it's the "canary" that tells you your cluster has been compromised.</aside>
+            </section>
+
+            <!-- Slide 6: Lateral Movement in Kubernetes -->
+            <section>
+                <h2>Lateral Movement in Kubernetes</h2>
+                <div class="highlight-box danger">
+                    <strong>Attack chain:</strong> Compromise pod &rarr; Steal service account token &rarr; Query API server &rarr; Discover secrets &rarr; Pivot to other namespaces
+                </div>
+                <div class="two-columns" style="margin-top: 15px;">
+                    <div>
+                        <h3>Network-Based</h3>
+                        <ul>
+                            <li>Pod-to-pod communication (flat network)</li>
+                            <li>Service discovery via DNS</li>
+                            <li>Accessing metadata API (169.254.169.254)</li>
+                            <li>Scanning internal services</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>API-Based</h3>
+                        <ul>
+                            <li>Listing secrets across namespaces</li>
+                            <li>Creating privileged pods</li>
+                            <li>Modifying RBAC bindings</li>
+                            <li>Accessing etcd directly</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">Lateral movement is often where runtime detection provides the highest value. Network policies prevent some of this, but monitoring catches the attempts.</aside>
+            </section>
+
+            <!-- Slide 7: MITRE ATT&CK for Containers -->
+            <section>
+                <h2>MITRE ATT&amp;CK for Containers</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tactic</th>
+                            <th>Technique</th>
+                            <th>Runtime Detection</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Initial Access</td>
+                            <td>Exploit public-facing app</td>
+                            <td>Unexpected process in container</td>
+                        </tr>
+                        <tr>
+                            <td>Execution</td>
+                            <td>Exec into container</td>
+                            <td>Shell spawned in container</td>
+                        </tr>
+                        <tr>
+                            <td>Persistence</td>
+                            <td>Backdoor container image</td>
+                            <td>New binaries written to container</td>
+                        </tr>
+                        <tr>
+                            <td>Privilege Escalation</td>
+                            <td>Privileged container</td>
+                            <td>Mount of sensitive host paths</td>
+                        </tr>
+                        <tr>
+                            <td>Defense Evasion</td>
+                            <td>Clear container logs</td>
+                            <td>Log file deletion detected</td>
+                        </tr>
+                        <tr>
+                            <td>Credential Access</td>
+                            <td>Access K8s secrets</td>
+                            <td>Sensitive file reads in /etc</td>
+                        </tr>
+                        <tr>
+                            <td>Lateral Movement</td>
+                            <td>Access K8s API</td>
+                            <td>Unexpected API server connections</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <aside class="notes">The MITRE ATT&CK framework for containers gives us a structured way to think about what we need to detect. Each tactic maps to specific runtime signals we can monitor for.</aside>
+            </section>
+
+            <!-- ===================== SECTION 2: FALCO ARCHITECTURE ===================== -->
+
+            <!-- Slide 8: Section Divider - Falco -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #3182ce 100%)">
+                <h2>Falco Architecture</h2>
+                <h3>Cloud-Native Runtime Security</h3>
+                <aside class="notes">Falco is the CNCF graduated project for runtime threat detection. It's the de facto standard for Kubernetes runtime security.</aside>
+            </section>
+
+            <!-- Slide 9: How Falco Works -->
+            <section>
+                <h2>How Falco Works</h2>
+                <div class="concept-box">
+                    <h3>System Call Interception</h3>
+                    <p>Falco intercepts system calls at the kernel level, applies rules in userspace, and generates alerts when suspicious activity is detected.</p>
+                </div>
+                <div class="two-columns" style="margin-top: 15px;">
+                    <div>
+                        <h3>Data Flow</h3>
+                        <ol>
+                            <li>Kernel driver captures syscalls</li>
+                            <li>Events streamed to userspace</li>
+                            <li>Rules engine evaluates conditions</li>
+                            <li>Matching events trigger outputs</li>
+                            <li>Alerts sent to configured channels</li>
+                        </ol>
+                    </div>
+                    <div>
+                        <h3>What Falco Sees</h3>
+                        <ul>
+                            <li>File opens, reads, writes</li>
+                            <li>Process creation (execve)</li>
+                            <li>Network connections</li>
+                            <li>Container lifecycle events</li>
+                            <li>Kubernetes audit events</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">Falco's power comes from operating at the kernel level. It sees everything that happens in every container without requiring any modifications to your workloads.</aside>
+            </section>
+
+            <!-- Slide 10: eBPF Driver vs Kernel Module -->
+            <section>
+                <h2>eBPF Driver vs Kernel Module</h2>
+                <div class="two-columns">
+                    <div class="card success">
+                        <h3>eBPF Driver (Recommended)</h3>
+                        <ul>
+                            <li>No kernel module loading required</li>
+                            <li>Works in kind/minikube clusters</li>
+                            <li>Safer — runs in eBPF sandbox</li>
+                            <li>Easier to deploy and update</li>
+                            <li>Supported on Linux 5.8+</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h3>Kernel Module</h3>
+                        <ul>
+                            <li>Requires kernel headers</li>
+                            <li>Must match kernel version exactly</li>
+                            <li>Higher risk of kernel panic</li>
+                            <li>Better performance in some cases</li>
+                            <li>Legacy — being phased out</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="highlight-box success" style="margin-top: 15px;">
+                    <strong>For our labs:</strong> We use the eBPF driver in kind clusters. Set <code>driver.kind=ebpf</code> in the Helm values.
+                </div>
+                <aside class="notes">The eBPF driver is the modern approach and what we'll use in the lab. It's much easier to deploy and doesn't require privileged access to load kernel modules.</aside>
+            </section>
+
+            <!-- Slide 11: Falco Output Channels -->
+            <section>
+                <h2>Falco Output Channels</h2>
+                <div class="three-columns">
+                    <div class="card">
+                        <h3>Standard</h3>
+                        <ul>
+                            <li>stdout / stderr</li>
+                            <li>Syslog</li>
+                            <li>File output</li>
+                            <li>Program output (pipe)</li>
+                        </ul>
+                    </div>
+                    <div class="card success">
+                        <h3>gRPC</h3>
+                        <ul>
+                            <li>Streaming API</li>
+                            <li>Used by Falcosidekick</li>
+                            <li>Structured event data</li>
+                            <li>High throughput</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3>HTTP</h3>
+                        <ul>
+                            <li>Webhook endpoints</li>
+                            <li>JSON payloads</li>
+                            <li>Custom integrations</li>
+                            <li>Cloud functions</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">In production, you'll typically use the gRPC output with Falcosidekick as a fan-out mechanism to multiple destinations. We'll cover that in the detection pipeline section.</aside>
+            </section>
+
+            <!-- Slide 12: Deploying Falco -->
+            <section>
+                <h2>Deploying Falco in Kubernetes</h2>
+                <h3>Helm Installation with eBPF</h3>
+                <pre><code class="language-bash"># Add the Falco Helm repo
+helm repo add falcosecurity https://falcosecurity.github.io/charts
+helm repo update
+
+# Install Falco with eBPF driver
+helm install falco falcosecurity/falco \
+  --namespace falco --create-namespace \
+  --set driver.kind=ebpf \
+  --set falcosidekick.enabled=true \
+  --set falcosidekick.webui.enabled=true</code></pre>
+                <div class="two-columns" style="margin-top: 15px;">
+                    <div class="highlight-box">
+                        <strong>DaemonSet deployment:</strong> One Falco pod per node ensures complete coverage of all containers.
+                    </div>
+                    <div class="highlight-box warning">
+                        <strong>Resource requirements:</strong> Falco typically uses 200-500m CPU and 256-512Mi memory per node.
+                    </div>
+                </div>
+                <aside class="notes">DaemonSet is the standard deployment model. Sidecar injection is possible but rarely used — DaemonSet gives you full node visibility without modifying workloads.</aside>
+            </section>
+
+            <!-- ===================== SECTION 3: CUSTOM FALCO RULES ===================== -->
+
+            <!-- Slide 13: Section Divider - Custom Rules -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2f855a 0%, #38a169 100%)">
+                <h2>Custom Falco Rules</h2>
+                <h3>Writing Detection Logic for Your Environment</h3>
+                <aside class="notes">Falco ships with excellent default rules, but custom rules tailored to your environment are where you get the most value.</aside>
+            </section>
+
+            <!-- Slide 14: Rule Anatomy -->
+            <section>
+                <h2>Falco Rule Anatomy</h2>
+                <pre><code class="language-yaml">- rule: Detect Shell in Container
+  desc: Alert when a shell is spawned inside a container
+  condition: >
+    spawned_process and container and
+    proc.name in (bash, sh, zsh, csh, ksh) and
+    not proc.pname in (health_check, crond)
+  output: >
+    Shell spawned in container
+    (user=%user.name container=%container.name
+    shell=%proc.name parent=%proc.pname
+    cmdline=%proc.cmdline image=%container.image.repository)
+  priority: WARNING
+  tags: [container, shell, mitre_execution]</code></pre>
+                <div class="highlight-box">
+                    <strong>Five required fields:</strong> <code>rule</code> (name), <code>desc</code> (description), <code>condition</code> (filter), <code>output</code> (alert message), <code>priority</code> (severity level)
+                </div>
+                <aside class="notes">Every Falco rule has these five fields. The condition uses Falco's filter syntax based on Sysdig's, which provides access to hundreds of fields covering processes, files, network, and container metadata.</aside>
+            </section>
+
+            <!-- Slide 15: Macros and Lists -->
+            <section>
+                <h2>Macros and Lists</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Macros (Reusable Conditions)</h3>
+                        <pre><code class="language-yaml"># A macro is a reusable condition
+- macro: container
+  condition: container.id != host
+
+- macro: spawned_process
+  condition: >
+    evt.type = execve and
+    evt.dir = &lt;
+
+- macro: sensitive_files
+  condition: >
+    fd.name startswith /etc and
+    (fd.name in (/etc/shadow,
+                 /etc/passwd,
+                 /etc/sudoers))</code></pre>
+                    </div>
+                    <div>
+                        <h3>Lists (Reusable Values)</h3>
+                        <pre><code class="language-yaml"># A list is a named collection
+- list: shell_binaries
+  items: [bash, sh, zsh, csh, ksh]
+
+- list: mining_pools
+  items: [
+    "pool.minexmr.com",
+    "xmr.pool.minergate.com",
+    "pool.hashvault.pro"
+  ]
+
+- list: allowed_images
+  items: [
+    "nginx",
+    "my-registry.io/app"
+  ]</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">Macros and lists are critical for keeping your rules DRY and maintainable. The default Falco rules use macros extensively — you can override them to customize behavior.</aside>
+            </section>
+
+            <!-- Slide 16: Detect Sensitive File Read -->
+            <section>
+                <h2>Example: Detect Sensitive File Reads</h2>
+                <pre><code class="language-yaml">- list: sensitive_file_paths
+  items:
+    - /etc/shadow
+    - /etc/kubernetes/pki
+    - /var/run/secrets/kubernetes.io/serviceaccount/token
+    - /root/.kube/config
+
+- rule: Read Sensitive File in Container
+  desc: >
+    Detect attempts to read sensitive files that may
+    contain credentials or security-critical data
+  condition: >
+    open_read and container and
+    fd.name pmatch (sensitive_file_paths) and
+    not proc.name in (kubelet, kube-proxy)
+  output: >
+    Sensitive file read in container
+    (file=%fd.name user=%user.name
+    container=%container.name image=%container.image.repository
+    command=%proc.cmdline)
+  priority: WARNING
+  tags: [container, filesystem, mitre_credential_access]</code></pre>
+                <aside class="notes">This rule watches for reads of files commonly targeted by attackers — service account tokens, SSH keys, shadow files. The exclusion for kubelet prevents false positives from legitimate system processes.</aside>
+            </section>
+
+            <!-- Slide 17: Detect Crypto Mining -->
+            <section>
+                <h2>Example: Detect Crypto Mining</h2>
+                <pre><code class="language-yaml">- list: mining_pool_domains
+  items: ["pool.minexmr.com", "xmr.pool.minergate.com",
+          "pool.hashvault.pro", "stratum+tcp"]
+
+- list: mining_binaries
+  items: [xmrig, minerd, cpuminer, cgminer, bfgminer]
+
+- rule: Detect Crypto Mining Activity
+  desc: Detect potential cryptocurrency mining activity
+  condition: >
+    (spawned_process and container and
+     proc.name in (mining_binaries))
+    or
+    (container and evt.type in (connect, sendto) and
+     fd.sip.name pmatch (mining_pool_domains))
+  output: >
+    Crypto mining detected
+    (process=%proc.name connection=%fd.name
+    container=%container.name namespace=%k8s.ns.name
+    image=%container.image.repository)
+  priority: CRITICAL
+  tags: [container, crypto, mitre_resource_hijacking]</code></pre>
+                <aside class="notes">Crypto mining detection combines two signals: known mining binaries and connections to known mining pool domains. In production, also alert on sustained high CPU usage as an additional indicator.</aside>
+            </section>
+
+            <!-- Slide 18: Priority Levels -->
+            <section>
+                <h2>Falco Priority Levels</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Priority</th>
+                            <th>Use Case</th>
+                            <th>Response Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>EMERGENCY</strong></td>
+                            <td>System is unusable, active breach</td>
+                            <td>Immediate</td>
+                        </tr>
+                        <tr>
+                            <td><strong>ALERT</strong></td>
+                            <td>Action must be taken immediately</td>
+                            <td>Minutes</td>
+                        </tr>
+                        <tr>
+                            <td><strong>CRITICAL</strong></td>
+                            <td>Container escape, crypto mining</td>
+                            <td>Minutes</td>
+                        </tr>
+                        <tr>
+                            <td><strong>ERROR</strong></td>
+                            <td>Unexpected behavior, policy violation</td>
+                            <td>Hours</td>
+                        </tr>
+                        <tr>
+                            <td><strong>WARNING</strong></td>
+                            <td>Shell in container, sensitive reads</td>
+                            <td>Hours</td>
+                        </tr>
+                        <tr>
+                            <td><strong>NOTICE</strong></td>
+                            <td>Informational security events</td>
+                            <td>Daily review</td>
+                        </tr>
+                        <tr>
+                            <td><strong>DEBUG</strong></td>
+                            <td>Rule development and testing</td>
+                            <td>As needed</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <aside class="notes">Mapping priorities correctly is essential for managing alert fatigue. Only use CRITICAL and above for events that truly require immediate response.</aside>
+            </section>
+
+            <!-- ===================== SECTION 4: NODE-LEVEL MONITORING ===================== -->
+
+            <!-- Slide 19: Section Divider - Node Monitoring -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #c05621 0%, #dd6b20 100%)">
+                <h2>Node-Level Monitoring</h2>
+                <h3>Securing the Underlying Infrastructure</h3>
+                <aside class="notes">Containers run on nodes, and node compromise is game over. Let's look at how to monitor the host layer.</aside>
+            </section>
+
+            <!-- Slide 20: Process Monitoring -->
+            <section>
+                <h2>Process Monitoring</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>What to Watch</h3>
+                        <ul>
+                            <li>Unexpected processes on worker nodes</li>
+                            <li>Processes running as root</li>
+                            <li>Modified system binaries</li>
+                            <li>Processes with unusual parent chains</li>
+                            <li>Orphaned processes outside containers</li>
+                        </ul>
+                        <div class="highlight-box warning" style="margin-top: 10px;">
+                            <strong>Key principle:</strong> Worker nodes should only run kubelet, container runtime, and kube-proxy. Anything else is suspicious.
+                        </div>
+                    </div>
+                    <div>
+                        <pre><code class="language-bash"># Monitor processes on node
+# Expected: kubelet, containerd,
+# kube-proxy, system services
+
+# Suspicious indicators:
+ps aux | grep -E \
+  'nc |ncat|socat|wget|curl' \
+  --color
+
+# Check for processes running
+# outside any cgroup/container
+systemd-cgls
+
+# Monitor real-time process
+# creation
+auditctl -a always,exit \
+  -F arch=b64 \
+  -S execve \
+  -k process_creation</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">Process monitoring on nodes is your last line of defense. If an attacker escapes a container, you want to detect the processes they spawn on the host.</aside>
+            </section>
+
+            <!-- Slide 21: File Integrity Monitoring -->
+            <section>
+                <h2>File Integrity Monitoring (FIM)</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Critical Paths to Monitor</h3>
+                        <table>
+                            <thead>
+                                <tr><th>Path</th><th>Reason</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><code>/etc/kubernetes/</code></td><td>K8s configs &amp; certs</td></tr>
+                                <tr><td><code>/var/lib/kubelet/</code></td><td>Kubelet data</td></tr>
+                                <tr><td><code>/etc/cni/</code></td><td>Network plugin config</td></tr>
+                                <tr><td><code>/usr/bin/</code></td><td>System binaries</td></tr>
+                                <tr><td><code>/etc/systemd/</code></td><td>Service definitions</td></tr>
+                                <tr><td><code>/etc/shadow</code></td><td>User credentials</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                        <h3>AIDE Configuration</h3>
+                        <pre><code class="language-bash"># /etc/aide.conf
+/etc/kubernetes CONTENT_EX
+/var/lib/kubelet CONTENT_EX
+/usr/bin CONTENT_EX
+
+# Initialize database
+aide --init
+
+# Check for changes
+aide --check
+
+# Automate via cron
+0 */4 * * * /usr/bin/aide \
+  --check | mail -s \
+  "AIDE Report" admin@co.com</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">File integrity monitoring detects modifications to critical system files. AIDE and OSSEC are common choices. Falco can also serve as a lightweight FIM solution using its file-related rules.</aside>
+            </section>
+
+            <!-- Slide 22: Network Connection Monitoring -->
+            <section>
+                <h2>Network Connection Monitoring</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Suspicious Network Signals</h3>
+                        <ul>
+                            <li>Outbound connections from worker nodes</li>
+                            <li>Connections to non-standard ports</li>
+                            <li>DNS queries to unusual domains</li>
+                            <li>Large data transfers (exfiltration)</li>
+                            <li>Connections to known C2 infrastructure</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <pre><code class="language-bash"># Track node network connections
+ss -tunap | grep ESTAB
+
+# Monitor DNS queries
+tcpdump -i any port 53 \
+  -nn -l 2>/dev/null
+
+# Falco network rule example
+- rule: Unexpected Outbound Connection
+  condition: >
+    outbound and container and
+    not fd.sport in (80, 443, 53) and
+    not k8s.ns.name = kube-system
+  output: >
+    Unexpected outbound (port=%fd.sport
+    dest=%fd.sip container=%container.name)
+  priority: NOTICE</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">Network monitoring at the node level complements Kubernetes network policies. Even if a network policy blocks traffic, the attempt itself is a valuable detection signal.</aside>
+            </section>
+
+            <!-- Slide 23: Systemd Service Hardening -->
+            <section>
+                <h2>Systemd Service Hardening</h2>
+                <h3>Securing Node Services</h3>
+                <pre><code class="language-ini"># /etc/systemd/system/kubelet.service.d/security.conf
+[Service]
+# Restrict filesystem access
+ProtectSystem=full
+ProtectHome=yes
+ReadOnlyPaths=/etc/kubernetes
+
+# Restrict capabilities
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_SYS_RESOURCE
+NoNewPrivileges=yes
+
+# Restrict network
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+# Restrict system calls
+SystemCallFilter=@system-service
+SystemCallArchitectures=native</code></pre>
+                <div class="highlight-box success">
+                    <strong>Defense in depth:</strong> Even if an attacker reaches the node, systemd hardening limits what node-level services can be abused.
+                </div>
+                <aside class="notes">Systemd service hardening applies the principle of least privilege to node-level services. These settings are enforced by the kernel and cannot be bypassed by the service process.</aside>
+            </section>
+
+            <!-- ===================== SECTION 5: K8S-NATIVE MONITORING ===================== -->
+
+            <!-- Slide 24: Section Divider - K8s Monitoring -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #4299e1 100%)">
+                <h2>Kubernetes-Native Monitoring</h2>
+                <h3>Leveraging Built-In Observability</h3>
+                <aside class="notes">Kubernetes provides several built-in monitoring capabilities that are often overlooked from a security perspective.</aside>
+            </section>
+
+            <!-- Slide 25: Kubernetes Audit Logs -->
+            <section>
+                <h2>Kubernetes Audit Logs</h2>
+                <div class="highlight-box">
+                    <strong>Preview:</strong> We'll cover audit logging in depth in Module 10. Here we focus on how audit logs feed into runtime detection.
+                </div>
+                <div class="two-columns" style="margin-top: 15px;">
+                    <div>
+                        <h3>Security-Relevant Events</h3>
+                        <ul>
+                            <li>Secret access and enumeration</li>
+                            <li>RBAC role/binding changes</li>
+                            <li>Pod exec and attach operations</li>
+                            <li>Service account token requests</li>
+                            <li>Admission webhook bypasses</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>Falco + Audit Logs</h3>
+                        <pre><code class="language-yaml"># Falco can consume K8s audit logs
+- rule: K8s Secret Accessed
+  desc: Detect secret access
+  condition: >
+    ka.verb = get and
+    ka.target.resource = secrets
+    and not ka.user.name in
+    (allowed_secret_readers)
+  output: >
+    Secret accessed (user=%ka.user.name
+    secret=%ka.target.name
+    ns=%ka.target.namespace)
+  priority: WARNING
+  source: k8s_audit</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">Falco's ability to consume Kubernetes audit logs is incredibly powerful. It means you can use the same rules engine for both syscall-level and API-level detection.</aside>
+            </section>
+
+            <!-- Slide 26: Kubernetes Events -->
+            <section>
+                <h2>Kubernetes Events for Security</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Security-Relevant Events</h3>
+                        <pre><code class="language-bash"># Watch for security events
+kubectl get events \
+  --field-selector \
+  reason=FailedMount,\
+reason=BackOff,\
+reason=Failed \
+  --watch
+
+# Events indicating compromise
+# - FailedScheduling (resource abuse)
+# - BackOff (crash loops)
+# - OOMKilled (possible crypto mining)
+# - FailedMount (secret access attempt)
+# - Unhealthy (modified containers)</code></pre>
+                    </div>
+                    <div>
+                        <h3>Automated Event Monitoring</h3>
+                        <pre><code class="language-yaml"># Event-based alerting with
+# kube-event-watcher
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: event-watcher-config
+data:
+  config.yaml: |
+    rules:
+      - name: pod-security-violation
+        condition:
+          reason: "FailedCreate"
+          messageRegex: "forbidden.*securityContext"
+        action:
+          type: alert
+          webhook: http://alertmanager:9093</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">Kubernetes events are a free source of security telemetry. OOMKilled events can indicate crypto mining, BackOff can indicate a compromised container crashing, and FailedMount may indicate attempts to access restricted volumes.</aside>
+            </section>
+
+            <!-- Slide 27: Resource Usage Anomalies -->
+            <section>
+                <h2>Resource Usage Anomaly Detection</h2>
+                <div class="two-columns">
+                    <div>
+                        <pre><code class="language-bash"># Quick resource check
+kubectl top pods --all-namespaces \
+  --sort-by=cpu
+
+kubectl top nodes
+
+# Identify anomalies
+# - CPU spike with no deployment change
+# - Memory growth without traffic increase
+# - Unusual network I/O patterns</code></pre>
+                        <div class="highlight-box warning" style="margin-top: 10px;">
+                            <strong>Requires:</strong> metrics-server deployed in the cluster for <code>kubectl top</code> to function.
+                        </div>
+                    </div>
+                    <div>
+                        <h3>Anomaly Indicators</h3>
+                        <div class="card danger">
+                            <ul>
+                                <li><strong>CPU &gt; 90% sustained:</strong> Possible crypto mining</li>
+                                <li><strong>Memory spike:</strong> Possible data staging</li>
+                                <li><strong>Network egress surge:</strong> Possible exfiltration</li>
+                                <li><strong>Disk I/O spike:</strong> Possible data theft or ransomware</li>
+                            </ul>
+                        </div>
+                        <pre><code class="language-bash"># Install metrics-server in kind
+kubectl apply -f https://github.com/\
+kubernetes-sigs/metrics-server/\
+releases/latest/download/\
+components.yaml</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">Resource usage baselines are essential. You need to know what "normal" looks like so you can detect anomalies. Prometheus with alerting rules is the production-grade approach here.</aside>
+            </section>
+
+            <!-- ===================== SECTION 6: TETRAGON & eBPF ===================== -->
+
+            <!-- Slide 28: Section Divider - Tetragon -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #1a365d 0%, #2c5282 100%)">
+                <h2>Tetragon &amp; eBPF</h2>
+                <h3>Next-Generation Runtime Enforcement</h3>
+                <aside class="notes">Tetragon takes eBPF-based security beyond detection into real-time enforcement. Let's understand the technology and how it compares to Falco.</aside>
+            </section>
+
+            <!-- Slide 29: What is eBPF -->
+            <section>
+                <h2>What is eBPF?</h2>
+                <div class="concept-box">
+                    <h3>Extended Berkeley Packet Filter</h3>
+                    <p>eBPF allows running sandboxed programs in the Linux kernel without changing kernel source code or loading kernel modules. It provides safe, efficient, and programmable access to kernel events.</p>
+                </div>
+                <div class="three-columns" style="margin-top: 15px;">
+                    <div class="card">
+                        <h3>Observability</h3>
+                        <p>Trace any kernel or user-space function without modifying code</p>
+                    </div>
+                    <div class="card success">
+                        <h3>Security</h3>
+                        <p>Enforce policies at the kernel level with near-zero overhead</p>
+                    </div>
+                    <div class="card">
+                        <h3>Networking</h3>
+                        <p>High-performance packet processing (Cilium, Calico eBPF)</p>
+                    </div>
+                </div>
+                <aside class="notes">eBPF is one of the most significant Linux kernel innovations in recent years. It's the foundation for Falco's modern driver, Tetragon, Cilium, and many other cloud-native tools.</aside>
+            </section>
+
+            <!-- Slide 30: Tetragon Architecture -->
+            <section>
+                <h2>Tetragon Architecture</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Key Components</h3>
+                        <ul>
+                            <li><strong>eBPF sensors:</strong> Kernel-level hooks for process, file, and network events</li>
+                            <li><strong>TracingPolicy CRD:</strong> Kubernetes-native policy definition</li>
+                            <li><strong>In-kernel enforcement:</strong> Block actions before they complete</li>
+                            <li><strong>Kubernetes-aware:</strong> Enriches events with pod/namespace context</li>
+                        </ul>
+                        <div class="highlight-box success" style="margin-top: 10px;">
+                            <strong>Key difference:</strong> Tetragon can <em>prevent</em> actions, not just detect them. It kills the process or blocks the syscall in-kernel.
+                        </div>
+                    </div>
+                    <div>
+                        <pre><code class="language-bash"># Install Tetragon with Helm
+helm repo add cilium \
+  https://helm.cilium.io
+helm repo update
+
+helm install tetragon \
+  cilium/tetragon \
+  --namespace kube-system
+
+# Observe events in real-time
+kubectl exec -n kube-system \
+  ds/tetragon -c tetragon -- \
+  tetra getevents -o compact</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">Tetragon is a CNCF project from Isovalent (the Cilium company). Its killer feature is in-kernel enforcement — it can kill a process at the kernel level before the syscall completes, which is faster and more reliable than userspace enforcement.</aside>
+            </section>
+
+            <!-- Slide 31: TracingPolicy -->
+            <section>
+                <h2>TracingPolicy: Tetragon's Policy Language</h2>
+                <pre><code class="language-yaml">apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: detect-sensitive-file-access
+spec:
+  kprobes:
+    - call: "fd_install"
+      syscall: false
+      args:
+        - index: 0
+          type: "int"
+        - index: 1
+          type: "file"
+      selectors:
+        - matchArgs:
+            - index: 1
+              operator: "Prefix"
+              values:
+                - "/etc/shadow"
+                - "/etc/kubernetes/pki"
+          matchActions:
+            - action: Sigkill  # Kill the process immediately</code></pre>
+                <div class="highlight-box danger">
+                    <strong>Real-time enforcement:</strong> The <code>Sigkill</code> action terminates the offending process <em>before</em> it can read the file. This is enforcement, not just detection.
+                </div>
+                <aside class="notes">TracingPolicy is a Kubernetes CRD, so it fits naturally into GitOps workflows. The matchActions field is what makes Tetragon special — it can take enforcement actions directly in the kernel.</aside>
+            </section>
+
+            <!-- Slide 32: Falco vs Tetragon -->
+            <section>
+                <h2>Falco vs Tetragon</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Falco</th>
+                            <th>Tetragon</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Primary Purpose</td>
+                            <td>Detection &amp; alerting</td>
+                            <td>Detection &amp; enforcement</td>
+                        </tr>
+                        <tr>
+                            <td>Data Source</td>
+                            <td>Syscalls + K8s audit</td>
+                            <td>eBPF kprobes/tracepoints</td>
+                        </tr>
+                        <tr>
+                            <td>Enforcement</td>
+                            <td>Alert only (external response)</td>
+                            <td>In-kernel kill/block</td>
+                        </tr>
+                        <tr>
+                            <td>Rule Language</td>
+                            <td>YAML with filter syntax</td>
+                            <td>Kubernetes CRD (TracingPolicy)</td>
+                        </tr>
+                        <tr>
+                            <td>Community</td>
+                            <td>CNCF Graduated, large ecosystem</td>
+                            <td>CNCF, growing rapidly</td>
+                        </tr>
+                        <tr>
+                            <td>Maturity</td>
+                            <td>Production-proven</td>
+                            <td>Maturing quickly</td>
+                        </tr>
+                        <tr>
+                            <td>Best For</td>
+                            <td>Broad detection, audit integration</td>
+                            <td>Enforcement, deep kernel visibility</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="key-point">
+                    "Use Falco for comprehensive detection and Tetragon for targeted enforcement — they complement each other."
+                </div>
+                <aside class="notes">These tools are complementary, not competing. Many organizations run both — Falco for broad detection with its rich rule ecosystem, and Tetragon for targeted enforcement of critical policies.</aside>
+            </section>
+
+            <!-- Slide 33: When to Use Each -->
+            <section>
+                <h2>When to Use Each Tool</h2>
+                <div class="two-columns">
+                    <div class="card success">
+                        <h3>Choose Falco When...</h3>
+                        <ul>
+                            <li>You need broad threat detection</li>
+                            <li>You want to consume K8s audit logs</li>
+                            <li>You need a mature rule ecosystem</li>
+                            <li>You want Falcosidekick integrations</li>
+                            <li>Detection and alerting is the goal</li>
+                            <li>You need introductory-level setup</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h3>Choose Tetragon When...</h3>
+                        <ul>
+                            <li>You need real-time enforcement</li>
+                            <li>You want to kill malicious processes</li>
+                            <li>You need deep kernel visibility</li>
+                            <li>You use Cilium for networking</li>
+                            <li>You want Kubernetes-native CRDs</li>
+                            <li>Blocking threats is required</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">In practice, start with Falco for visibility, then layer Tetragon for enforcement on your most critical policies. Running both gives you defense in depth at the runtime layer.</aside>
+            </section>
+
+            <!-- ===================== SECTION 7: DETECTION PIPELINE ===================== -->
+
+            <!-- Slide 34: Section Divider - Detection Pipeline -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2f855a 0%, #48bb78 100%)">
+                <h2>Detection Pipeline</h2>
+                <h3>From Alerts to Action</h3>
+                <aside class="notes">Detection is only useful if it reaches the right people at the right time. Let's build a complete detection pipeline.</aside>
+            </section>
+
+            <!-- Slide 35: Pipeline Architecture -->
+            <section>
+                <h2>Building a Detection Pipeline</h2>
+                <div class="concept-box">
+                    <h3>Event Flow</h3>
+                    <p style="text-align: center; font-size: 0.9em;">
+                        <strong>Kernel Syscalls</strong> &rarr; <strong>Falco</strong> &rarr; <strong>Falcosidekick</strong> &rarr; <strong>Outputs</strong> (Slack, PagerDuty, SIEM, S3, etc.)
+                    </p>
+                </div>
+                <div class="three-columns" style="margin-top: 15px;">
+                    <div class="card">
+                        <h3>Collection</h3>
+                        <ul>
+                            <li>Falco DaemonSet on every node</li>
+                            <li>K8s audit log webhook</li>
+                            <li>Node-level agents</li>
+                        </ul>
+                    </div>
+                    <div class="card success">
+                        <h3>Processing</h3>
+                        <ul>
+                            <li>Falcosidekick fan-out</li>
+                            <li>Priority-based routing</li>
+                            <li>Event enrichment</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h3>Response</h3>
+                        <ul>
+                            <li>Slack/Teams notifications</li>
+                            <li>PagerDuty escalation</li>
+                            <li>Automated remediation</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">The pipeline must handle high-volume events efficiently and route them to the right destination based on severity. Falcosidekick is the key integration layer.</aside>
+            </section>
+
+            <!-- Slide 36: Falcosidekick Configuration -->
+            <section>
+                <h2>Falcosidekick: Alert Fan-Out</h2>
+                <pre><code class="language-yaml"># Falcosidekick Helm values
+falcosidekick:
+  config:
+    slack:
+      webhookurl: "https://hooks.slack.com/services/XXX"
+      minimumpriority: "warning"
+      channel: "#security-alerts"
+
+    pagerduty:
+      routingkey: "your-integration-key"
+      minimumpriority: "critical"
+
+    elasticsearch:
+      hostport: "http://elasticsearch:9200"
+      index: "falco-events"
+      minimumpriority: "notice"
+
+    webhook:
+      address: "http://response-engine:8080"
+      minimumpriority: "error"</code></pre>
+                <div class="highlight-box">
+                    <strong>50+ output targets:</strong> Falcosidekick supports Slack, Teams, PagerDuty, Elasticsearch, Loki, AWS SNS/SQS/S3, GCP Pub/Sub, Azure Event Hubs, and many more.
+                </div>
+                <aside class="notes">Falcosidekick's minimumpriority setting is critical for alert routing. Critical events go to PagerDuty, warnings go to Slack, and everything goes to your SIEM for forensics.</aside>
+            </section>
+
+            <!-- Slide 37: Log Aggregation -->
+            <section>
+                <h2>Log Aggregation &amp; SIEM Integration</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Log Aggregation Stack</h3>
+                        <ul>
+                            <li><strong>Elasticsearch + Kibana:</strong> Full-text search, dashboards</li>
+                            <li><strong>Loki + Grafana:</strong> Lightweight, label-based queries</li>
+                            <li><strong>Splunk:</strong> Enterprise SIEM capabilities</li>
+                            <li><strong>AWS CloudWatch:</strong> Cloud-native option</li>
+                        </ul>
+                        <div class="highlight-box" style="margin-top: 10px;">
+                            <strong>Retention:</strong> Keep security logs for at least 90 days. Compliance may require 1+ years.
+                        </div>
+                    </div>
+                    <div>
+                        <h3>What to Aggregate</h3>
+                        <div class="card">
+                            <ul>
+                                <li>Falco alerts (all priorities)</li>
+                                <li>Kubernetes audit logs</li>
+                                <li>Container stdout/stderr</li>
+                                <li>Node-level syslog</li>
+                                <li>Network flow logs</li>
+                                <li>Authentication events</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <aside class="notes">Centralized logging is non-negotiable for security. When investigating an incident, you need to correlate events across multiple data sources — container logs, audit logs, Falco alerts, and network flows.</aside>
+            </section>
+
+            <!-- Slide 38: Alert Fatigue Management -->
+            <section>
+                <h2>Managing Alert Fatigue</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Common Pitfalls</h3>
+                        <div class="card danger">
+                            <ul>
+                                <li>Too many low-priority alerts</li>
+                                <li>Not tuning default rules</li>
+                                <li>No exception mechanism</li>
+                                <li>Alerting on expected behavior</li>
+                                <li>Same alert to all channels</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div>
+                        <h3>Best Practices</h3>
+                        <div class="card success">
+                            <ul>
+                                <li>Start with high-priority rules only</li>
+                                <li>Add exceptions for known behavior</li>
+                                <li>Use priority-based routing</li>
+                                <li>Review and tune rules weekly</li>
+                                <li>Track alert-to-incident ratio</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <pre><code class="language-yaml"># Tuning Falco: add exceptions to reduce noise
+- rule: Terminal shell in container
+  append: true
+  condition: and not container.image.repository in (debugging-tools, ci-runner)
+  # Suppress alerts for known debugging containers</code></pre>
+                <aside class="notes">Alert fatigue is the number one killer of security monitoring programs. If your team ignores alerts because there are too many false positives, you have no runtime security. Start small and expand coverage gradually.</aside>
+            </section>
+
+            <!-- Slide 39: Response Automation -->
+            <section>
+                <h2>Automated Response</h2>
+                <div class="highlight-box danger">
+                    <strong>Caution:</strong> Automated response can cause outages if misconfigured. Start with detection-only and graduate to automated response carefully.
+                </div>
+                <div class="two-columns" style="margin-top: 15px;">
+                    <div>
+                        <h3>Response Actions</h3>
+                        <ul>
+                            <li><strong>Network isolation:</strong> Apply deny-all NetworkPolicy</li>
+                            <li><strong>Pod termination:</strong> Delete compromised pod</li>
+                            <li><strong>Node cordon:</strong> Prevent new scheduling</li>
+                            <li><strong>Snapshot:</strong> Capture forensic evidence</li>
+                            <li><strong>Escalation:</strong> Page on-call engineer</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <pre><code class="language-yaml"># Falcosidekick response example
+# Webhook triggers a Kubernetes job
+# that isolates the pod
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: isolate-pod
+spec:
+  template:
+    spec:
+      containers:
+        - name: responder
+          image: bitnami/kubectl
+          command:
+            - /bin/sh
+            - -c
+            - |
+              kubectl label pod $POD \
+                quarantine=true
+              kubectl apply -f \
+                deny-all-policy.yaml</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">Automated response is the endgame, but proceed with caution. A false positive that triggers automatic pod deletion in production is worse than no automation at all. Test thoroughly in staging first.</aside>
+            </section>
+
+            <!-- Slide 40: Key Takeaways -->
+            <section>
+                <h2>Key Takeaways</h2>
+                <ul class="takeaway-list">
+                    <li>Runtime security detects threats that bypass preventive controls — it's essential, not optional</li>
+                    <li>Falco provides comprehensive syscall-based detection with a mature rule ecosystem</li>
+                    <li>Custom Falco rules tailored to your environment deliver the highest detection value</li>
+                    <li>Node-level monitoring (process, file integrity, network) secures the infrastructure layer</li>
+                    <li>Kubernetes audit logs and events are free security telemetry — use them</li>
+                    <li>Tetragon enables in-kernel enforcement — complementing Falco's detection capabilities</li>
+                    <li>A complete detection pipeline routes alerts by severity to prevent alert fatigue</li>
+                    <li>Start with detection, tune for accuracy, then graduate to automated response</li>
+                </ul>
+                <aside class="notes">These takeaways represent the core runtime security strategy. The lab will give hands-on experience with Falco, which is the foundation of most Kubernetes runtime security programs.</aside>
+            </section>
+
+            <!-- Slide 41: Lab Callout -->
+            <section class="lab-callout" data-background-color="#2f855a">
+                <div class="lab-badge">Hands-On Lab</div>
+                <h2>Lab 9: Runtime Security with Falco</h2>
+                <h3>60 Minutes</h3>
+                <div class="lab-description">
+                    <ul>
+                        <li>Install Falco with eBPF driver in kind cluster</li>
+                        <li>Deploy Falcosidekick for alert routing</li>
+                        <li>Trigger and detect security events (shell access, sensitive file reads)</li>
+                        <li>Write custom Falco rules for your environment</li>
+                    </ul>
+                </div>
+                <aside class="notes">This lab brings everything together. Students will install Falco, trigger real attacks, see the alerts, and then write their own custom rules. Emphasize that the eBPF driver is what makes this work in kind clusters.</aside>
+            </section>
+
+            <!-- Slide 42: Up Next -->
+            <section>
+                <h2>Up Next</h2>
+                <div class="concept-box" style="text-align: center;">
+                    <h3>Module 10: Audit Logging &amp; Compliance</h3>
+                    <p>Deep dive into Kubernetes audit logging, compliance frameworks (CIS, SOC2, PCI-DSS), and building an audit trail for security investigations.</p>
+                </div>
+                <div class="highlight-box" style="margin-top: 20px;">
+                    <strong>Connection:</strong> Module 10 builds directly on the runtime detection covered here — audit logs are both a detection data source and a compliance requirement.
+                </div>
+                <aside class="notes">Module 10 picks up where we left off with Kubernetes audit logs and expands into the compliance dimension. The Falco + audit log integration we previewed here will be explored in full detail.</aside>
+            </section>
+
+            <!-- Slide 43: Questions -->
+            <section class="questions-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2>Questions?</h2>
+                <p>Module 9: Runtime Security &amp; Monitoring</p>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/notes/notes.min.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: true,
+            plugins: [RevealHighlight, RevealNotes]
+        });
+    </script>
+</body>
+</html>

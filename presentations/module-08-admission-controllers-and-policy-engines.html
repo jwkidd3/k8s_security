@@ -1,0 +1,1768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 8: Admission Controllers &amp; Policy Engines</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/theme/white.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/monokai.min.css">
+    <style>
+        :root {
+            --heading-color: #1a365d;
+            --accent-color: #2b6cb0;
+            --success-color: #2f855a;
+            --warning-color: #c05621;
+            --danger-color: #c53030;
+            --text-color: #2d3748;
+        }
+
+        .reveal {
+            font-size: 28px;
+            color: var(--text-color);
+        }
+
+        .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
+            color: var(--heading-color);
+            text-transform: none;
+        }
+
+        .reveal section {
+            text-align: left;
+            padding: 20px 40px;
+        }
+
+        /* Title Slide */
+        .title-slide {
+            text-align: center !important;
+        }
+        .title-slide h1 {
+            color: #ffffff !important;
+            font-size: 2.2em;
+            margin-bottom: 0.2em;
+        }
+        .title-slide h2 {
+            color: #e2e8f0 !important;
+            font-size: 1.4em;
+            font-weight: 300;
+        }
+        .title-slide p {
+            color: #cbd5e0 !important;
+            font-size: 0.9em;
+        }
+
+        /* Section Divider */
+        .section-divider {
+            text-align: center !important;
+        }
+        .section-divider h2 {
+            color: #ffffff !important;
+            font-size: 2em;
+        }
+        .section-divider p {
+            color: #e2e8f0 !important;
+            font-size: 1.1em;
+        }
+
+        /* Highlight Box */
+        .highlight-box {
+            background: #ebf8ff;
+            border-left: 4px solid var(--accent-color);
+            padding: 15px 20px;
+            border-radius: 4px;
+            margin: 15px 0;
+        }
+        .highlight-box.success {
+            background: #f0fff4;
+            border-left-color: var(--success-color);
+        }
+        .highlight-box.warning {
+            background: #fffaf0;
+            border-left-color: var(--warning-color);
+        }
+        .highlight-box.danger {
+            background: #fff5f5;
+            border-left-color: var(--danger-color);
+        }
+
+        /* Two Columns */
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        /* Three Columns */
+        .three-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        /* Cards */
+        .card {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 10px 0;
+        }
+        .card.success {
+            border-color: var(--success-color);
+            background: #f0fff4;
+        }
+        .card.warning {
+            border-color: var(--warning-color);
+            background: #fffaf0;
+        }
+        .card.danger {
+            border-color: var(--danger-color);
+            background: #fff5f5;
+        }
+        .card h4 {
+            margin-top: 0;
+        }
+
+        /* Concept Box */
+        .concept-box {
+            background: linear-gradient(135deg, #ebf8ff 0%, #f0fff4 100%);
+            border: 2px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        /* Key Point */
+        .key-point {
+            background: #fffff0;
+            border: 2px solid #d69e2e;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+
+        /* Lab Callout */
+        .lab-callout {
+            text-align: center !important;
+            border-radius: 12px;
+        }
+        .lab-callout h2 {
+            color: #ffffff !important;
+        }
+        .lab-callout p, .lab-callout li {
+            color: #ffffff !important;
+            font-size: 0.95em;
+        }
+        .lab-callout ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        .lab-callout ul li::before {
+            content: "\2714\0020";
+        }
+
+        /* Lab Badge */
+        .lab-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            color: #ffffff;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin-bottom: 10px;
+        }
+
+        /* Lab Description */
+        .lab-description {
+            color: #e2e8f0 !important;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+
+        /* Takeaway List */
+        .takeaway-list ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        .takeaway-list ul li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        /* Questions Slide */
+        .questions-slide {
+            text-align: center !important;
+        }
+        .questions-slide h2 {
+            color: #ffffff !important;
+            font-size: 2.2em;
+        }
+        .questions-slide p {
+            color: #e2e8f0 !important;
+        }
+
+        /* Tables */
+        .reveal table {
+            font-size: 0.75em;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .reveal table th {
+            background: var(--heading-color);
+            color: #ffffff;
+            padding: 10px 12px;
+            text-align: left;
+        }
+        .reveal table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .reveal table tr:nth-child(even) {
+            background: #f7fafc;
+        }
+
+        /* Code */
+        .reveal pre {
+            width: 100%;
+            font-size: 0.55em;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .reveal code {
+            font-size: 0.9em;
+        }
+
+        /* Lists */
+        .reveal ul, .reveal ol {
+            margin-left: 0.5em;
+        }
+        .reveal li {
+            margin-bottom: 0.4em;
+        }
+
+        /* Fragment fade-in */
+        .reveal .fragment.custom-fade {
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .reveal .fragment.custom-fade.visible {
+            opacity: 1;
+        }
+
+        /* Small Text */
+        .small-text {
+            font-size: 0.75em;
+            color: #718096;
+        }
+
+        /* Comparison side by side */
+        .side-by-side {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .side-by-side .bad {
+            border: 2px solid var(--danger-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .side-by-side .bad::before {
+            content: "\274C Bad";
+            display: block;
+            background: var(--danger-color);
+            color: white;
+            padding: 4px 12px;
+            font-weight: bold;
+            font-size: 0.8em;
+        }
+        .side-by-side .good {
+            border: 2px solid var(--success-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .side-by-side .good::before {
+            content: "\2705 Good";
+            display: block;
+            background: var(--success-color);
+            color: white;
+            padding: 4px 12px;
+            font-weight: bold;
+            font-size: 0.8em;
+        }
+        .side-by-side pre {
+            margin: 0 !important;
+            border-radius: 0 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- ============================================ -->
+            <!-- SLIDE 1: Title Slide                         -->
+            <!-- ============================================ -->
+            <section class="title-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 50%, #2c5282 100%)">
+                <h1>Admission Controllers &amp; Policy Engines</h1>
+                <h2>Module 8</h2>
+                <p>Kubernetes Security Course</p>
+                <p>2-Day Hands-On Workshop</p>
+                <aside class="notes">
+                    This module covers one of the most powerful enforcement mechanisms in Kubernetes security: admission controllers and policy engines. Students will learn how to intercept and enforce policy on every API request before it is persisted.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 2: Module Objectives                   -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F3AF; Module Objectives</h2>
+                <ul>
+                    <li>Understand how admission controllers fit into the Kubernetes API request lifecycle</li>
+                    <li>Differentiate between mutating and validating admission webhooks</li>
+                    <li>Configure and use built-in admission controllers</li>
+                    <li>Implement policies with OPA Gatekeeper, Kyverno, and ValidatingAdmissionPolicy</li>
+                    <li>Develop a policy engine strategy for production environments</li>
+                </ul>
+                <aside class="notes">
+                    Walk through the objectives. This module bridges the gap between understanding security concepts and enforcing them automatically at the API level.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SECTION 1: Admission Architecture            -->
+            <!-- ============================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F3D7;&#xFE0F; Admission Architecture</h2>
+                <p>Where admission fits in the API request flow</p>
+                <aside class="notes">
+                    Start with the architecture. Understanding where admission controllers sit in the request flow is essential before diving into specific tools.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 4: API Request Flow                    -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F504; Kubernetes API Request Flow</h2>
+                <div class="concept-box">
+                    <p><strong>Every request to the API server passes through a pipeline:</strong></p>
+                    <ol>
+                        <li><strong>Authentication</strong> &mdash; Who is making the request?</li>
+                        <li><strong>Authorization</strong> &mdash; Is this identity allowed to perform this action?</li>
+                        <li><strong>Mutating Admission</strong> &mdash; Modify the request (add defaults, inject sidecars)</li>
+                        <li><strong>Schema Validation</strong> &mdash; Is the object valid?</li>
+                        <li><strong>Validating Admission</strong> &mdash; Does the request comply with policies?</li>
+                        <li><strong>Persistence</strong> &mdash; Write to etcd</li>
+                    </ol>
+                </div>
+                <div class="key-point">
+                    &#x1F511; Admission controllers are your <strong>last line of defense</strong> before an object is persisted to the cluster.
+                </div>
+                <aside class="notes">
+                    Emphasize that admission is the final gate. Even if RBAC allows an action, an admission controller can deny it based on policy. This is defense in depth.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 5: Mutating vs Validating              -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F504; Mutating vs Validating Webhooks</h2>
+                <div class="two-columns">
+                    <div class="card">
+                        <h4>&#x270F;&#xFE0F; Mutating Admission</h4>
+                        <ul>
+                            <li>Runs <strong>first</strong> in the pipeline</li>
+                            <li>Can <strong>modify</strong> the incoming object</li>
+                            <li>Use cases: inject sidecars, add labels, set defaults</li>
+                            <li>Multiple mutating webhooks run in sequence</li>
+                            <li>Order matters &mdash; later mutations see earlier changes</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>&#x2705; Validating Admission</h4>
+                        <ul>
+                            <li>Runs <strong>after</strong> mutating admission</li>
+                            <li>Can only <strong>accept or reject</strong> &mdash; no modifications</li>
+                            <li>Use cases: enforce policies, block violations</li>
+                            <li>Multiple validating webhooks run in parallel</li>
+                            <li>Any rejection = entire request is denied</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    Key distinction: mutating webhooks can change the object, validating webhooks can only say yes or no. This separation is intentional for security — validation sees the final mutated object.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 6: Admission Controller Phases         -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F6E0;&#xFE0F; Built-in vs Dynamic Admission</h2>
+                <div class="two-columns">
+                    <div class="card success">
+                        <h4>Built-in Controllers</h4>
+                        <ul>
+                            <li>Compiled into the API server</li>
+                            <li>Enabled/disabled via <code>--enable-admission-plugins</code></li>
+                            <li>No external dependencies</li>
+                            <li>Cannot be customized</li>
+                            <li>Examples: <code>NamespaceLifecycle</code>, <code>LimitRanger</code></li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h4>Dynamic Controllers (Webhooks)</h4>
+                        <ul>
+                            <li>External services called via HTTPS</li>
+                            <li>Configured via <code>MutatingWebhookConfiguration</code> or <code>ValidatingWebhookConfiguration</code></li>
+                            <li>Fully customizable logic</li>
+                            <li>Require running webhook server</li>
+                            <li>Examples: Gatekeeper, Kyverno</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    Built-in controllers handle fundamental cluster operations. Dynamic webhooks are where custom policy enforcement lives. Most policy engines use the dynamic webhook mechanism.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SECTION 2: Built-in Controllers              -->
+            <!-- ============================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F527; Built-in Admission Controllers</h2>
+                <p>Essential controllers compiled into the API server</p>
+                <aside class="notes">
+                    Now let's look at the most important built-in admission controllers. These are enabled by default in most distributions and handle critical cluster functionality.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 8: Key Built-in Controllers            -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F4CB; Essential Built-in Controllers</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Controller</th>
+                            <th>Type</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>NamespaceLifecycle</code></td>
+                            <td>Validating</td>
+                            <td>Prevents operations in non-existent or terminating namespaces</td>
+                        </tr>
+                        <tr>
+                            <td><code>LimitRanger</code></td>
+                            <td>Mutating</td>
+                            <td>Applies default resource requests/limits from LimitRange objects</td>
+                        </tr>
+                        <tr>
+                            <td><code>ServiceAccount</code></td>
+                            <td>Mutating</td>
+                            <td>Automatically mounts service account tokens into pods</td>
+                        </tr>
+                        <tr>
+                            <td><code>DefaultStorageClass</code></td>
+                            <td>Mutating</td>
+                            <td>Adds a default StorageClass to PVCs without one</td>
+                        </tr>
+                        <tr>
+                            <td><code>ResourceQuota</code></td>
+                            <td>Validating</td>
+                            <td>Enforces resource quota constraints per namespace</td>
+                        </tr>
+                        <tr>
+                            <td><code>NodeRestriction</code></td>
+                            <td>Validating</td>
+                            <td>Limits kubelet to modifying only its own node and pods</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <aside class="notes">
+                    Walk through each controller. NamespaceLifecycle prevents creating resources in terminating namespaces. LimitRanger sets defaults when developers forget. NodeRestriction is critical for preventing compromised nodes from affecting other nodes.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 9: PodSecurity Admission               -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F6E1;&#xFE0F; PodSecurity Admission Controller</h2>
+                <div class="highlight-box">
+                    <p><strong>Replaces PodSecurityPolicy (removed in v1.25)</strong></p>
+                    <p>Enforces Pod Security Standards at the namespace level via labels.</p>
+                </div>
+                <pre><code class="yaml"># Enforce restricted profile on a namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted</code></pre>
+                <div class="three-columns">
+                    <div class="card success">
+                        <h4>Privileged</h4>
+                        <p class="small-text">Unrestricted. No policy applied.</p>
+                    </div>
+                    <div class="card warning">
+                        <h4>Baseline</h4>
+                        <p class="small-text">Minimally restrictive. Prevents known privilege escalations.</p>
+                    </div>
+                    <div class="card danger">
+                        <h4>Restricted</h4>
+                        <p class="small-text">Heavily restricted. Follows hardening best practices.</p>
+                    </div>
+                </div>
+                <aside class="notes">
+                    PodSecurity is the built-in replacement for PSP. It is simpler but less flexible. For fine-grained control, you still need a policy engine like Gatekeeper or Kyverno. The three profiles are well-defined standards.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 10: NodeRestriction Deep Dive          -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F512; NodeRestriction in Detail</h2>
+                <div class="concept-box">
+                    <p><strong>Why it matters:</strong> Without NodeRestriction, a compromised kubelet could modify any node or pod in the cluster.</p>
+                </div>
+                <ul>
+                    <li>Limits kubelets to modifying only their own <code>Node</code> object</li>
+                    <li>Restricts kubelets to modifying pods bound to their node</li>
+                    <li>Prevents kubelets from adding/modifying labels with <code>node-restriction.kubernetes.io/</code> prefix</li>
+                    <li>Must be combined with the <code>Node</code> authorizer for full effect</li>
+                </ul>
+                <div class="highlight-box warning">
+                    <p>&#x26A0;&#xFE0F; <strong>Check your cluster:</strong> <code>kube-apiserver --enable-admission-plugins=...,NodeRestriction</code></p>
+                    <p>Most managed Kubernetes services enable this by default.</p>
+                </div>
+                <aside class="notes">
+                    NodeRestriction is one of the most important security-relevant admission controllers. It implements the principle of least privilege for kubelets. Without it, a compromised node is a cluster-wide compromise.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SECTION 3: Webhook Controllers               -->
+            <!-- ============================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F310; Webhook Controllers</h2>
+                <p>Dynamic admission via external services</p>
+                <aside class="notes">
+                    Now let's look at how dynamic admission webhooks work. This is the mechanism that powers Gatekeeper, Kyverno, and other policy engines.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 12: Webhook Configuration              -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x2699;&#xFE0F; ValidatingWebhookConfiguration</h2>
+                <pre><code class="yaml">apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: my-policy-webhook
+webhooks:
+  - name: validate.example.com
+    admissionReviewVersions: ["v1"]
+    clientConfig:
+      service:
+        name: webhook-service
+        namespace: webhook-system
+        path: /validate
+      caBundle: LS0tLS1CRUd...   # CA cert for TLS
+    rules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+    failurePolicy: Fail           # Fail or Ignore
+    timeoutSeconds: 10
+    sideEffects: None
+    namespaceSelector:
+      matchExpressions:
+        - key: environment
+          operator: In
+          values: ["production"]</code></pre>
+                <aside class="notes">
+                    Walk through each field. The caBundle provides TLS trust. Rules define which API calls trigger the webhook. failurePolicy determines behavior when the webhook is unreachable. namespaceSelector limits scope.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 13: Failure Policies & Best Practices  -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x26A0;&#xFE0F; Failure Policies &amp; Timeouts</h2>
+                <div class="two-columns">
+                    <div class="card danger">
+                        <h4><code>failurePolicy: Fail</code></h4>
+                        <ul>
+                            <li>Webhook unreachable = request <strong>denied</strong></li>
+                            <li>Safer from a security perspective</li>
+                            <li>Risk: webhook outage blocks all matched operations</li>
+                            <li>Can lock out the entire cluster if misconfigured</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h4><code>failurePolicy: Ignore</code></h4>
+                        <ul>
+                            <li>Webhook unreachable = request <strong>allowed</strong></li>
+                            <li>Safer from an availability perspective</li>
+                            <li>Risk: security bypass during outages</li>
+                            <li>Useful during initial rollout and testing</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="key-point">
+                    &#x1F511; <strong>Best practice:</strong> Start with <code>Ignore</code> during rollout, switch to <code>Fail</code> once stable. Always set <code>timeoutSeconds</code> (default is 10s, max is 30s).
+                </div>
+                <aside class="notes">
+                    This is a critical operational decision. failurePolicy: Fail is the secure choice but can cause outages. Many teams start with Ignore in audit mode and move to Fail once confidence is established. Always set reasonable timeouts.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 14: Webhook Matching Rules             -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F3AF; Matching Rules &amp; Side Effects</h2>
+                <div class="highlight-box">
+                    <p><strong>Matching rules</strong> control which API requests trigger the webhook:</p>
+                </div>
+                <ul>
+                    <li><strong><code>operations</code></strong> &mdash; CREATE, UPDATE, DELETE, CONNECT</li>
+                    <li><strong><code>apiGroups</code></strong> &mdash; Core (<code>""</code>), <code>apps</code>, <code>batch</code>, etc.</li>
+                    <li><strong><code>resources</code></strong> &mdash; <code>pods</code>, <code>deployments</code>, <code>services</code>, etc.</li>
+                    <li><strong><code>scope</code></strong> &mdash; <code>Cluster</code>, <code>Namespaced</code>, or <code>*</code></li>
+                    <li><strong><code>namespaceSelector</code></strong> &mdash; Label-based namespace filtering</li>
+                    <li><strong><code>objectSelector</code></strong> &mdash; Label-based object filtering</li>
+                </ul>
+                <div class="highlight-box warning">
+                    <p><strong><code>sideEffects</code></strong> must be declared: <code>None</code>, <code>NoneOnDryRun</code>, or <code>Some</code>. Webhooks with side effects may fire on dry-run requests &mdash; always declare <code>None</code> if your webhook is pure.</p>
+                </div>
+                <aside class="notes">
+                    Be precise with matching rules. Overly broad rules cause performance issues and can match system-critical resources. Always use namespaceSelector to exclude kube-system.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 15: Webhook Security Considerations    -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F6A8; Webhook Security Considerations</h2>
+                <div class="card danger">
+                    <h4>Common Pitfalls</h4>
+                    <ul>
+                        <li><strong>Self-referencing:</strong> Webhook that validates its own namespace can deadlock the cluster</li>
+                        <li><strong>Missing exclusions:</strong> Always exclude <code>kube-system</code> and the webhook's own namespace</li>
+                        <li><strong>TLS certificate expiry:</strong> Webhook becomes unreachable when certs expire</li>
+                        <li><strong>Resource exhaustion:</strong> Webhook under heavy load can slow all API operations</li>
+                    </ul>
+                </div>
+                <pre><code class="yaml"># Always exclude system namespaces
+namespaceSelector:
+  matchExpressions:
+    - key: kubernetes.io/metadata.name
+      operator: NotIn
+      values: ["kube-system", "kube-public", "webhook-system"]</code></pre>
+                <aside class="notes">
+                    These are real production war stories. Teams have locked themselves out of clusters by having webhooks validate their own deployment namespace. Always test exclusions carefully.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SECTION 4: OPA Gatekeeper                    -->
+            <!-- ============================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F3DB;&#xFE0F; OPA Gatekeeper</h2>
+                <p>Policy enforcement with Open Policy Agent</p>
+                <aside class="notes">
+                    Gatekeeper is the Kubernetes-native integration for Open Policy Agent (OPA). It is one of the most mature and widely adopted policy engines in the ecosystem.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 17: OPA Overview                       -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F4D6; OPA &amp; Gatekeeper Architecture</h2>
+                <div class="two-columns">
+                    <div>
+                        <h4>Open Policy Agent (OPA)</h4>
+                        <ul>
+                            <li>General-purpose policy engine</li>
+                            <li>Policies written in <strong>Rego</strong> language</li>
+                            <li>Decouples policy from application code</li>
+                            <li>Used beyond Kubernetes: APIs, Terraform, Envoy</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Gatekeeper (v3)</h4>
+                        <ul>
+                            <li>Kubernetes-native OPA integration</li>
+                            <li>Uses CRDs for policy management</li>
+                            <li><strong>ConstraintTemplates</strong> define policy logic</li>
+                            <li><strong>Constraints</strong> apply templates to resources</li>
+                            <li>Supports audit mode for existing resources</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="concept-box">
+                    <p><strong>Flow:</strong> API Request &#x2192; Webhook &#x2192; Gatekeeper Controller &#x2192; Evaluate Rego &#x2192; Allow/Deny</p>
+                </div>
+                <aside class="notes">
+                    Gatekeeper v3 is a significant improvement over v1/v2. It uses CRDs, making policies Kubernetes-native. The ConstraintTemplate + Constraint model separates policy definition from policy application.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 18: ConstraintTemplate                 -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F4DD; ConstraintTemplate: Require Labels</h2>
+                <pre><code class="yaml">apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequiredlabels
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequiredLabels
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            labels:
+              type: array
+              items:
+                type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8srequiredlabels
+
+        violation[{"msg": msg}] {
+          provided := {label | input.review.object.metadata.labels[label]}
+          required := {label | label := input.parameters.labels[_]}
+          missing := required - provided
+          count(missing) > 0
+          msg := sprintf("Missing required labels: %v", [missing])
+        }</code></pre>
+                <aside class="notes">
+                    Walk through the structure. The CRD spec defines parameters the constraint can accept. The Rego code defines the policy logic. The violation rule returns messages for non-compliant resources.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 19: Constraint                         -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F517; Constraint: Apply the Template</h2>
+                <pre><code class="yaml">apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequiredLabels
+metadata:
+  name: require-team-label
+spec:
+  enforcementAction: deny    # deny | dryrun | warn
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Namespace"]
+      - apiGroups: ["apps"]
+        kinds: ["Deployment"]
+    excludedNamespaces:
+      - kube-system
+      - gatekeeper-system
+  parameters:
+    labels:
+      - "team"
+      - "environment"</code></pre>
+                <div class="highlight-box success">
+                    <p><strong>enforcementAction options:</strong></p>
+                    <ul>
+                        <li><code>deny</code> &mdash; Block non-compliant resources</li>
+                        <li><code>dryrun</code> &mdash; Audit only, log violations</li>
+                        <li><code>warn</code> &mdash; Allow but show warnings to the user</li>
+                    </ul>
+                </div>
+                <aside class="notes">
+                    The constraint applies the template to specific resources. Always start with dryrun to see the impact before switching to deny. The excludedNamespaces list is critical to avoid breaking system components.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 20: Gatekeeper Block Privileged        -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F6AB; Gatekeeper: Block Privileged Pods</h2>
+                <pre><code class="yaml">apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8sblockprivileged
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sBlockPrivileged
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8sblockprivileged
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          container.securityContext.privileged == true
+          msg := sprintf("Privileged container not allowed: %v",
+                         [container.name])
+        }
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.initContainers[_]
+          container.securityContext.privileged == true
+          msg := sprintf("Privileged init container not allowed: %v",
+                         [container.name])
+        }</code></pre>
+                <p class="small-text">Applies to both regular containers and init containers.</p>
+                <aside class="notes">
+                    Note that we need separate rules for containers and initContainers. This is a common pattern — always check both. A corresponding Constraint would apply this to all pods in target namespaces.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 21: Gatekeeper Enforce Registry        -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F4E6; Gatekeeper: Enforce Image Registry</h2>
+                <pre><code class="yaml">apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8sallowedrepos
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sAllowedRepos
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            repos:
+              type: array
+              items:
+                type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8sallowedrepos
+
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not startswith(container.image, input.parameters.repos[_])
+          msg := sprintf("Image '%v' is not from an allowed registry",
+                         [container.image])
+        }</code></pre>
+                <pre><code class="yaml"># Constraint applying the template
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sAllowedRepos
+metadata:
+  name: require-trusted-registry
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+  parameters:
+    repos:
+      - "gcr.io/my-company/"
+      - "us-docker.pkg.dev/my-company/"</code></pre>
+                <aside class="notes">
+                    This is one of the most common policies in production. It ensures that only images from trusted registries are deployed. Combine with image signing verification for stronger guarantees.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SECTION 5: Kyverno                           -->
+            <!-- ============================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F4DC; Kyverno</h2>
+                <p>Kubernetes-native policy management — no new language required</p>
+                <aside class="notes">
+                    Kyverno is an alternative to Gatekeeper that uses YAML instead of Rego. For teams already fluent in Kubernetes YAML, Kyverno has a lower learning curve.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 23: Kyverno Architecture               -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F3D7;&#xFE0F; Kyverno Architecture</h2>
+                <div class="two-columns">
+                    <div>
+                        <h4>Key Features</h4>
+                        <ul>
+                            <li><strong>YAML-native</strong> &mdash; no Rego or new language</li>
+                            <li>Validate, mutate, generate, and verify images</li>
+                            <li><code>ClusterPolicy</code> (cluster-wide) and <code>Policy</code> (namespaced)</li>
+                            <li>Policy reports via <code>PolicyReport</code> CRDs</li>
+                            <li>Built-in JMESPath and CEL support</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Architecture</h4>
+                        <ul>
+                            <li>Runs as a set of controllers in the cluster</li>
+                            <li>Registers mutating and validating webhooks</li>
+                            <li>Background scan for existing resources</li>
+                            <li>Generates <code>PolicyReport</code> / <code>ClusterPolicyReport</code></li>
+                            <li>Admission controller + reporting engine</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="concept-box">
+                    <p><strong>Rule types:</strong> <code>validate</code> | <code>mutate</code> | <code>generate</code> | <code>verifyImages</code></p>
+                </div>
+                <aside class="notes">
+                    Kyverno's YAML-native approach makes it accessible to any Kubernetes operator. The generate capability is unique — it can create resources (like NetworkPolicies) automatically when a namespace is created.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 24: Kyverno Require Labels             -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F3F7;&#xFE0F; Kyverno: Require Labels</h2>
+                <pre><code class="yaml">apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-labels
+spec:
+  validationFailureAction: Enforce   # Enforce or Audit
+  background: true                    # Scan existing resources
+  rules:
+    - name: require-team-label
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+                - StatefulSet
+              namespaces:
+                - "production"
+                - "staging"
+      exclude:
+        any:
+          - resources:
+              namespaces:
+                - "kube-system"
+      validate:
+        message: "The label 'team' is required."
+        pattern:
+          metadata:
+            labels:
+              team: "?*"</code></pre>
+                <div class="highlight-box">
+                    <p><strong>Compare to Gatekeeper:</strong> No Rego, no ConstraintTemplate. The pattern-matching syntax is pure YAML.</p>
+                </div>
+                <aside class="notes">
+                    The pattern field uses Kyverno's pattern matching. The ?* wildcard means any non-empty value. This is the same policy we wrote in Gatekeeper but with significantly less code.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 25: Kyverno Block Privileged           -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F6AB; Kyverno: Block Privileged Pods</h2>
+                <pre><code class="yaml">apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-privileged-containers
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: deny-privileged
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        message: >-
+          Privileged mode is not allowed. Set
+          securityContext.privileged to false.
+        deny:
+          conditions:
+            any:
+              - key: "{{ request.object.spec.[containers, initContainers][].securityContext.privileged }}"
+                operator: AnyIn
+                value: [true]</code></pre>
+                <aside class="notes">
+                    Kyverno uses JMESPath expressions for complex lookups. The bracket notation checks both containers and initContainers arrays in one expression. Compare this to the two separate Rego rules in Gatekeeper.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 26: Kyverno Enforce Registry           -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F4E6; Kyverno: Enforce Image Registry</h2>
+                <pre><code class="yaml">apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: restrict-image-registries
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: validate-registries
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        message: "Images must come from an approved registry."
+        pattern:
+          spec:
+            containers:
+              - image: "gcr.io/my-company/* | us-docker.pkg.dev/my-company/*"
+            =(initContainers):
+              - image: "gcr.io/my-company/* | us-docker.pkg.dev/my-company/*"</code></pre>
+                <div class="highlight-box success">
+                    <p><strong>The <code>=(...)</code> anchor</strong> means "if this field exists, it must match." Init containers are optional, so we use the conditional anchor.</p>
+                </div>
+                <aside class="notes">
+                    The conditional anchor is a Kyverno-specific feature. Without it, the policy would fail on pods that have no initContainers. The pipe syntax allows multiple allowed patterns.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 27: Kyverno Mutate & Generate          -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x2728; Kyverno: Mutate &amp; Generate Rules</h2>
+                <div class="two-columns">
+                    <div>
+                        <h4>Mutate: Add Default Labels</h4>
+                        <pre><code class="yaml">apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: add-default-labels
+spec:
+  rules:
+    - name: add-managed-by
+      match:
+        any:
+          - resources:
+              kinds:
+                - Deployment
+      mutate:
+        patchStrategicMerge:
+          metadata:
+            labels:
+              +(managed-by): "platform-team"</code></pre>
+                    </div>
+                    <div>
+                        <h4>Generate: Create NetworkPolicy</h4>
+                        <pre><code class="yaml">apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: default-deny-netpol
+spec:
+  rules:
+    - name: generate-netpol
+      match:
+        any:
+          - resources:
+              kinds:
+                - Namespace
+      generate:
+        kind: NetworkPolicy
+        apiVersion: networking.k8s.io/v1
+        name: default-deny-all
+        namespace: "{{request.object.metadata.name}}"
+        data:
+          spec:
+            podSelector: {}
+            policyTypes:
+              - Ingress
+              - Egress</code></pre>
+                    </div>
+                </div>
+                <p class="small-text">The <code>+(...)</code> anchor means "add if not already present." Generate rules create companion resources automatically.</p>
+                <aside class="notes">
+                    These are powerful capabilities beyond simple validation. The generate rule automatically creates a default-deny NetworkPolicy whenever a new namespace is created — ensuring security by default. This is unique to Kyverno.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SECTION 6: ValidatingAdmissionPolicy (CEL)   -->
+            <!-- ============================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x2699;&#xFE0F; ValidatingAdmissionPolicy</h2>
+                <p>Native in-process validation with CEL expressions (K8s 1.28+)</p>
+                <aside class="notes">
+                    ValidatingAdmissionPolicy is the newest option, built directly into the Kubernetes API server. It uses CEL — Common Expression Language — and requires no external webhook. This is GA as of Kubernetes 1.30.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 29: CEL Overview                       -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F4A1; Why ValidatingAdmissionPolicy?</h2>
+                <div class="two-columns">
+                    <div class="card success">
+                        <h4>Advantages</h4>
+                        <ul>
+                            <li><strong>No webhook overhead</strong> &mdash; runs in-process</li>
+                            <li>No external dependencies to manage</li>
+                            <li>No TLS certificates to rotate</li>
+                            <li>Faster evaluation (microseconds vs milliseconds)</li>
+                            <li>CEL is deterministic and sandboxed</li>
+                            <li>Built into Kubernetes &mdash; no installation</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h4>Limitations</h4>
+                        <ul>
+                            <li>Validation only &mdash; no mutation or generation</li>
+                            <li>CEL is less expressive than Rego</li>
+                            <li>No external data sources</li>
+                            <li>Requires Kubernetes 1.28+ (GA in 1.30)</li>
+                            <li>Smaller policy library compared to Gatekeeper/Kyverno</li>
+                            <li>No background scanning of existing resources</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    ValidatingAdmissionPolicy is not a replacement for Gatekeeper or Kyverno — it complements them. Use it for simple validation rules where webhook overhead is not justified. Complex policies still benefit from a full engine.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 30: VAP Example - Require Labels       -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F3F7;&#xFE0F; CEL: Require Labels</h2>
+                <pre><code class="yaml">apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: require-team-label
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: ["apps"]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["deployments"]
+  validations:
+    - expression: "has(object.metadata.labels) && 'team' in object.metadata.labels"
+      message: "All deployments must have a 'team' label."
+    - expression: "has(object.metadata.labels) && 'environment' in object.metadata.labels"
+      message: "All deployments must have an 'environment' label."</code></pre>
+                <pre><code class="yaml">---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: require-team-label-binding
+spec:
+  policyName: require-team-label
+  validationActions: [Deny]
+  matchResources:
+    namespaceSelector:
+      matchExpressions:
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values: ["kube-system"]</code></pre>
+                <aside class="notes">
+                    Two resources are needed: the policy defines the rules, and the binding applies them. This is similar to RBAC's Role + RoleBinding pattern. CEL expressions are concise but readable.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 31: VAP - Block Privileged             -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F6AB; CEL: Block Privileged Containers</h2>
+                <pre><code class="yaml">apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: deny-privileged-containers
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+  validations:
+    - expression: >-
+        object.spec.containers.all(c,
+          !has(c.securityContext) ||
+          !has(c.securityContext.privileged) ||
+          c.securityContext.privileged == false)
+      message: "Privileged containers are not allowed."
+    - expression: >-
+        !has(object.spec.initContainers) ||
+        object.spec.initContainers.all(c,
+          !has(c.securityContext) ||
+          !has(c.securityContext.privileged) ||
+          c.securityContext.privileged == false)
+      message: "Privileged init containers are not allowed."</code></pre>
+                <div class="highlight-box">
+                    <p><strong>CEL expressions use familiar syntax:</strong> <code>.all()</code>, <code>.exists()</code>, <code>.filter()</code>, <code>.map()</code>, <code>has()</code>, ternary <code>? :</code></p>
+                </div>
+                <aside class="notes">
+                    CEL's .all() function iterates over all containers. The has() checks prevent null reference errors. Compare this to Gatekeeper's two Rego rules and Kyverno's JMESPath approach — all three achieve the same result.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 32: VAP - Image Registry               -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F4E6; CEL: Enforce Image Registry</h2>
+                <pre><code class="yaml">apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: restrict-image-registries
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+  validations:
+    - expression: >-
+        object.spec.containers.all(c,
+          c.image.startsWith("gcr.io/my-company/") ||
+          c.image.startsWith("us-docker.pkg.dev/my-company/"))
+      message: "All container images must come from an approved registry."
+    - expression: >-
+        !has(object.spec.initContainers) ||
+        object.spec.initContainers.all(c,
+          c.image.startsWith("gcr.io/my-company/") ||
+          c.image.startsWith("us-docker.pkg.dev/my-company/"))
+      message: "All init container images must come from an approved registry."</code></pre>
+                <div class="key-point">
+                    &#x1F511; Same policy across three engines &mdash; choose based on your team's needs, not the tool's popularity.
+                </div>
+                <aside class="notes">
+                    We have now seen the same three policies — require labels, block privileged, enforce registry — implemented in all three engines. This gives students a direct comparison to inform their choice.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 33: VAP - Validation Actions           -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F4CA; ValidatingAdmissionPolicy: Actions &amp; Audit</h2>
+                <pre><code class="yaml">apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: restrict-registries-audit
+spec:
+  policyName: restrict-image-registries
+  validationActions:
+    - Audit     # Log violations but don't block
+    - Warn      # Show warnings to the user
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        environment: staging</code></pre>
+                <div class="highlight-box success">
+                    <p><strong>validationActions:</strong></p>
+                    <ul>
+                        <li><code>Deny</code> &mdash; Reject the request</li>
+                        <li><code>Audit</code> &mdash; Log the violation in audit logs</li>
+                        <li><code>Warn</code> &mdash; Show a warning message to the user</li>
+                    </ul>
+                    <p>You can combine actions: <code>[Audit, Warn]</code> for non-blocking enforcement.</p>
+                </div>
+                <aside class="notes">
+                    The combination of Audit and Warn is excellent for gradual rollout. You can see violations in audit logs and users see warnings, but nothing is blocked. Switch to Deny when ready.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SECTION 7: Policy Engine Strategy            -->
+            <!-- ============================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #2c5282 100%)">
+                <h2>&#x1F9ED; Policy Engine Strategy</h2>
+                <p>Choosing, deploying, and managing policies at scale</p>
+                <aside class="notes">
+                    Now that students understand all three engines, let's discuss how to choose between them and build a comprehensive policy strategy.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 35: Comparison Table                   -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F4CA; Engine Comparison</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Gatekeeper</th>
+                            <th>Kyverno</th>
+                            <th>CEL (VAP)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Policy Language</td>
+                            <td>Rego</td>
+                            <td>YAML/JMESPath</td>
+                            <td>CEL</td>
+                        </tr>
+                        <tr>
+                            <td>Validation</td>
+                            <td>&#x2705;</td>
+                            <td>&#x2705;</td>
+                            <td>&#x2705;</td>
+                        </tr>
+                        <tr>
+                            <td>Mutation</td>
+                            <td>&#x2705; (v3.10+)</td>
+                            <td>&#x2705;</td>
+                            <td>&#x274C;</td>
+                        </tr>
+                        <tr>
+                            <td>Generation</td>
+                            <td>&#x274C;</td>
+                            <td>&#x2705;</td>
+                            <td>&#x274C;</td>
+                        </tr>
+                        <tr>
+                            <td>Image Verification</td>
+                            <td>&#x274C;</td>
+                            <td>&#x2705;</td>
+                            <td>&#x274C;</td>
+                        </tr>
+                        <tr>
+                            <td>External Data</td>
+                            <td>&#x2705;</td>
+                            <td>&#x2705; (API calls)</td>
+                            <td>&#x274C;</td>
+                        </tr>
+                        <tr>
+                            <td>Webhook Overhead</td>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                            <td>None</td>
+                        </tr>
+                        <tr>
+                            <td>Background Scan</td>
+                            <td>&#x2705; (Audit)</td>
+                            <td>&#x2705;</td>
+                            <td>&#x274C;</td>
+                        </tr>
+                        <tr>
+                            <td>Policy Library</td>
+                            <td>Large</td>
+                            <td>Large</td>
+                            <td>Growing</td>
+                        </tr>
+                        <tr>
+                            <td>Learning Curve</td>
+                            <td>Steeper (Rego)</td>
+                            <td>Lower (YAML)</td>
+                            <td>Moderate</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <aside class="notes">
+                    No single engine is universally best. Gatekeeper excels in complex logic. Kyverno excels in usability and breadth of features. CEL excels in performance and simplicity for straightforward rules.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 36: When to Use What                   -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F9E9; When to Use Each Engine</h2>
+                <div class="three-columns">
+                    <div class="card">
+                        <h4>&#x1F3DB;&#xFE0F; Gatekeeper</h4>
+                        <ul>
+                            <li>Complex cross-resource policies</li>
+                            <li>Existing OPA investment</li>
+                            <li>Need for external data</li>
+                            <li>Multi-platform policy (Terraform, Envoy)</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>&#x1F4DC; Kyverno</h4>
+                        <ul>
+                            <li>Teams preferring YAML</li>
+                            <li>Need mutation + generation</li>
+                            <li>Image verification</li>
+                            <li>Auto-generating companion resources</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>&#x2699;&#xFE0F; CEL (VAP)</h4>
+                        <ul>
+                            <li>Simple validation rules</li>
+                            <li>Performance-critical clusters</li>
+                            <li>Minimizing dependencies</li>
+                            <li>Already on K8s 1.30+</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="key-point">
+                    &#x1F511; You can use <strong>multiple engines together</strong>. CEL for simple rules, Kyverno/Gatekeeper for complex ones.
+                </div>
+                <aside class="notes">
+                    Many production environments combine engines. Use CEL for simple, high-frequency checks and a full engine for complex policies. The engines do not conflict with each other.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 37: Policy-as-Code in CI/CD            -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F504; Policy-as-Code in CI/CD</h2>
+                <div class="concept-box">
+                    <p><strong>Shift left:</strong> Test policies before they reach the cluster.</p>
+                </div>
+                <div class="two-columns">
+                    <div>
+                        <h4>Gatekeeper</h4>
+                        <pre><code class="bash"># Test with gator CLI
+gator test \
+  --filename policies/ \
+  --filename test-resources/
+
+# Verify constraint templates
+gator verify suite.yaml</code></pre>
+                    </div>
+                    <div>
+                        <h4>Kyverno</h4>
+                        <pre><code class="bash"># Test with kyverno CLI
+kyverno apply policies/ \
+  --resource test-pod.yaml
+
+# Test with expected results
+kyverno test tests/</code></pre>
+                    </div>
+                </div>
+                <div class="highlight-box">
+                    <p><strong>CI/CD Integration Pattern:</strong></p>
+                    <ol>
+                        <li>Store policies in Git alongside application manifests</li>
+                        <li>Run policy tests on every pull request</li>
+                        <li>Validate application manifests against policies before deploy</li>
+                        <li>Deploy policies through GitOps (Argo CD, Flux)</li>
+                    </ol>
+                </div>
+                <aside class="notes">
+                    Policy-as-code is essential. Both Gatekeeper and Kyverno provide CLI tools for testing policies in CI. This catches policy errors before they reach the cluster and prevents policy changes from blocking legitimate workloads.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 38: Testing Policies                   -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F9EA; Testing Policies</h2>
+                <pre><code class="yaml"># Kyverno test manifest (tests/require-labels/kyverno-test.yaml)
+apiVersion: cli.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: require-labels-test
+policies:
+  - ../../policies/require-labels.yaml
+resources:
+  - resources.yaml
+results:
+  - policy: require-labels
+    rule: require-team-label
+    resource: good-deployment    # Has required labels
+    kind: Deployment
+    result: pass
+  - policy: require-labels
+    rule: require-team-label
+    resource: bad-deployment     # Missing labels
+    kind: Deployment
+    result: fail</code></pre>
+                <pre><code class="bash"># Run the tests
+$ kyverno test tests/require-labels/
+Loading test ( tests/require-labels/kyverno-test.yaml ) ...
+  Pass: 2, Fail: 0, Warn: 0, Error: 0, Skip: 0</code></pre>
+                <aside class="notes">
+                    Writing test cases for policies is just as important as writing the policies themselves. Always test both positive (should pass) and negative (should fail) cases. Include edge cases like pods without securityContext fields.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 39: Policy Libraries                   -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F4DA; Policy Libraries</h2>
+                <div class="two-columns">
+                    <div class="card">
+                        <h4>Gatekeeper Library</h4>
+                        <ul>
+                            <li><strong>github.com/open-policy-agent/gatekeeper-library</strong></li>
+                            <li>Pod Security Standards templates</li>
+                            <li>General-purpose templates</li>
+                            <li>Well-tested and maintained</li>
+                            <li>Community contributions</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Kyverno Policies</h4>
+                        <ul>
+                            <li><strong>kyverno.io/policies</strong></li>
+                            <li>300+ ready-to-use policies</li>
+                            <li>Categorized by Pod Security Standards</li>
+                            <li>Best practices library</li>
+                            <li>Compliance-focused policies</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="highlight-box success">
+                    <p>&#x2705; <strong>Do not write policies from scratch</strong> when a well-tested library policy exists. Customize existing policies for your needs.</p>
+                </div>
+                <aside class="notes">
+                    Both ecosystems have extensive policy libraries. Start with existing policies and customize them. Writing Rego or complex validation from scratch is error-prone. The community has already solved most common policy needs.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 40: Rollout Strategy                   -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F680; Policy Rollout Strategy</h2>
+                <div class="concept-box">
+                    <h4>Phased Rollout Approach</h4>
+                    <ol>
+                        <li><strong>Audit/Warn mode</strong> &mdash; Deploy policies in non-blocking mode. Monitor violations.</li>
+                        <li><strong>Targeted enforcement</strong> &mdash; Enable enforcement on non-production namespaces first.</li>
+                        <li><strong>Broad enforcement</strong> &mdash; Roll out to production namespaces after validation.</li>
+                        <li><strong>Continuous monitoring</strong> &mdash; Track policy violations and false positives.</li>
+                    </ol>
+                </div>
+                <div class="highlight-box warning">
+                    <p>&#x26A0;&#xFE0F; <strong>Never deploy policies directly in enforce mode to production.</strong> Always start with audit/warn and review the impact.</p>
+                </div>
+                <div class="key-point">
+                    &#x1F511; Monitor: <code>kubectl get constraintname -o yaml</code> (Gatekeeper) or <code>kubectl get policyreport -A</code> (Kyverno)
+                </div>
+                <aside class="notes">
+                    This phased approach prevents policies from breaking production workloads. The audit phase is critical for discovering legitimate workloads that would be blocked. Always have an exception process for approved violations.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 41: Migration Paths                    -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F504; Migration Paths</h2>
+                <div class="highlight-box">
+                    <p><strong>From PSP to modern policy engines:</strong></p>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Migration From</th>
+                            <th>Migration To</th>
+                            <th>Strategy</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>PodSecurityPolicy</td>
+                            <td>PodSecurity Admission</td>
+                            <td>Map PSP fields to PSS profiles; label namespaces</td>
+                        </tr>
+                        <tr>
+                            <td>PodSecurityPolicy</td>
+                            <td>Gatekeeper/Kyverno</td>
+                            <td>Translate each PSP to equivalent constraint/policy</td>
+                        </tr>
+                        <tr>
+                            <td>Gatekeeper</td>
+                            <td>Kyverno</td>
+                            <td>Rewrite Rego as YAML patterns; test in parallel</td>
+                        </tr>
+                        <tr>
+                            <td>Webhook-based</td>
+                            <td>CEL (VAP)</td>
+                            <td>Migrate simple validation rules; keep complex ones in engine</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="card success">
+                    <h4>Migration Best Practice</h4>
+                    <p>Run old and new engines in parallel. Deploy the new engine in audit mode alongside the existing one. Once violation counts match, switch enforcement.</p>
+                </div>
+                <aside class="notes">
+                    PSP migration was a major project for many organizations when PSP was removed in 1.25. The parallel-run strategy is the safest approach for any migration. Never do a direct cutover.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SLIDE 42: Essential Policies Checklist       -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F4CB; Essential Policies Checklist</h2>
+                <div class="two-columns">
+                    <div class="card">
+                        <h4>Security Policies</h4>
+                        <ul>
+                            <li>&#x1F6AB; Block privileged containers</li>
+                            <li>&#x1F6AB; Block host namespace sharing</li>
+                            <li>&#x1F6AB; Block host path volumes</li>
+                            <li>&#x1F512; Require non-root execution</li>
+                            <li>&#x1F512; Require read-only root filesystem</li>
+                            <li>&#x1F512; Drop all capabilities</li>
+                            <li>&#x1F4E6; Restrict image registries</li>
+                            <li>&#x1F3F7;&#xFE0F; Block <code>latest</code> tag</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h4>Operational Policies</h4>
+                        <ul>
+                            <li>&#x1F3F7;&#xFE0F; Require standard labels</li>
+                            <li>&#x1F4CA; Require resource limits</li>
+                            <li>&#x1F50D; Require liveness/readiness probes</li>
+                            <li>&#x1F4DD; Require pod disruption budgets</li>
+                            <li>&#x1F310; Require network policies</li>
+                            <li>&#x1F504; Require image pull policy</li>
+                            <li>&#x1F6E1;&#xFE0F; Disallow default service account</li>
+                            <li>&#x1F4E6; Require image digests</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">
+                    This checklist is a starting point. Not every organization needs all of these on day one. Prioritize based on your threat model and compliance requirements. Start with the security policies and add operational ones incrementally.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- LAB CALLOUT                                  -->
+            <!-- ============================================ -->
+            <section class="lab-callout" data-background-color="#2f855a">
+                <h2>&#x1F9EA; Lab 8: Admission Controllers</h2>
+                <p><strong>Duration: 60 minutes</strong></p>
+                <span class="lab-badge">Hands-On Exercise</span>
+                <ul>
+                    <li>Install Kyverno in your cluster</li>
+                    <li>Create a policy to require labels on all Deployments</li>
+                    <li>Create a policy to block the <code>latest</code> image tag</li>
+                    <li>Create a policy to enforce resource limits on containers</li>
+                    <li>Test policy enforcement with compliant and non-compliant resources</li>
+                    <li>Explore Kyverno policy reports for audit visibility</li>
+                </ul>
+                <p class="lab-description">You will implement real-world admission policies and observe how they protect the cluster from non-compliant workloads.</p>
+                <aside class="notes">
+                    This lab uses Kyverno because of its YAML-native approach and lower learning curve. Ensure Kyverno is pre-installed or provide Helm install instructions. Students should test both passing and failing resources to understand enforcement behavior. Policy reports should show violations for existing resources in the cluster.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- KEY TAKEAWAYS                                -->
+            <!-- ============================================ -->
+            <section class="takeaway-list">
+                <h2>&#x1F4DD; Key Takeaways</h2>
+                <ul>
+                    <li>&#x1F3D7;&#xFE0F; <strong>Admission controllers are the last gate</strong> before objects are persisted &mdash; use them to enforce security and operational policies.</li>
+                    <li>&#x1F527; <strong>Built-in controllers</strong> like NodeRestriction and PodSecurity handle fundamental cluster security without external tools.</li>
+                    <li>&#x1F310; <strong>Dynamic webhooks</strong> enable custom policy enforcement but require careful configuration around failure policies and exclusions.</li>
+                    <li>&#x1F3DB;&#xFE0F; <strong>OPA Gatekeeper</strong> offers powerful Rego-based policies and a mature ecosystem for complex policy needs.</li>
+                    <li>&#x1F4DC; <strong>Kyverno</strong> provides YAML-native policies with mutation, generation, and image verification &mdash; no new language required.</li>
+                    <li>&#x2699;&#xFE0F; <strong>ValidatingAdmissionPolicy (CEL)</strong> delivers in-process validation with zero webhook overhead for Kubernetes 1.28+.</li>
+                    <li>&#x1F680; <strong>Always roll out policies gradually</strong> &mdash; audit first, enforce later. Test policies in CI/CD before deployment.</li>
+                    <li>&#x1F4DA; <strong>Leverage policy libraries</strong> rather than writing from scratch. Combine engines for comprehensive coverage.</li>
+                </ul>
+                <aside class="notes">
+                    Review each takeaway. Emphasize the phased rollout approach and the importance of testing. The choice of engine should be driven by team capabilities and requirements, not hype.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- QUICK REFERENCE                              -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F4D6; Quick Reference: Essential Commands</h2>
+                <pre><code class="bash"># Install Kyverno
+helm install kyverno kyverno/kyverno -n kyverno --create-namespace
+
+# Apply a Kyverno policy
+kubectl apply -f require-labels.yaml
+
+# Check policy reports
+kubectl get policyreport -A
+kubectl get clusterpolicyreport
+
+# Install Gatekeeper
+helm install gatekeeper gatekeeper/gatekeeper -n gatekeeper-system --create-namespace
+
+# Check Gatekeeper constraint violations
+kubectl get k8srequiredlabels -o yaml
+
+# List all admission webhooks
+kubectl get validatingwebhookconfiguration
+kubectl get mutatingwebhookconfiguration
+
+# Check ValidatingAdmissionPolicy (K8s 1.28+)
+kubectl get validatingadmissionpolicy
+kubectl get validatingadmissionpolicybinding
+
+# Test Kyverno policies locally
+kyverno apply policy.yaml --resource resource.yaml</code></pre>
+                <aside class="notes">
+                    These commands cover all three engines and webhook inspection. Students can use these as a reference during and after the lab.
+                </aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- QUESTIONS SLIDE                              -->
+            <!-- ============================================ -->
+            <section class="questions-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 50%, #2c5282 100%)">
+                <h2>&#x2753; Questions?</h2>
+                <p>Module 8: Admission Controllers &amp; Policy Engines</p>
+                <p style="color: #cbd5e0;">Up Next: Module 9 — Runtime Security &amp; Monitoring</p>
+                <aside class="notes">
+                    Open the floor for questions. Common questions include: Can I use both Gatekeeper and Kyverno together? (Yes, but it adds complexity.) What about performance at scale? (CEL is fastest; webhook engines add a few milliseconds per request.) How do I handle exceptions? (Both engines support exclusions and exemptions.)
+                </aside>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/notes/notes.min.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: true,
+            plugins: [RevealHighlight, RevealNotes]
+        });
+    </script>
+</body>
+</html>

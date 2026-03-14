@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Module 3: Hardening Images - Kubernetes Security</title>
+    <title>Module 7: Image Security &amp; Supply Chain</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reset.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/theme/white.min.css">
@@ -302,8 +302,8 @@
             <!-- SLIDE 1: Title Slide                         -->
             <!-- ============================================ -->
             <section class="title-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 50%, #2c5282 100%)">
-                <h1>Hardening Images</h1>
-                <h2>Module 3</h2>
+                <h1>Image Security &amp; Supply Chain</h1>
+                <h2>Module 7</h2>
                 <p>Kubernetes Security</p>
                 <aside class="notes">
                     This is the largest module in the course. Container images are the foundation of every workload in Kubernetes, so getting them right is critical to overall cluster security. We will cover image fundamentals, base image selection, multi-stage builds, Dockerfile best practices, scanning, signing, registry security, and supply chain security.
@@ -1750,7 +1750,7 @@ cosign verify-attestation \
             <!-- LAB CALLOUT                                  -->
             <!-- ============================================ -->
             <section class="lab-callout" data-background-color="#2f855a">
-                <h2>&#x1F9EA; Lab 3: Building Secure Container Images</h2>
+                <h2>&#x1F9EA; Lab 7: Secure Container Images</h2>
                 <p><strong>Duration: 60 minutes</strong></p>
                 <ul>
                     <li>Compare an insecure Dockerfile against a hardened version</li>
@@ -1819,7 +1819,8 @@ crane digest myregistry/myimage:v1.0</code></pre>
             <!-- ============================================ -->
             <section class="questions-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 50%, #2c5282 100%)">
                 <h2>&#x2753; Questions?</h2>
-                <p>Module 3: Hardening Images</p>
+                <p>Module 7: Image Security &amp; Supply Chain</p>
+                <p style="color: #cbd5e0;">Up Next: Module 8 — Admission Controllers &amp; Policy Engines</p>
                 <aside class="notes">
                     Open the floor for questions. Common questions include: How do you handle debugging without a shell in distroless? (Answer: ephemeral debug containers in Kubernetes.) What about base image updates? (Answer: automated dependency update tools like Renovate.)
                 </aside>

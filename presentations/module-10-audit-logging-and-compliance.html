@@ -1,0 +1,1566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 10: Audit Logging &amp; Compliance</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/theme/white.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/monokai.min.css">
+
+    <style>
+        :root {
+            --heading-color: #1a365d;
+            --accent-color: #2b6cb0;
+            --success-color: #2f855a;
+            --warning-color: #c05621;
+            --danger-color: #c53030;
+            --text-color: #2d3748;
+        }
+
+        .reveal {
+            font-size: 28px;
+            color: var(--text-color);
+        }
+
+        .reveal h1 {
+            font-size: 1.8em;
+            color: var(--heading-color);
+        }
+
+        .reveal h2 {
+            font-size: 1.4em;
+            color: var(--heading-color);
+        }
+
+        .reveal h3 {
+            font-size: 1.1em;
+            color: var(--accent-color);
+        }
+
+        .reveal code {
+            font-size: 0.85em;
+        }
+
+        .reveal .slides section {
+            text-align: left;
+            padding: 20px 40px;
+        }
+
+        /* Title slide */
+        .title-slide {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .title-slide h1,
+        .title-slide h2,
+        .title-slide h3 {
+            color: white !important;
+        }
+
+        .title-slide h1 {
+            font-size: 2em !important;
+            margin-bottom: 0.3em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .title-slide h2 {
+            font-size: 1.3em !important;
+            font-weight: 300;
+            margin-bottom: 0.2em;
+        }
+
+        .title-slide h3 {
+            font-size: 1em !important;
+            font-weight: 300;
+            color: rgba(255,255,255,0.85) !important;
+        }
+
+        .course-badge {
+            display: inline-block;
+            padding: 10px 30px;
+            border: 2px solid rgba(255,255,255,0.8);
+            border-radius: 30px;
+            margin-top: 30px;
+            font-size: 0.85em;
+            color: white;
+            letter-spacing: 1px;
+        }
+
+        /* Section divider */
+        .section-divider {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .section-divider h2,
+        .section-divider h3 {
+            color: white !important;
+        }
+
+        .section-divider h2 {
+            font-size: 1.6em !important;
+        }
+
+        .section-divider h3 {
+            font-size: 1em !important;
+            font-weight: 300;
+            color: rgba(255,255,255,0.85) !important;
+        }
+
+        /* Highlight box */
+        .highlight-box {
+            background: linear-gradient(135deg, #ebf8ff 0%, #bee3f8 100%);
+            border-left: 4px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 15px 0;
+        }
+
+        .highlight-box.success {
+            background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);
+            border-left-color: var(--success-color);
+        }
+
+        .highlight-box.warning {
+            background: linear-gradient(135deg, #fffaf0 0%, #feebc8 100%);
+            border-left-color: var(--warning-color);
+        }
+
+        .highlight-box.danger {
+            background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+            border-left-color: var(--danger-color);
+        }
+
+        /* Columns */
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .three-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        /* Card */
+        .card {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .card.success {
+            border-top: 4px solid var(--success-color);
+        }
+
+        .card.warning {
+            border-top: 4px solid var(--warning-color);
+        }
+
+        .card.danger {
+            border-top: 4px solid var(--danger-color);
+        }
+
+        /* Concept box */
+        .concept-box {
+            background: white;
+            border: 2px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 10px 0;
+        }
+
+        /* Key point */
+        .key-point {
+            text-align: center !important;
+            font-style: italic;
+            font-size: 1.15em;
+            color: var(--accent-color);
+            padding: 20px;
+        }
+
+        /* Lab callout */
+        .lab-callout {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .lab-callout h2,
+        .lab-callout h3 {
+            color: white !important;
+        }
+
+        .lab-callout ul {
+            text-align: left;
+            display: inline-block;
+        }
+
+        .lab-callout li {
+            color: white;
+            margin-bottom: 8px;
+        }
+
+        .lab-badge {
+            display: inline-block;
+            padding: 8px 24px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.6);
+            border-radius: 20px;
+            color: white;
+            font-size: 0.8em;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+
+        .lab-description {
+            margin-top: 20px;
+        }
+
+        /* Takeaway list */
+        .takeaway-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .takeaway-list li {
+            padding: 10px 0 10px 35px;
+            position: relative;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .takeaway-list li::before {
+            content: "\2713";
+            position: absolute;
+            left: 0;
+            color: var(--success-color);
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        /* Questions slide */
+        .questions-slide {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .questions-slide h2 {
+            color: white !important;
+            font-size: 2em !important;
+        }
+
+        .questions-slide p {
+            color: rgba(255,255,255,0.85);
+        }
+
+        /* Tables */
+        .reveal table {
+            font-size: 0.75em;
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        .reveal table th {
+            background: var(--heading-color);
+            color: white;
+            padding: 10px 14px;
+            text-align: left;
+        }
+
+        .reveal table td {
+            padding: 8px 14px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .reveal table tr:nth-child(even) {
+            background: #f7fafc;
+        }
+
+        /* Stat boxes */
+        .stat-box {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .stat-box .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: var(--accent-color);
+            display: block;
+        }
+
+        .stat-box .stat-label {
+            font-size: 0.8em;
+            color: var(--text-color);
+        }
+
+        /* Small text */
+        .small-text {
+            font-size: 0.7em;
+        }
+
+        /* Pre/code styles */
+        .reveal pre {
+            width: 100%;
+            margin: 10px 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+
+        .reveal pre code {
+            padding: 15px;
+            max-height: 500px;
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- Slide 1: Title -->
+            <section class="title-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h1>Audit Logging &amp; Compliance</h1>
+                <h2>Module 10</h2>
+                <h3>Kubernetes Security Course</h3>
+                <div class="course-badge">2-Day Hands-On Workshop</div>
+                <aside class="notes">Module 10 brings together audit logging and compliance — the foundations of security observability and regulatory alignment. Without audit logs, you cannot detect or investigate security incidents. Without compliance frameworks, you lack a structured approach to securing your clusters.</aside>
+            </section>
+
+            <!-- Slide 2: Module Objectives -->
+            <section>
+                <h2>Module Objectives</h2>
+                <ul>
+                    <li>Configure Kubernetes API server audit logging</li>
+                    <li>Design and implement audit policies with appropriate verbosity levels</li>
+                    <li>Analyze audit logs to detect suspicious activity</li>
+                    <li>Run CIS Benchmark scans with kube-bench</li>
+                    <li>Map Kubernetes controls to compliance frameworks</li>
+                    <li>Implement continuous compliance scanning with Polaris and Kubescape</li>
+                </ul>
+                <aside class="notes">By the end of this module, students will be able to set up a complete audit logging pipeline and understand how to maintain compliance posture in production Kubernetes clusters.</aside>
+            </section>
+
+            <!-- Slide 3: Why Audit Logging Matters -->
+            <section>
+                <h2>Why Audit Logging Matters</h2>
+                <div class="two-columns">
+                    <div class="card success">
+                        <h3>Security Benefits</h3>
+                        <ul>
+                            <li>Detect unauthorized access attempts</li>
+                            <li>Track privilege escalation</li>
+                            <li>Investigate security incidents</li>
+                            <li>Identify misconfigured RBAC</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h3>Compliance Requirements</h3>
+                        <ul>
+                            <li>Regulatory mandates (SOC 2, PCI-DSS)</li>
+                            <li>Evidence for auditors</li>
+                            <li>Change tracking and accountability</li>
+                            <li>Forensic investigation support</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">Audit logging is not optional in production — it is the foundation for both incident response and regulatory compliance. Every API request to the Kubernetes API server can be logged, providing complete visibility into cluster operations.</aside>
+            </section>
+
+            <!-- Slide 4: Section Divider - Audit Logging Configuration -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #4299e1 100%)">
+                <h2>Section 1</h2>
+                <h3>Audit Logging Configuration</h3>
+                <aside class="notes">We begin with the mechanics of enabling and configuring audit logging on the API server.</aside>
+            </section>
+
+            <!-- Slide 5: API Server Audit Flags -->
+            <section>
+                <h2>API Server Audit Flags</h2>
+                <p>The API server accepts several flags to control audit logging:</p>
+                <pre><code class="language-bash"># Core audit flags
+--audit-policy-file=/etc/kubernetes/audit-policy.yaml
+--audit-log-path=/var/log/kubernetes/audit.log
+
+# Log rotation settings
+--audit-log-maxage=30        # Days to retain old logs
+--audit-log-maxbackup=10     # Number of old log files to keep
+--audit-log-maxsize=100      # Max size in MB before rotation
+
+# Batch mode (performance tuning)
+--audit-log-batch-buffer-size=10000
+--audit-log-batch-max-wait=5s</code></pre>
+                <div class="highlight-box warning">
+                    <strong>Important:</strong> Both <code>--audit-policy-file</code> and <code>--audit-log-path</code> are required. Without a policy file, no events are logged.
+                </div>
+                <aside class="notes">The audit-policy-file defines WHAT to log, while audit-log-path defines WHERE to log it. Log rotation settings are critical for production — without them, audit logs can consume all available disk space.</aside>
+            </section>
+
+            <!-- Slide 6: Enabling Audit Logging in kind -->
+            <section>
+                <h2>Enabling Audit Logging in kind</h2>
+                <pre><code class="language-yaml">kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: ClusterConfiguration
+        apiServer:
+          extraArgs:
+            audit-policy-file: /etc/kubernetes/audit-policy.yaml
+            audit-log-path: /var/log/kubernetes/audit.log
+            audit-log-maxage: "30"
+            audit-log-maxbackup: "3"
+            audit-log-maxsize: "100"
+          extraVolumes:
+            - name: audit-policy
+              hostPath: /etc/kubernetes/audit-policy.yaml
+              mountPath: /etc/kubernetes/audit-policy.yaml
+              readOnly: true
+            - name: audit-logs
+              hostPath: /var/log/kubernetes/
+              mountPath: /var/log/kubernetes/
+              readOnly: false</code></pre>
+                <aside class="notes">In kind, we use kubeadmConfigPatches to configure the API server. The audit policy file must be mounted into the control-plane container. The log directory also needs a volume mount so logs persist and are accessible from the host.</aside>
+            </section>
+
+            <!-- Slide 7: Copying the Audit Policy into kind -->
+            <section>
+                <h2>Deploying the Audit Policy</h2>
+                <h3>Step-by-step for kind clusters</h3>
+                <pre><code class="language-bash"># 1. Create the kind cluster with the configuration above
+kind create cluster --config kind-audit-config.yaml --name audit-lab
+
+# 2. Copy the audit policy into the control-plane container
+docker cp audit-policy.yaml \
+  audit-lab-control-plane:/etc/kubernetes/audit-policy.yaml
+
+# 3. Restart the API server (kind automatically picks it up)
+docker exec audit-lab-control-plane \
+  kill -HUP $(docker exec audit-lab-control-plane \
+    pgrep kube-apiserver)
+
+# 4. Verify audit logs are being written
+docker exec audit-lab-control-plane \
+  ls -la /var/log/kubernetes/audit.log</code></pre>
+                <aside class="notes">For kind clusters, the audit policy must be placed inside the Docker container running the control plane. After updating the configuration, the API server needs to be restarted to pick up the new settings.</aside>
+            </section>
+
+            <!-- Slide 8: Section Divider - Audit Policies -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #4299e1 100%)">
+                <h2>Section 2</h2>
+                <h3>Audit Policies</h3>
+                <aside class="notes">The audit policy is the most important part of audit logging — it determines what gets recorded and at what level of detail.</aside>
+            </section>
+
+            <!-- Slide 9: Audit Policy Structure -->
+            <section>
+                <h2>Audit Policy Structure</h2>
+                <pre><code class="language-yaml">apiVersion: audit.k8s.io/v1
+kind: Policy
+# Stages where events can be omitted
+omitStages:
+  - "RequestReceived"
+rules:
+  # Rules are evaluated in order; first match wins
+  - level: None
+    resources:
+      - group: ""
+        resources: ["endpoints", "services", "services/status"]
+
+  - level: Metadata
+    resources:
+      - group: ""
+        resources: ["secrets", "configmaps"]
+
+  - level: Request
+    verbs: ["create", "update", "patch"]
+    resources:
+      - group: ""
+        resources: ["pods"]
+
+  - level: RequestResponse
+    resources:
+      - group: "rbac.authorization.k8s.io"</code></pre>
+                <aside class="notes">Audit policies follow a first-match-wins model. Rules are evaluated top-to-bottom, and the first rule that matches determines the audit level. The omitStages field filters out events at specific processing stages — RequestReceived is often omitted since it duplicates information from later stages.</aside>
+            </section>
+
+            <!-- Slide 10: Audit Levels Explained -->
+            <section>
+                <h2>Audit Levels</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Level</th>
+                            <th>What is Logged</th>
+                            <th>Use Case</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>None</code></td>
+                            <td>Nothing at all</td>
+                            <td>High-volume, low-risk endpoints (health checks)</td>
+                        </tr>
+                        <tr>
+                            <td><code>Metadata</code></td>
+                            <td>Request metadata (user, timestamp, resource, verb)</td>
+                            <td>General activity tracking</td>
+                        </tr>
+                        <tr>
+                            <td><code>Request</code></td>
+                            <td>Metadata + request body</td>
+                            <td>Write operations on sensitive resources</td>
+                        </tr>
+                        <tr>
+                            <td><code>RequestResponse</code></td>
+                            <td>Metadata + request body + response body</td>
+                            <td>Critical resources (RBAC, secrets access)</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="highlight-box warning">
+                    <strong>Performance trade-off:</strong> Higher levels capture more detail but generate significantly more log volume. <code>RequestResponse</code> on all resources can produce GBs of logs per day.
+                </div>
+                <aside class="notes">Choosing the right level is a balance between visibility and resource consumption. Most production deployments use a tiered approach — None for health checks, Metadata for most resources, Request for write operations, and RequestResponse only for the most sensitive resources like RBAC changes and secret access.</aside>
+            </section>
+
+            <!-- Slide 11: Rules Matching Deep Dive -->
+            <section>
+                <h2>Rules Matching in Detail</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Match Criteria</h3>
+                        <ul>
+                            <li><code>users</code> — specific user names</li>
+                            <li><code>userGroups</code> — group membership</li>
+                            <li><code>verbs</code> — API verbs (get, list, create, etc.)</li>
+                            <li><code>resources</code> — API resources</li>
+                            <li><code>namespaces</code> — target namespaces</li>
+                            <li><code>nonResourceURLs</code> — non-resource paths</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>Example: Targeted Rules</h3>
+                        <pre><code class="language-yaml">rules:
+  # Ignore system:nodes reads
+  - level: None
+    users: ["system:nodes"]
+    verbs: ["get", "list", "watch"]
+
+  # Log admin actions fully
+  - level: RequestResponse
+    userGroups:
+      - "system:masters"
+
+  # Log namespace changes
+  - level: Request
+    verbs: ["create", "delete"]
+    resources:
+      - group: ""
+        resources: ["namespaces"]</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">Rules can be very granular. You can combine multiple match criteria in a single rule — all specified criteria must match for the rule to apply. If a field is omitted, it matches everything for that criterion.</aside>
+            </section>
+
+            <!-- Slide 12: Practical Audit Policy -->
+            <section>
+                <h2>Production-Ready Audit Policy</h2>
+                <pre><code class="language-yaml">apiVersion: audit.k8s.io/v1
+kind: Policy
+omitStages: ["RequestReceived"]
+rules:
+  # 1. Skip noisy endpoints
+  - level: None
+    resources:
+      - group: ""
+        resources: ["endpoints", "services", "services/status"]
+    users: ["system:kube-proxy"]
+
+  # 2. Skip health checks and discovery
+  - level: None
+    nonResourceURLs: ["/healthz*", "/livez*", "/readyz*", "/version"]
+
+  # 3. Log secret access at Metadata level (avoid logging secret values)
+  - level: Metadata
+    resources:
+      - group: ""
+        resources: ["secrets"]
+
+  # 4. Log RBAC changes with full detail
+  - level: RequestResponse
+    resources:
+      - group: "rbac.authorization.k8s.io"
+
+  # 5. Log workload changes at Request level
+  - level: Request
+    verbs: ["create", "update", "patch", "delete"]
+    resources:
+      - group: ""
+        resources: ["pods", "deployments", "services"]
+      - group: "apps"
+        resources: ["deployments", "daemonsets", "statefulsets"]
+
+  # 6. Catch-all: metadata for everything else
+  - level: Metadata</code></pre>
+                <aside class="notes">This is a well-balanced policy for production. Note the important detail on secrets — we use Metadata level, NOT Request or RequestResponse, because those would log the actual secret values in the audit log, creating a security risk. The catch-all rule at the bottom ensures nothing goes completely unlogged.</aside>
+            </section>
+
+            <!-- Slide 13: Key Point -->
+            <section>
+                <div class="key-point">
+                    <p>"Never log secrets at Request or RequestResponse level — your audit logs would become a treasure trove for attackers."</p>
+                </div>
+                <aside class="notes">This is a common mistake. Logging secrets at the Request level writes the base64-encoded secret data directly into the audit log. If the audit log is compromised, all secrets that were accessed during that period are exposed.</aside>
+            </section>
+
+            <!-- Slide 14: Section Divider - Audit Backends -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #4299e1 100%)">
+                <h2>Section 3</h2>
+                <h3>Audit Backends</h3>
+                <aside class="notes">Kubernetes supports multiple backends for storing and forwarding audit events. Understanding the options helps you build a robust audit pipeline.</aside>
+            </section>
+
+            <!-- Slide 15: Log Backend vs Webhook Backend -->
+            <section>
+                <h2>Audit Backend Options</h2>
+                <div class="two-columns">
+                    <div class="card success">
+                        <h3>Log Backend</h3>
+                        <ul>
+                            <li>Writes JSON to local files</li>
+                            <li>Simple to configure</li>
+                            <li>Built-in log rotation</li>
+                            <li>Low latency impact</li>
+                            <li>Requires log shipping for centralization</li>
+                        </ul>
+                        <pre><code class="language-bash">--audit-log-path=/var/log/audit.log
+--audit-log-maxage=30
+--audit-log-maxbackup=10
+--audit-log-maxsize=100</code></pre>
+                    </div>
+                    <div class="card warning">
+                        <h3>Webhook Backend</h3>
+                        <ul>
+                            <li>Sends events via HTTP POST</li>
+                            <li>Direct integration with SIEM</li>
+                            <li>No local storage needed</li>
+                            <li>Potential latency impact</li>
+                            <li>Requires reliable endpoint</li>
+                        </ul>
+                        <pre><code class="language-bash">--audit-webhook-config-file=webhook.yaml
+--audit-webhook-batch-max-wait=5s
+--audit-webhook-batch-max-size=100</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">Most production clusters use both — the log backend as a reliable local store and the webhook backend for real-time forwarding to a SIEM. The webhook backend uses batching to minimize performance impact.</aside>
+            </section>
+
+            <!-- Slide 16: Structured JSON Audit Logs -->
+            <section>
+                <h2>Audit Log JSON Structure</h2>
+                <pre><code class="language-json">{
+  "kind": "Event",
+  "apiVersion": "audit.k8s.io/v1",
+  "level": "RequestResponse",
+  "auditID": "a]b12c34-d567-e890-f012-345678901234",
+  "stage": "ResponseComplete",
+  "requestURI": "/api/v1/namespaces/default/pods",
+  "verb": "create",
+  "user": {
+    "username": "jane@example.com",
+    "groups": ["developers", "system:authenticated"]
+  },
+  "sourceIPs": ["192.168.1.100"],
+  "userAgent": "kubectl/v1.28.0",
+  "objectRef": {
+    "resource": "pods",
+    "namespace": "default",
+    "name": "web-app-7d9f8b6c5-xk2lm",
+    "apiVersion": "v1"
+  },
+  "responseStatus": {
+    "metadata": {},
+    "code": 201
+  },
+  "requestReceivedTimestamp": "2025-01-15T14:30:22.123456Z",
+  "stageTimestamp": "2025-01-15T14:30:22.234567Z"
+}</code></pre>
+                <aside class="notes">Each audit event is a self-contained JSON object. The key fields for security analysis are: user (who), verb (what action), objectRef (on what resource), responseStatus (was it allowed), and sourceIPs (from where). The auditID links events across stages.</aside>
+            </section>
+
+            <!-- Slide 17: Webhook Configuration -->
+            <section>
+                <h2>Webhook Backend Configuration</h2>
+                <pre><code class="language-yaml"># webhook-config.yaml
+apiVersion: v1
+kind: Config
+clusters:
+  - name: audit-webhook
+    cluster:
+      server: https://siem.example.com/k8s-audit
+      certificate-authority: /etc/kubernetes/pki/webhook-ca.crt
+contexts:
+  - name: audit-webhook
+    context:
+      cluster: audit-webhook
+      user: audit-webhook
+current-context: audit-webhook
+users:
+  - name: audit-webhook
+    user:
+      client-certificate: /etc/kubernetes/pki/webhook-client.crt
+      client-key: /etc/kubernetes/pki/webhook-client.key</code></pre>
+                <div class="highlight-box">
+                    <strong>Performance tip:</strong> Use batch mode with <code>--audit-webhook-batch-max-wait=5s</code> to reduce the number of HTTP requests. Ensure the webhook endpoint has high availability — a down endpoint can cause API server throttling.
+                </div>
+                <aside class="notes">The webhook configuration uses the standard kubeconfig format. mTLS is recommended for securing the webhook endpoint. In production, the webhook endpoint should be highly available — consider running it as a cluster service or using a managed SIEM endpoint.</aside>
+            </section>
+
+            <!-- Slide 18: Section Divider - Analyzing Audit Logs -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #4299e1 100%)">
+                <h2>Section 4</h2>
+                <h3>Analyzing Audit Logs</h3>
+                <aside class="notes">Collecting audit logs is only half the story. You need to know how to query and analyze them to extract actionable security insights.</aside>
+            </section>
+
+            <!-- Slide 19: Key Fields for Analysis -->
+            <section>
+                <h2>Key Audit Log Fields</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Field</th>
+                            <th>Description</th>
+                            <th>Security Relevance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>user.username</code></td>
+                            <td>Identity of the requester</td>
+                            <td>Track who performed actions</td>
+                        </tr>
+                        <tr>
+                            <td><code>verb</code></td>
+                            <td>API operation</td>
+                            <td>Identify write vs read operations</td>
+                        </tr>
+                        <tr>
+                            <td><code>objectRef.resource</code></td>
+                            <td>Target resource type</td>
+                            <td>Focus on sensitive resources</td>
+                        </tr>
+                        <tr>
+                            <td><code>responseStatus.code</code></td>
+                            <td>HTTP status code</td>
+                            <td>403s indicate unauthorized attempts</td>
+                        </tr>
+                        <tr>
+                            <td><code>sourceIPs</code></td>
+                            <td>Client IP addresses</td>
+                            <td>Detect access from unexpected locations</td>
+                        </tr>
+                        <tr>
+                            <td><code>userAgent</code></td>
+                            <td>Client tool identifier</td>
+                            <td>Spot unusual tooling</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <aside class="notes">When investigating incidents, start with these fields. The combination of user + verb + resource tells you WHO did WHAT to WHICH resource. The responseStatus tells you if it succeeded. sourceIPs and userAgent provide context about HOW and FROM WHERE.</aside>
+            </section>
+
+            <!-- Slide 20: Using jq to Query Audit Logs -->
+            <section>
+                <h2>Querying Audit Logs with jq</h2>
+                <pre><code class="language-bash"># Find all failed requests (403 Forbidden)
+cat audit.log | jq 'select(.responseStatus.code == 403)' \
+  | jq '{user: .user.username, verb: .verb,
+         resource: .objectRef.resource, ns: .objectRef.namespace}'
+
+# List all users who accessed secrets
+cat audit.log | jq 'select(.objectRef.resource == "secrets")' \
+  | jq -r '.user.username' | sort | uniq -c | sort -rn
+
+# Find all pod deletions
+cat audit.log | jq 'select(.verb == "delete" and
+  .objectRef.resource == "pods")' \
+  | jq '{user: .user.username, pod: .objectRef.name,
+         ns: .objectRef.namespace, time: .requestReceivedTimestamp}'
+
+# Track RBAC changes
+cat audit.log | jq 'select(
+  .objectRef.apiGroup == "rbac.authorization.k8s.io" and
+  (.verb == "create" or .verb == "update" or .verb == "delete"))' \
+  | jq '{user: .user.username, verb: .verb,
+         resource: .objectRef.resource, name: .objectRef.name}'</code></pre>
+                <aside class="notes">jq is the essential tool for working with Kubernetes audit logs. Each line in the audit log file is a separate JSON object, so you can pipe it through jq for filtering and field extraction. These queries form the foundation of manual incident investigation.</aside>
+            </section>
+
+            <!-- Slide 21: Detecting Suspicious Patterns -->
+            <section>
+                <h2>Detecting Suspicious Activity Patterns</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Red Flags to Watch For</h3>
+                        <ul>
+                            <li>Excessive 403 errors from a single user</li>
+                            <li>Secret access from unexpected service accounts</li>
+                            <li>RBAC modifications outside change windows</li>
+                            <li>Pod exec/attach from unknown sources</li>
+                            <li>Namespace creation by non-admin users</li>
+                            <li>Unusual API access patterns at odd hours</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>Detection Queries</h3>
+                        <pre><code class="language-bash"># Brute-force detection:
+# many 403s from one user
+cat audit.log | jq -r \
+  'select(.responseStatus.code == 403)
+   | .user.username' \
+  | sort | uniq -c | sort -rn \
+  | head -10
+
+# Pod exec tracking
+cat audit.log | jq \
+  'select(.objectRef.subresource
+    == "exec")' \
+  | jq '{user: .user.username,
+    pod: .objectRef.name,
+    ns: .objectRef.namespace}'</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">These patterns are common indicators of compromise or attempted compromise. In production, these queries should be automated and tied to alerting systems. A sudden spike in 403 errors often indicates credential stuffing or privilege escalation attempts.</aside>
+            </section>
+
+            <!-- Slide 22: Advanced jq Queries -->
+            <section>
+                <h2>Advanced Audit Log Queries</h2>
+                <pre><code class="language-bash"># Timeline of events for a specific user (incident response)
+cat audit.log | jq 'select(.user.username == "suspect-user")' \
+  | jq -r '[.requestReceivedTimestamp, .verb,
+    .objectRef.resource, .objectRef.name,
+    .responseStatus.code] | @tsv' | sort
+
+# Find all actions from a specific source IP
+cat audit.log | jq 'select(.sourceIPs[] == "10.0.1.55")' \
+  | jq '{time: .requestReceivedTimestamp, user: .user.username,
+         verb: .verb, resource: .objectRef.resource}'
+
+# Aggregate activity by user and resource (heatmap data)
+cat audit.log | jq -r '[.user.username, .objectRef.resource, .verb]
+  | @tsv' | sort | uniq -c | sort -rn | head -20
+
+# Find requests with unusually large response bodies
+cat audit.log | jq 'select(.responseObject != null)' \
+  | jq '{user: .user.username, resource: .objectRef.resource,
+         size: (.responseObject | tostring | length)}'  \
+  | jq 'select(.size > 10000)'</code></pre>
+                <aside class="notes">These advanced queries are useful during incident response. The timeline query helps reconstruct an attacker's actions. The source IP query helps determine the origin of suspicious activity. The aggregation query helps build a profile of normal vs abnormal behavior.</aside>
+            </section>
+
+            <!-- Slide 23: Section Divider - CIS Benchmarks -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #4299e1 100%)">
+                <h2>Section 5</h2>
+                <h3>CIS Kubernetes Benchmarks</h3>
+                <aside class="notes">The CIS Kubernetes Benchmark is the industry-standard security configuration guide for Kubernetes clusters. It provides prescriptive guidance for hardening every component of a Kubernetes deployment.</aside>
+            </section>
+
+            <!-- Slide 24: CIS Benchmark Overview -->
+            <section>
+                <h2>CIS Kubernetes Benchmark</h2>
+                <div class="concept-box">
+                    <p>The <strong>Center for Internet Security (CIS)</strong> Kubernetes Benchmark provides a comprehensive set of security configuration recommendations organized by cluster component.</p>
+                </div>
+                <div class="three-columns">
+                    <div class="card">
+                        <h3>Control Plane</h3>
+                        <ul class="small-text">
+                            <li>API server configuration</li>
+                            <li>Controller manager</li>
+                            <li>Scheduler settings</li>
+                            <li>etcd security</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3>Worker Nodes</h3>
+                        <ul class="small-text">
+                            <li>Kubelet configuration</li>
+                            <li>Kubelet file permissions</li>
+                            <li>Kube-proxy settings</li>
+                            <li>Container runtime</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3>Policies</h3>
+                        <ul class="small-text">
+                            <li>RBAC and service accounts</li>
+                            <li>Pod security</li>
+                            <li>Network policies</li>
+                            <li>Secrets management</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">The CIS Benchmark is regularly updated to keep pace with new Kubernetes releases. It provides two profile levels: Level 1 (practical security settings) and Level 2 (defense-in-depth settings that may impact functionality). Most organizations target Level 1 compliance at minimum.</aside>
+            </section>
+
+            <!-- Slide 25: Benchmark Structure -->
+            <section>
+                <h2>Benchmark Structure</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Section</th>
+                            <th>Focus Area</th>
+                            <th>Example Controls</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1.x</td>
+                            <td>Control Plane Components</td>
+                            <td>API server flags, auth modes, TLS</td>
+                        </tr>
+                        <tr>
+                            <td>2.x</td>
+                            <td>etcd</td>
+                            <td>Encryption, peer auth, file permissions</td>
+                        </tr>
+                        <tr>
+                            <td>3.x</td>
+                            <td>Control Plane Configuration</td>
+                            <td>Authentication, admission controllers</td>
+                        </tr>
+                        <tr>
+                            <td>4.x</td>
+                            <td>Worker Nodes</td>
+                            <td>Kubelet auth, file permissions</td>
+                        </tr>
+                        <tr>
+                            <td>5.x</td>
+                            <td>Policies</td>
+                            <td>RBAC, PSA, network policies, secrets</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="highlight-box">
+                    <strong>Scoring:</strong> Each control is either <em>Scored</em> (automated pass/fail) or <em>Not Scored</em> (manual verification required).
+                </div>
+                <aside class="notes">Understanding the benchmark structure helps you prioritize remediation. Section 1 (Control Plane) is the most critical because a misconfigured API server can undermine all other security controls. Section 5 (Policies) often has the most findings because it covers operational practices.</aside>
+            </section>
+
+            <!-- Slide 26: kube-bench Tool -->
+            <section>
+                <h2>kube-bench: Automated CIS Scanning</h2>
+                <div class="highlight-box success">
+                    <strong>kube-bench</strong> is an open-source tool by Aqua Security that automates CIS Kubernetes Benchmark checks against your cluster.
+                </div>
+                <pre><code class="language-bash"># Run kube-bench as a Job in the cluster
+kubectl apply -f https://raw.githubusercontent.com/aquasecurity/\
+kube-bench/main/job.yaml
+
+# View results
+kubectl logs job/kube-bench
+
+# Run specific sections
+kubectl run kube-bench --image=aquasec/kube-bench:latest \
+  --restart=Never -- run --targets=master
+
+# Run on worker nodes
+kubectl run kube-bench-node --image=aquasec/kube-bench:latest \
+  --restart=Never -- run --targets=node</code></pre>
+                <aside class="notes">kube-bench runs the CIS checks as a Kubernetes Job, so it has access to the node's filesystem and process information. It automatically detects the Kubernetes version and selects the appropriate benchmark version. Results are output to stdout and can be collected from pod logs.</aside>
+            </section>
+
+            <!-- Slide 27: Running kube-bench in kind -->
+            <section>
+                <h2>kube-bench in kind Clusters</h2>
+                <pre><code class="language-yaml"># kube-bench-job.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kube-bench
+spec:
+  template:
+    spec:
+      hostPID: true
+      containers:
+        - name: kube-bench
+          image: aquasec/kube-bench:latest
+          command: ["kube-bench", "run", "--targets=master,node"]
+          volumeMounts:
+            - name: var-lib-kubelet
+              mountPath: /var/lib/kubelet
+              readOnly: true
+            - name: etc-kubernetes
+              mountPath: /etc/kubernetes
+              readOnly: true
+      restartPolicy: Never
+      volumes:
+        - name: var-lib-kubelet
+          hostPath:
+            path: /var/lib/kubelet
+        - name: etc-kubernetes
+          hostPath:
+            path: /etc/kubernetes</code></pre>
+                <div class="highlight-box warning">
+                    <strong>Note:</strong> kube-bench requires <code>hostPID: true</code> and host filesystem mounts to inspect the running API server process and configuration files.
+                </div>
+                <aside class="notes">Running kube-bench in kind requires special permissions because it needs to inspect the host process table and configuration files. This is why hostPID and hostPath mounts are required. In production, kube-bench is typically run as a DaemonSet to check every node.</aside>
+            </section>
+
+            <!-- Slide 28: Interpreting kube-bench Results -->
+            <section>
+                <h2>Interpreting kube-bench Results</h2>
+                <pre><code class="language-text">[INFO] 1 Control Plane Security Configuration
+[INFO] 1.1 Control Plane Node Configuration Files
+[PASS] 1.1.1 Ensure API server pod specification file permissions (644)
+[PASS] 1.1.2 Ensure API server pod specification file ownership (root:root)
+[FAIL] 1.1.3 Ensure controller manager pod spec file permissions (644)
+[WARN] 1.1.4 Ensure controller manager pod spec file ownership (root:root)
+
+== Remediations master ==
+1.1.3 Run: chmod 644 /etc/kubernetes/manifests/kube-controller-manager.yaml
+1.1.4 Run: chown root:root /etc/kubernetes/manifests/kube-controller-manager.yaml
+
+== Summary master ==
+42 checks PASS
+12 checks FAIL
+8 checks WARN
+5 checks INFO</code></pre>
+                <div class="two-columns">
+                    <div class="highlight-box success"><strong>PASS</strong> — Control is properly configured</div>
+                    <div class="highlight-box danger"><strong>FAIL</strong> — Requires remediation</div>
+                </div>
+                <aside class="notes">kube-bench provides clear remediation instructions for each failed check. WARN results require manual verification — they cannot be automatically determined. Focus on FAIL results first, then address WARN results. The summary gives you a quick compliance snapshot.</aside>
+            </section>
+
+            <!-- Slide 29: Remediation Examples -->
+            <section>
+                <h2>CIS Benchmark Remediation</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Common Findings</h3>
+                        <pre><code class="language-bash"># Fix file permissions
+chmod 644 /etc/kubernetes/manifests/*.yaml
+chmod 600 /etc/kubernetes/pki/*.key
+chown root:root /etc/kubernetes/admin.conf
+
+# Enable audit logging (1.2.22-1.2.25)
+# Add to API server manifest:
+--audit-policy-file=/etc/kubernetes/audit.yaml
+--audit-log-path=/var/log/audit.log
+--audit-log-maxage=30
+--audit-log-maxsize=100
+
+# Disable profiling (1.2.21)
+--profiling=false</code></pre>
+                    </div>
+                    <div>
+                        <h3>API Server Hardening</h3>
+                        <pre><code class="language-bash"># Disable anonymous auth (1.2.1)
+--anonymous-auth=false
+
+# Enable RBAC (1.2.8)
+--authorization-mode=Node,RBAC
+
+# Enable admission controllers
+--enable-admission-plugins=\
+  NodeRestriction,\
+  PodSecurity,\
+  ServiceAccount
+
+# Set secure TLS ciphers (1.2.31)
+--tls-cipher-suites=\
+  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,\
+  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">Remediation should be applied carefully in production. Always test changes in a staging environment first. Some changes (like disabling anonymous auth) can break monitoring systems that rely on unauthenticated health check endpoints. Follow your change management process for control plane modifications.</aside>
+            </section>
+
+            <!-- Slide 30: Section Divider - Compliance Frameworks -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #4299e1 100%)">
+                <h2>Section 6</h2>
+                <h3>Compliance Frameworks</h3>
+                <aside class="notes">With CIS benchmarks understood, we now map Kubernetes security controls to industry compliance frameworks. Organizations running Kubernetes must often demonstrate compliance with one or more of these standards.</aside>
+            </section>
+
+            <!-- Slide 31: Compliance Frameworks Overview -->
+            <section>
+                <h2>Compliance Frameworks &amp; Kubernetes</h2>
+                <div class="two-columns">
+                    <div class="card">
+                        <h3>SOC 2</h3>
+                        <ul class="small-text">
+                            <li>Trust Service Criteria: Security, Availability, Confidentiality</li>
+                            <li><strong>K8s requirements:</strong> Access control (RBAC), audit logging, encryption, change management</li>
+                            <li>Evidence: Audit logs, RBAC configurations, network policies</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3>PCI-DSS</h3>
+                        <ul class="small-text">
+                            <li>Payment card industry data security</li>
+                            <li><strong>K8s requirements:</strong> Network segmentation, access control, log monitoring, vulnerability scanning</li>
+                            <li>Evidence: Network policies, scan reports, audit trails</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="two-columns" style="margin-top: 15px;">
+                    <div class="card">
+                        <h3>HIPAA</h3>
+                        <ul class="small-text">
+                            <li>Healthcare data protection</li>
+                            <li><strong>K8s requirements:</strong> PHI encryption at rest/transit, access controls, audit trails, integrity controls</li>
+                            <li>Evidence: Encryption configs, RBAC, audit logs</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3>ISO 27001</h3>
+                        <ul class="small-text">
+                            <li>Information security management</li>
+                            <li><strong>K8s requirements:</strong> Risk assessment, access control, cryptography, operations security</li>
+                            <li>Evidence: Security policies, configs, monitoring data</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">Each framework has different requirements but they overlap significantly in the Kubernetes context. RBAC, audit logging, encryption, and network segmentation are common across all four. Understanding these mappings lets you implement controls once and satisfy multiple frameworks.</aside>
+            </section>
+
+            <!-- Slide 32: Mapping CIS Controls to Frameworks -->
+            <section>
+                <h2>CIS Controls to Compliance Mapping</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>CIS Control</th>
+                            <th>SOC 2</th>
+                            <th>PCI-DSS</th>
+                            <th>HIPAA</th>
+                            <th>ISO 27001</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>RBAC enabled (1.2.8)</td>
+                            <td>CC6.1</td>
+                            <td>7.1</td>
+                            <td>164.312(a)</td>
+                            <td>A.9.2</td>
+                        </tr>
+                        <tr>
+                            <td>Audit logging (1.2.22)</td>
+                            <td>CC7.2</td>
+                            <td>10.1</td>
+                            <td>164.312(b)</td>
+                            <td>A.12.4</td>
+                        </tr>
+                        <tr>
+                            <td>Encryption at rest (1.2.29)</td>
+                            <td>CC6.7</td>
+                            <td>3.4</td>
+                            <td>164.312(a)(2)(iv)</td>
+                            <td>A.10.1</td>
+                        </tr>
+                        <tr>
+                            <td>Network policies (5.3)</td>
+                            <td>CC6.6</td>
+                            <td>1.2</td>
+                            <td>164.312(e)</td>
+                            <td>A.13.1</td>
+                        </tr>
+                        <tr>
+                            <td>Pod security (5.2)</td>
+                            <td>CC6.1</td>
+                            <td>6.2</td>
+                            <td>164.312(a)</td>
+                            <td>A.14.2</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <aside class="notes">This mapping table is valuable for compliance teams. It shows how a single Kubernetes security control can satisfy requirements across multiple frameworks. This makes it more efficient to implement — you configure the control once and can provide evidence for multiple audits.</aside>
+            </section>
+
+            <!-- Slide 33: Evidence Collection -->
+            <section>
+                <h2>Evidence Collection for Auditors</h2>
+                <pre><code class="language-bash"># RBAC evidence: export current roles and bindings
+kubectl get clusterroles,clusterrolebindings -o yaml > rbac-evidence.yaml
+kubectl get roles,rolebindings --all-namespaces -o yaml >> rbac-evidence.yaml
+
+# Network policy evidence
+kubectl get networkpolicies --all-namespaces -o yaml > netpol-evidence.yaml
+
+# Pod security evidence
+kubectl get pods --all-namespaces -o json | jq '.items[] | {
+  name: .metadata.name, namespace: .metadata.namespace,
+  securityContext: .spec.securityContext,
+  containerSecurity: [.spec.containers[].securityContext]
+}' > pod-security-evidence.json
+
+# Encryption configuration evidence
+kubectl get secrets --all-namespaces --field-selector type=Opaque \
+  -o custom-columns=NS:.metadata.namespace,NAME:.metadata.name
+
+# Audit log sample (last 24 hours)
+cat audit.log | jq 'select(.requestReceivedTimestamp > "2025-01-14T00:00:00Z")' \
+  > audit-sample-evidence.json</code></pre>
+                <aside class="notes">Auditors typically want to see both the configuration (what should happen) and the evidence (what did happen). Collecting this evidence regularly and storing it in a secure location makes audit preparation much smoother. Consider automating evidence collection as a CronJob.</aside>
+            </section>
+
+            <!-- Slide 34: Section Divider - Continuous Compliance -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #2b6cb0 0%, #4299e1 100%)">
+                <h2>Section 7</h2>
+                <h3>Continuous Compliance</h3>
+                <aside class="notes">Point-in-time audits are necessary but not sufficient. Continuous compliance ensures that your cluster stays compliant between audits and catches drift immediately.</aside>
+            </section>
+
+            <!-- Slide 35: Polaris -->
+            <section>
+                <h2>Polaris: Workload Compliance</h2>
+                <div class="highlight-box success">
+                    <strong>Polaris</strong> by Fairwinds validates Kubernetes workload configurations against security and operational best practices.
+                </div>
+                <div class="two-columns">
+                    <div>
+                        <h3>What Polaris Checks</h3>
+                        <ul>
+                            <li>Resource requests and limits</li>
+                            <li>Security context settings</li>
+                            <li>Health check probes</li>
+                            <li>Image pull policies</li>
+                            <li>Privileged containers</li>
+                            <li>Host namespace usage</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>Running Polaris</h3>
+                        <pre><code class="language-bash"># Install Polaris CLI
+brew install FairwindsOps/tap/polaris
+
+# Run audit against cluster
+polaris audit \
+  --format=pretty
+
+# Run against a single file
+polaris audit \
+  --audit-path deployment.yaml
+
+# Run as dashboard
+polaris dashboard \
+  --port 8080</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">Polaris provides three modes: CLI audit for CI/CD integration, a dashboard for visual monitoring, and a webhook for admission control. The CLI mode is ideal for automated compliance scanning, while the dashboard gives teams visibility into their compliance posture.</aside>
+            </section>
+
+            <!-- Slide 36: Polaris Results -->
+            <section>
+                <h2>Polaris Audit Results</h2>
+                <pre><code class="language-json">{
+  "PolarisOutputVersion": "1.0",
+  "AuditTime": "2025-01-15T14:30:00Z",
+  "Score": 72,
+  "Results": [{
+    "Name": "web-app",
+    "Namespace": "default",
+    "Kind": "Deployment",
+    "Results": {
+      "cpuLimitsMissing": {"ID": "cpuLimitsMissing", "Severity": "warning",
+        "Success": false, "Message": "CPU limits should be set"},
+      "runAsRootAllowed": {"ID": "runAsRootAllowed", "Severity": "danger",
+        "Success": false, "Message": "Should not be allowed to run as root"},
+      "readinessProbeMissing": {"ID": "readinessProbeMissing",
+        "Severity": "warning", "Success": false,
+        "Message": "Readiness probe should be configured"},
+      "hostNetworkSet": {"ID": "hostNetworkSet", "Severity": "danger",
+        "Success": true, "Message": "Host network is not configured"}
+    }
+  }]
+}</code></pre>
+                <aside class="notes">The Polaris score gives a quick snapshot of workload compliance. Scores below 70 typically indicate significant security gaps. Focus on danger-severity items first, as these represent the highest risk. The JSON output can be parsed and fed into dashboards or alerting systems.</aside>
+            </section>
+
+            <!-- Slide 37: Kubescape -->
+            <section>
+                <h2>Kubescape: Comprehensive Security Scanning</h2>
+                <div class="concept-box">
+                    <p><strong>Kubescape</strong> is a CNCF project that scans clusters against multiple frameworks including CIS, NSA-CISA, MITRE ATT&amp;CK, and custom frameworks.</p>
+                </div>
+                <pre><code class="language-bash"># Install Kubescape
+curl -s https://raw.githubusercontent.com/kubescape/kubescape/master/\
+install.sh | /bin/bash
+
+# Scan against all frameworks
+kubescape scan --verbose
+
+# Scan against specific framework
+kubescape scan framework cis-v1.23-t1.0.1
+
+# Scan against NSA-CISA hardening guide
+kubescape scan framework nsa
+
+# Scan a specific namespace
+kubescape scan --include-namespaces production
+
+# Export results as JSON
+kubescape scan --format json --output results.json</code></pre>
+                <aside class="notes">Kubescape covers more ground than kube-bench because it examines workload configurations in addition to cluster infrastructure. The MITRE ATT&CK framework mapping is particularly valuable for understanding how misconfigurations could be exploited by attackers.</aside>
+            </section>
+
+            <!-- Slide 38: Policy-as-Code for Compliance -->
+            <section>
+                <h2>Policy-as-Code for Compliance</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Approach</h3>
+                        <ul>
+                            <li>Define compliance requirements as code</li>
+                            <li>Version control policies alongside infrastructure</li>
+                            <li>Enforce at admission time (preventive)</li>
+                            <li>Scan continuously (detective)</li>
+                            <li>Automate remediation where possible</li>
+                        </ul>
+                        <div class="highlight-box success">
+                            <strong>Shift left:</strong> Catch violations before they reach the cluster, not after.
+                        </div>
+                    </div>
+                    <div>
+                        <h3>Tools Stack</h3>
+                        <pre><code class="language-yaml"># CI/CD Pipeline
+stages:
+  - lint:
+      - polaris audit --audit-path .
+      - kubescape scan *.yaml
+
+  - admission:
+      # OPA Gatekeeper / Kyverno
+      - enforce pod security
+      - enforce network policies
+      - enforce resource limits
+
+  - runtime:
+      # Continuous scanning
+      - kubescape operator
+      - polaris controller
+      - kube-bench cronjob</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">Policy-as-code ensures that compliance requirements are treated with the same rigor as application code — they are reviewed, tested, versioned, and deployed through CI/CD. This eliminates configuration drift and makes compliance reproducible.</aside>
+            </section>
+
+            <!-- Slide 39: Compliance Dashboards -->
+            <section>
+                <h2>Compliance Dashboards &amp; Reporting</h2>
+                <div class="three-columns">
+                    <div class="card success">
+                        <h3>Polaris Dashboard</h3>
+                        <ul class="small-text">
+                            <li>Workload scores by namespace</li>
+                            <li>Severity breakdown</li>
+                            <li>Trend tracking over time</li>
+                            <li>Drill-down to individual checks</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3>Kubescape Dashboard</h3>
+                        <ul class="small-text">
+                            <li>Multi-framework compliance view</li>
+                            <li>Risk-based prioritization</li>
+                            <li>Control-level pass/fail rates</li>
+                            <li>Cluster comparison</li>
+                        </ul>
+                    </div>
+                    <div class="card warning">
+                        <h3>Custom Grafana</h3>
+                        <ul class="small-text">
+                            <li>Aggregate from multiple tools</li>
+                            <li>Custom compliance metrics</li>
+                            <li>Alerting on regression</li>
+                            <li>Historical trend analysis</li>
+                        </ul>
+                    </div>
+                </div>
+                <pre><code class="language-bash"># Deploy Polaris dashboard in-cluster
+helm repo add fairwinds-stable https://charts.fairwinds.com/stable
+helm install polaris fairwinds-stable/polaris --namespace polaris \
+  --create-namespace --set dashboard.enable=true</code></pre>
+                <aside class="notes">Dashboards provide executive-level visibility into compliance status. For multi-cluster environments, consider aggregating results into a central Grafana instance. Alerting on compliance score drops enables rapid response to configuration drift.</aside>
+            </section>
+
+            <!-- Slide 40: Automating Evidence Collection -->
+            <section>
+                <h2>Automating Evidence Collection</h2>
+                <pre><code class="language-yaml"># compliance-evidence-cronjob.yaml
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: compliance-evidence
+  namespace: compliance
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: compliance-collector
+          containers:
+            - name: collector
+              image: bitnami/kubectl:latest
+              command: ["/bin/sh", "-c"]
+              args:
+                - |
+                  # Collect RBAC state
+                  kubectl get clusterroles,clusterrolebindings -o yaml \
+                    > /evidence/rbac-$(date +%Y%m%d).yaml
+                  # Collect network policies
+                  kubectl get networkpolicies -A -o yaml \
+                    > /evidence/netpol-$(date +%Y%m%d).yaml
+                  # Collect pod security contexts
+                  kubectl get pods -A -o json | jq '.items[] | {
+                    name: .metadata.name, ns: .metadata.namespace,
+                    sc: .spec.securityContext}' \
+                    > /evidence/podsec-$(date +%Y%m%d).json
+              volumeMounts:
+                - name: evidence
+                  mountPath: /evidence
+          volumes:
+            - name: evidence
+              persistentVolumeClaim:
+                claimName: compliance-evidence-pvc
+          restartPolicy: OnFailure</code></pre>
+                <aside class="notes">Automated evidence collection runs daily and stores snapshots of your security configuration. This creates a timeline that auditors can review and is invaluable for detecting when and how configurations changed. Store evidence in a tamper-evident system for maximum credibility.</aside>
+            </section>
+
+            <!-- Slide 41: Drift Detection -->
+            <section>
+                <h2>Configuration Drift Detection</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>What is Drift?</h3>
+                        <div class="highlight-box danger">
+                            <p><strong>Drift</strong> occurs when the actual cluster state diverges from the desired secure baseline — often due to manual changes, emergency patches, or misconfigured automation.</p>
+                        </div>
+                        <h3>Detection Methods</h3>
+                        <ul>
+                            <li>GitOps comparison (desired vs actual)</li>
+                            <li>Scheduled kube-bench scans</li>
+                            <li>Admission controller alerts</li>
+                            <li>Audit log monitoring for config changes</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3>Drift Detection Query</h3>
+                        <pre><code class="language-bash"># Detect RBAC changes via audit logs
+cat audit.log | jq 'select(
+  .objectRef.apiGroup ==
+    "rbac.authorization.k8s.io" and
+  .verb != "get" and
+  .verb != "list" and
+  .verb != "watch")' | jq '{
+    time: .requestReceivedTimestamp,
+    user: .user.username,
+    action: .verb,
+    resource: .objectRef.resource,
+    name: .objectRef.name
+}'
+
+# Compare kube-bench runs
+diff <(cat baseline-results.json | \
+  jq '.Controls[].Tests[].Results[] |
+  select(.status == "FAIL") | .test_number') \
+  <(cat current-results.json | \
+  jq '.Controls[].Tests[].Results[] |
+  select(.status == "FAIL") | .test_number')</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">Drift detection is the bridge between point-in-time audits and continuous compliance. By comparing current state against a known-good baseline, you can detect and remediate changes before they become audit findings. GitOps-based deployments naturally resist drift because all changes must go through version control.</aside>
+            </section>
+
+            <!-- Slide 42: Key Point -->
+            <section>
+                <div class="key-point">
+                    <p>"Compliance is not a destination — it is a continuous process. Automate everything you can, and monitor everything you cannot automate."</p>
+                </div>
+                <aside class="notes">This mindset shift is critical. Compliance is often treated as a periodic event, but Kubernetes environments change constantly. Continuous compliance tooling ensures that you maintain your security posture every day, not just on audit day.</aside>
+            </section>
+
+            <!-- Slide 43: Module Summary -->
+            <section>
+                <h2>Module 10 Summary</h2>
+                <ul class="takeaway-list">
+                    <li>Audit logging captures all API server interactions for security analysis and compliance evidence</li>
+                    <li>Audit policies control verbosity — use appropriate levels to balance detail against log volume</li>
+                    <li>jq is the essential tool for querying structured audit log data and detecting suspicious patterns</li>
+                    <li>CIS Kubernetes Benchmarks provide the standard security baseline; kube-bench automates the checks</li>
+                    <li>Compliance frameworks (SOC 2, PCI-DSS, HIPAA, ISO 27001) share overlapping Kubernetes requirements</li>
+                    <li>Polaris and Kubescape enable continuous compliance scanning beyond infrastructure checks</li>
+                    <li>Automate evidence collection and drift detection to maintain compliance between audits</li>
+                </ul>
+                <aside class="notes">This module covered the complete compliance lifecycle — from configuring audit logging, through analyzing logs for security events, to implementing continuous compliance scanning. The key takeaway is that compliance must be automated and continuous, not manual and periodic.</aside>
+            </section>
+
+            <!-- Slide 44: Lab Callout -->
+            <section class="lab-callout" data-background="linear-gradient(135deg, #2f855a 0%, #48bb78 100%)">
+                <div class="lab-badge">Hands-On Lab</div>
+                <h2>Lab 10: Audit Logging &amp; Compliance</h2>
+                <h3>Duration: 60 minutes</h3>
+                <div class="lab-description">
+                    <ul>
+                        <li>Configure audit logging policies on your kind cluster</li>
+                        <li>Generate and analyze audit logs using jq queries</li>
+                        <li>Run kube-bench CIS benchmark scans and interpret results</li>
+                        <li>Use Polaris for workload compliance checking</li>
+                    </ul>
+                </div>
+                <aside class="notes">This lab brings together all the concepts from the module. Students will configure a complete audit logging pipeline, generate activity to populate the logs, write jq queries to analyze the logs, and run both infrastructure (kube-bench) and workload (Polaris) compliance scans. Allow extra time for students working through jq syntax.</aside>
+            </section>
+
+            <!-- Slide 45: Up Next -->
+            <section>
+                <h2>Up Next</h2>
+                <div class="concept-box">
+                    <h3>Module 11 — Service Mesh Security</h3>
+                    <ul>
+                        <li>Service mesh architecture and security benefits</li>
+                        <li>mTLS between services with Istio/Linkerd</li>
+                        <li>Authorization policies at the mesh layer</li>
+                        <li>Observability and traffic management for security</li>
+                    </ul>
+                </div>
+                <aside class="notes">Module 11 extends security to the service-to-service communication layer. While Kubernetes network policies operate at L3/L4, service meshes provide L7 security including mutual TLS, fine-grained authorization, and encrypted service-to-service communication.</aside>
+            </section>
+
+            <!-- Slide 46: Questions -->
+            <section class="questions-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2>Questions?</h2>
+                <p>Module 10: Audit Logging &amp; Compliance</p>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/notes/notes.min.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: true,
+            plugins: [RevealHighlight, RevealNotes]
+        });
+    </script>
+</body>
+</html>

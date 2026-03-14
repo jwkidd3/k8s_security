@@ -1,0 +1,1652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module 2: Authentication &amp; Authorization</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/theme/white.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/monokai.min.css">
+
+    <style>
+        :root {
+            --heading-color: #1a365d;
+            --accent-color: #2b6cb0;
+            --success-color: #2f855a;
+            --warning-color: #c05621;
+            --danger-color: #c53030;
+            --text-color: #2d3748;
+        }
+
+        .reveal {
+            font-size: 28px;
+            color: var(--text-color);
+        }
+
+        .reveal h1 {
+            font-size: 1.8em;
+            color: var(--heading-color);
+        }
+
+        .reveal h2 {
+            font-size: 1.4em;
+            color: var(--heading-color);
+        }
+
+        .reveal h3 {
+            font-size: 1.1em;
+            color: var(--accent-color);
+        }
+
+        .reveal code {
+            font-size: 0.85em;
+        }
+
+        .reveal .slides section {
+            text-align: left;
+            padding: 20px 40px;
+        }
+
+        /* Title slide */
+        .title-slide {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .title-slide h1,
+        .title-slide h2,
+        .title-slide h3 {
+            color: white !important;
+        }
+
+        .title-slide h1 {
+            font-size: 2em !important;
+            margin-bottom: 0.3em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .title-slide h2 {
+            font-size: 1.3em !important;
+            font-weight: 300;
+            margin-bottom: 0.2em;
+        }
+
+        .title-slide h3 {
+            font-size: 1em !important;
+            font-weight: 300;
+            color: rgba(255,255,255,0.85) !important;
+        }
+
+        .course-badge {
+            display: inline-block;
+            padding: 10px 30px;
+            border: 2px solid rgba(255,255,255,0.8);
+            border-radius: 30px;
+            margin-top: 30px;
+            font-size: 0.85em;
+            color: white;
+            letter-spacing: 1px;
+        }
+
+        /* Section divider */
+        .section-divider {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .section-divider h2,
+        .section-divider h3 {
+            color: white !important;
+        }
+
+        .section-divider h2 {
+            font-size: 1.6em !important;
+        }
+
+        .section-divider h3 {
+            font-size: 1em !important;
+            font-weight: 300;
+            color: rgba(255,255,255,0.85) !important;
+        }
+
+        /* Highlight box */
+        .highlight-box {
+            background: linear-gradient(135deg, #ebf8ff 0%, #bee3f8 100%);
+            border-left: 4px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 15px 0;
+        }
+
+        .highlight-box.success {
+            background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);
+            border-left-color: var(--success-color);
+        }
+
+        .highlight-box.warning {
+            background: linear-gradient(135deg, #fffaf0 0%, #feebc8 100%);
+            border-left-color: var(--warning-color);
+        }
+
+        .highlight-box.danger {
+            background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+            border-left-color: var(--danger-color);
+        }
+
+        /* Columns */
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .three-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        /* Card */
+        .card {
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .card.success {
+            border-top: 4px solid var(--success-color);
+        }
+
+        .card.warning {
+            border-top: 4px solid var(--warning-color);
+        }
+
+        .card.danger {
+            border-top: 4px solid var(--danger-color);
+        }
+
+        /* Concept box */
+        .concept-box {
+            background: white;
+            border: 2px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 10px 0;
+        }
+
+        /* Key point */
+        .key-point {
+            text-align: center !important;
+            font-style: italic;
+            font-size: 1.15em;
+            color: var(--accent-color);
+            padding: 20px;
+        }
+
+        /* Lab callout */
+        .lab-callout {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .lab-callout h2,
+        .lab-callout h3 {
+            color: white !important;
+        }
+
+        .lab-callout ul {
+            text-align: left;
+            display: inline-block;
+        }
+
+        .lab-callout li {
+            color: white;
+            margin-bottom: 8px;
+        }
+
+        .lab-badge {
+            display: inline-block;
+            padding: 8px 24px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.6);
+            border-radius: 20px;
+            color: white;
+            font-size: 0.8em;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 15px;
+        }
+
+        .lab-description {
+            margin-top: 20px;
+        }
+
+        /* Takeaway list */
+        .takeaway-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .takeaway-list li {
+            padding: 10px 0 10px 35px;
+            position: relative;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .takeaway-list li::before {
+            content: "\2713";
+            position: absolute;
+            left: 0;
+            color: var(--success-color);
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+
+        /* Questions slide */
+        .questions-slide {
+            text-align: center !important;
+            color: white !important;
+        }
+
+        .questions-slide h2 {
+            color: white !important;
+            font-size: 2em !important;
+        }
+
+        .questions-slide p {
+            color: rgba(255,255,255,0.85);
+        }
+
+        /* Tables */
+        .reveal table {
+            font-size: 0.75em;
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        .reveal table th {
+            background: var(--heading-color);
+            color: white;
+            padding: 10px 14px;
+            text-align: left;
+        }
+
+        .reveal table td {
+            padding: 8px 14px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .reveal table tr:nth-child(even) {
+            background: #f7fafc;
+        }
+
+        /* Stat boxes */
+        .stat-box {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .stat-box .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: var(--accent-color);
+            display: block;
+        }
+
+        .stat-box .stat-label {
+            font-size: 0.8em;
+            color: var(--text-color);
+        }
+
+        /* Small text */
+        .small-text {
+            font-size: 0.8em;
+        }
+
+        /* Code blocks */
+        .reveal pre {
+            width: 100%;
+            margin: 10px 0;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+
+        .reveal pre code {
+            padding: 15px;
+            max-height: 450px;
+        }
+
+        /* Flow diagram */
+        .flow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+
+        .flow-step {
+            background: var(--accent-color);
+            color: white;
+            padding: 10px 18px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            text-align: center;
+        }
+
+        .flow-step.success {
+            background: var(--success-color);
+        }
+
+        .flow-step.warning {
+            background: var(--warning-color);
+        }
+
+        .flow-step.danger {
+            background: var(--danger-color);
+        }
+
+        .flow-arrow {
+            font-size: 1.4em;
+            color: var(--accent-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <!-- ============================================ -->
+            <!-- TITLE SLIDE                                  -->
+            <!-- ============================================ -->
+            <section class="title-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 50%, #2c5282 100%)">
+                <h1>Authentication &amp; Authorization</h1>
+                <h2>Module 2</h2>
+                <h3>Kubernetes Security Course</h3>
+                <div class="course-badge">2-Day Hands-On Workshop</div>
+            </section>
+
+            <!-- Module overview -->
+            <section>
+                <h2>&#x1F4CB; Module Overview</h2>
+                <p>In this module, we will explore how Kubernetes verifies <strong>who you are</strong> (authentication) and <strong>what you can do</strong> (authorization).</p>
+                <div class="two-columns">
+                    <div class="card">
+                        <h3>Topics Covered</h3>
+                        <ul class="small-text">
+                            <li>Authentication fundamentals</li>
+                            <li>Service accounts</li>
+                            <li>RBAC architecture</li>
+                            <li>Designing least-privilege roles</li>
+                            <li>RBAC anti-patterns</li>
+                            <li>Auditing RBAC</li>
+                            <li>OIDC integration</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <h3>Learning Outcomes</h3>
+                        <ul class="small-text">
+                            <li>Configure multiple authentication strategies</li>
+                            <li>Build granular RBAC policies</li>
+                            <li>Identify and fix over-privileged roles</li>
+                            <li>Integrate external identity providers</li>
+                            <li>Audit cluster access effectively</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">Set expectations: this module is one of the most important for day-to-day cluster security. Emphasize that RBAC misconfigurations are one of the top findings in security audits.</aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SECTION 1: Authentication Fundamentals       -->
+            <!-- ============================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2>&#x1F6E1;&#xFE0F; Section 1</h2>
+                <h3>Authentication Fundamentals</h3>
+            </section>
+
+            <!-- How API Server Authenticates -->
+            <section>
+                <h2>&#x1F510; How the API Server Authenticates Requests</h2>
+                <p>Every request to the API server passes through an <strong>authentication chain</strong>. The first authenticator to succeed determines the identity.</p>
+                <div class="flow-diagram">
+                    <div class="flow-step">Client Request</div>
+                    <div class="flow-arrow">&#x27A1;</div>
+                    <div class="flow-step">Authenticator 1</div>
+                    <div class="flow-arrow">&#x27A1;</div>
+                    <div class="flow-step">Authenticator 2</div>
+                    <div class="flow-arrow">&#x27A1;</div>
+                    <div class="flow-step warning">Authenticator N</div>
+                    <div class="flow-arrow">&#x27A1;</div>
+                    <div class="flow-step success">Authenticated Identity</div>
+                </div>
+                <div class="highlight-box">
+                    <strong>Key concept:</strong> Kubernetes does <em>not</em> have a built-in user database. It relies on external identity sources (certificates, tokens, OIDC providers).
+                </div>
+                <aside class="notes">Emphasize that Kubernetes has no "user" object in the API. Users are represented by strings extracted from authentication credentials. Multiple authenticators run in parallel; the first to succeed wins.</aside>
+            </section>
+
+            <!-- Authentication Methods Overview -->
+            <section>
+                <h2>&#x1F511; Authentication Methods</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Credential Source</th>
+                            <th>Use Case</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>X.509 Client Certificates</strong></td>
+                            <td>TLS handshake</td>
+                            <td>Cluster components, admin access</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Bearer Tokens</strong></td>
+                            <td>Authorization header</td>
+                            <td>Service accounts, static tokens</td>
+                        </tr>
+                        <tr>
+                            <td><strong>OIDC Tokens</strong></td>
+                            <td>JWT in Authorization header</td>
+                            <td>Human users via IdP</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Webhook Token Auth</strong></td>
+                            <td>External webhook</td>
+                            <td>Custom authentication backends</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Bootstrap Tokens</strong></td>
+                            <td>Secret in kube-system</td>
+                            <td>Node bootstrapping (kubeadm)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Anonymous Requests</strong></td>
+                            <td>No credentials</td>
+                            <td>Health checks (restricted)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- X.509 Client Certificates -->
+            <section>
+                <h2>&#x1F4DC; X.509 Client Certificates</h2>
+                <div class="two-columns">
+                    <div>
+                        <p>The API server validates client certificates against the cluster CA specified by <code>--client-ca-file</code>.</p>
+                        <div class="highlight-box">
+                            <strong>Subject mapping:</strong>
+                            <ul class="small-text">
+                                <li><code>CN</code> (Common Name) &#x2192; Username</li>
+                                <li><code>O</code> (Organization) &#x2192; Group(s)</li>
+                            </ul>
+                        </div>
+                        <div class="highlight-box warning">
+                            <strong>Caution:</strong> Client certificates cannot be revoked without rotating the CA. Keep certificate lifetimes short.
+                        </div>
+                    </div>
+                    <div>
+                        <h3>Generating a Client Certificate</h3>
+                        <pre><code class="language-bash"># Generate private key
+openssl genrsa -out admin.key 2048
+
+# Create CSR with CN=admin, O=system:masters
+openssl req -new -key admin.key \
+  -subj "/CN=admin/O=system:masters" \
+  -out admin.csr
+
+# Sign with cluster CA
+openssl x509 -req -in admin.csr \
+  -CA /etc/kubernetes/pki/ca.crt \
+  -CAkey /etc/kubernetes/pki/ca.key \
+  -CAcreateserial \
+  -out admin.crt -days 365</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">Stress that system:masters bypasses RBAC entirely. Never use it for regular operations. Show how the O field maps to groups, which is critical for RBAC bindings.</aside>
+            </section>
+
+            <!-- Bearer Tokens and OIDC -->
+            <section>
+                <h2>&#x1F3AB; Bearer Tokens &amp; OIDC Tokens</h2>
+                <div class="two-columns">
+                    <div class="card">
+                        <h3>Static Token File</h3>
+                        <p class="small-text">Configured via <code>--token-auth-file</code>. CSV format:</p>
+                        <pre><code class="language-text">token,user,uid,"group1,group2"</code></pre>
+                        <div class="highlight-box danger">
+                            <strong>Avoid in production:</strong> Static tokens are stored in plaintext, cannot be rotated without restart, and are deprecated.
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>OIDC Tokens (Recommended)</h3>
+                        <p class="small-text">JWT tokens issued by an identity provider (e.g., Keycloak, Azure AD, Okta).</p>
+                        <ul class="small-text">
+                            <li>Short-lived tokens with automatic refresh</li>
+                            <li>Group claims for RBAC mapping</li>
+                            <li>Centralized user management</li>
+                            <li>MFA support through the IdP</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Webhook Token Authentication -->
+            <section>
+                <h2>&#x1F310; Webhook Token Authentication</h2>
+                <p>The API server sends a <code>TokenReview</code> request to an external webhook service for validation.</p>
+                <div class="flow-diagram">
+                    <div class="flow-step">Client + Token</div>
+                    <div class="flow-arrow">&#x27A1;</div>
+                    <div class="flow-step">API Server</div>
+                    <div class="flow-arrow">&#x27A1;</div>
+                    <div class="flow-step warning">Webhook Endpoint</div>
+                    <div class="flow-arrow">&#x27A1;</div>
+                    <div class="flow-step success">TokenReview Response</div>
+                </div>
+                <pre><code class="language-yaml"># Webhook config file (--authentication-token-webhook-config-file)
+apiVersion: v1
+kind: Config
+clusters:
+  - name: authn-webhook
+    cluster:
+      server: https://authn.example.com/authenticate
+      certificate-authority: /etc/kubernetes/pki/webhook-ca.crt
+users:
+  - name: kube-apiserver
+    user:
+      client-certificate: /etc/kubernetes/pki/apiserver-webhook.crt
+      client-key: /etc/kubernetes/pki/apiserver-webhook.key</code></pre>
+                <aside class="notes">Webhook authentication is commonly used with cloud provider IAM (e.g., AWS IAM Authenticator for EKS). The webhook must return a TokenReview response indicating whether the token is valid and the associated user info.</aside>
+            </section>
+
+            <!-- Anonymous Requests and Bootstrap Tokens -->
+            <section>
+                <h2>&#x1F6AB; Anonymous Requests &amp; Bootstrap Tokens</h2>
+                <div class="two-columns">
+                    <div class="card danger">
+                        <h3>Anonymous Requests</h3>
+                        <p class="small-text">When no credentials are provided, the request is assigned:</p>
+                        <ul class="small-text">
+                            <li>Username: <code>system:anonymous</code></li>
+                            <li>Group: <code>system:unauthenticated</code></li>
+                        </ul>
+                        <p class="small-text">Controlled by <code>--anonymous-auth</code> (default: true).</p>
+                        <div class="highlight-box danger">
+                            <strong>Security:</strong> Never grant significant permissions to <code>system:unauthenticated</code>. Restrict to health endpoints only.
+                        </div>
+                    </div>
+                    <div class="card warning">
+                        <h3>Bootstrap Tokens</h3>
+                        <p class="small-text">Used during cluster initialization for node joining.</p>
+                        <ul class="small-text">
+                            <li>Format: <code>[a-z0-9]{6}.[a-z0-9]{16}</code></li>
+                            <li>Stored as Secrets in <code>kube-system</code></li>
+                            <li>Authenticated as <code>system:bootstrap:&lt;token-id&gt;</code></li>
+                            <li>Should be deleted after bootstrap completes</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SECTION 2: Service Accounts                  -->
+            <!-- ============================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2>&#x1F6E1;&#xFE0F; Section 2</h2>
+                <h3>Service Accounts</h3>
+            </section>
+
+            <!-- Service Account Fundamentals -->
+            <section>
+                <h2>&#x2699;&#xFE0F; Service Account Fundamentals</h2>
+                <p>Service accounts provide identity for <strong>processes running in pods</strong>. Unlike user accounts, they are Kubernetes API objects.</p>
+                <div class="two-columns">
+                    <div>
+                        <div class="concept-box">
+                            <h3>Key Properties</h3>
+                            <ul class="small-text">
+                                <li>Namespaced resources</li>
+                                <li>A <code>default</code> SA exists in every namespace</li>
+                                <li>Tokens are projected as volumes into pods</li>
+                                <li>Used by controllers, operators, and workloads</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div>
+                        <pre><code class="language-yaml">apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: my-app
+  namespace: production
+  annotations:
+    description: "SA for my-app workload"
+automountServiceAccountToken: false</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">Explain that in Kubernetes 1.24+, secrets are no longer auto-created for service accounts. Bound service account tokens (projected volumes) are the default mechanism.</aside>
+            </section>
+
+            <!-- Bound Service Account Tokens -->
+            <section>
+                <h2>&#x1F4E6; Bound Service Account Tokens</h2>
+                <p>Since Kubernetes 1.22+, tokens are <strong>bound</strong>, <strong>time-limited</strong>, and <strong>audience-scoped</strong>.</p>
+                <div class="highlight-box success">
+                    <strong>Improvements over legacy tokens:</strong> Bound tokens expire, are tied to a specific pod, and cannot be reused after the pod is deleted.
+                </div>
+                <pre><code class="language-yaml"># Token projection in a pod spec
+spec:
+  serviceAccountName: my-app
+  containers:
+    - name: app
+      volumeMounts:
+        - name: token
+          mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          readOnly: true
+  volumes:
+    - name: token
+      projected:
+        sources:
+          - serviceAccountToken:
+              expirationSeconds: 3600
+              audience: api
+              path: token
+          - configMap:
+              name: kube-root-ca.crt
+              items:
+                - key: ca.crt
+                  path: ca.crt
+          - downwardAPI:
+              items:
+                - path: namespace
+                  fieldRef:
+                    fieldPath: metadata.namespace</code></pre>
+            </section>
+
+            <!-- Opting Out and Best Practices -->
+            <section>
+                <h2>&#x1F6E0;&#xFE0F; Service Account Best Practices</h2>
+                <div class="three-columns">
+                    <div class="card success">
+                        <h3>Opt Out of Auto-Mount</h3>
+                        <pre><code class="language-yaml">apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: no-api-access
+automountServiceAccountToken:
+  false</code></pre>
+                        <p class="small-text">Most workloads do not need API access. Disable token mounting by default.</p>
+                    </div>
+                    <div class="card warning">
+                        <h3>Dedicated SAs</h3>
+                        <p class="small-text">Create dedicated service accounts for each workload instead of using <code>default</code>.</p>
+                        <ul class="small-text">
+                            <li>Enables granular RBAC</li>
+                            <li>Improves audit trail</li>
+                            <li>Limits blast radius</li>
+                        </ul>
+                    </div>
+                    <div class="card danger">
+                        <h3>Avoid Token Secrets</h3>
+                        <p class="small-text">Legacy long-lived tokens (pre-1.24) are a security risk.</p>
+                        <ul class="small-text">
+                            <li>Never share tokens across pods</li>
+                            <li>Delete unused token secrets</li>
+                            <li>Use bound tokens instead</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">This is a critical security hardening step. Many breaches begin with a compromised pod that has unnecessary API access. Walk through a real scenario of lateral movement via a default service account token.</aside>
+            </section>
+
+            <!-- Lab 1: Authentication -->
+            <section class="lab-callout" data-background="linear-gradient(135deg, #2f855a 0%, #276749 100%)">
+                <div class="lab-badge">HANDS-ON LAB</div>
+                <h2>&#x1F9EA; Lab 2a: Authentication Mechanisms</h2>
+                <div class="lab-description">
+                    <ul>
+                        <li>Generate X.509 client certificates and configure kubeconfig</li>
+                        <li>Create and use service accounts with bound tokens</li>
+                        <li>Disable auto-mounted tokens on workloads</li>
+                        <li>Test authentication with <code>kubectl auth whoami</code></li>
+                    </ul>
+                </div>
+                <p style="margin-top: 20px;"><strong>Duration: 30 minutes</strong></p>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SECTION 3: RBAC Architecture                 -->
+            <!-- ============================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2>&#x1F6E1;&#xFE0F; Section 3</h2>
+                <h3>RBAC Architecture</h3>
+            </section>
+
+            <!-- RBAC Building Blocks -->
+            <section>
+                <h2>&#x1F3D7;&#xFE0F; RBAC Building Blocks</h2>
+                <p>Role-Based Access Control (RBAC) consists of four key resources:</p>
+                <div class="two-columns">
+                    <div>
+                        <div class="card" style="margin-bottom: 15px;">
+                            <h3>Namespace-Scoped</h3>
+                            <div class="flow-diagram" style="justify-content: flex-start;">
+                                <div class="flow-step">Role</div>
+                                <div class="flow-arrow">&#x2194;</div>
+                                <div class="flow-step success">RoleBinding</div>
+                            </div>
+                            <p class="small-text">Grants permissions within a <strong>single namespace</strong>.</p>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="card" style="margin-bottom: 15px;">
+                            <h3>Cluster-Scoped</h3>
+                            <div class="flow-diagram" style="justify-content: flex-start;">
+                                <div class="flow-step warning">ClusterRole</div>
+                                <div class="flow-arrow">&#x2194;</div>
+                                <div class="flow-step success">ClusterRoleBinding</div>
+                            </div>
+                            <p class="small-text">Grants permissions <strong>cluster-wide</strong> or on non-namespaced resources.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="highlight-box">
+                    <strong>Important:</strong> A RoleBinding can reference a ClusterRole to grant its permissions <em>within a single namespace</em>. This is a powerful pattern for reusing common roles across namespaces.
+                </div>
+                <aside class="notes">Draw the distinction clearly: a ClusterRole + RoleBinding gives namespaced access, while a ClusterRole + ClusterRoleBinding gives cluster-wide access. This is a common source of confusion.</aside>
+            </section>
+
+            <!-- RBAC Verbs -->
+            <section>
+                <h2>&#x1F4AC; RBAC Verbs</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Verb</th>
+                            <th>HTTP Method</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>get</code></td>
+                            <td>GET (single)</td>
+                            <td>Retrieve a specific resource</td>
+                        </tr>
+                        <tr>
+                            <td><code>list</code></td>
+                            <td>GET (collection)</td>
+                            <td>List resources in a namespace</td>
+                        </tr>
+                        <tr>
+                            <td><code>watch</code></td>
+                            <td>GET (watch)</td>
+                            <td>Stream changes to resources</td>
+                        </tr>
+                        <tr>
+                            <td><code>create</code></td>
+                            <td>POST</td>
+                            <td>Create a new resource</td>
+                        </tr>
+                        <tr>
+                            <td><code>update</code></td>
+                            <td>PUT</td>
+                            <td>Replace an entire resource</td>
+                        </tr>
+                        <tr>
+                            <td><code>patch</code></td>
+                            <td>PATCH</td>
+                            <td>Partially modify a resource</td>
+                        </tr>
+                        <tr>
+                            <td><code>delete</code></td>
+                            <td>DELETE</td>
+                            <td>Remove a resource</td>
+                        </tr>
+                        <tr>
+                            <td><code>deletecollection</code></td>
+                            <td>DELETE (collection)</td>
+                            <td>Delete multiple resources at once</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="highlight-box warning">
+                    <strong>Special verbs:</strong> <code>bind</code>, <code>escalate</code>, and <code>impersonate</code> are privilege-escalation-sensitive and require careful handling.
+                </div>
+            </section>
+
+            <!-- Role YAML Example -->
+            <section>
+                <h2>&#x1F4DD; Role &amp; ClusterRole Examples</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>Namespace Role</h3>
+                        <pre><code class="language-yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: production
+  name: pod-reader
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]</code></pre>
+                    </div>
+                    <div>
+                        <h3>ClusterRole</h3>
+                        <pre><code class="language-yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: node-reader
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+  - nonResourceURLs: ["/healthz", "/readyz"]
+    verbs: ["get"]</code></pre>
+                    </div>
+                </div>
+                <p class="small-text"><strong>Note:</strong> <code>nonResourceURLs</code> can only be used in ClusterRoles and match URL paths, not API resources.</p>
+            </section>
+
+            <!-- RoleBinding & ClusterRoleBinding -->
+            <section>
+                <h2>&#x1F517; Bindings: Connecting Roles to Subjects</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3>RoleBinding</h3>
+                        <pre><code class="language-yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-pods
+  namespace: production
+subjects:
+  - kind: User
+    name: jane
+    apiGroup: rbac.authorization.k8s.io
+  - kind: ServiceAccount
+    name: monitoring-agent
+    namespace: monitoring
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io</code></pre>
+                    </div>
+                    <div>
+                        <h3>ClusterRoleBinding</h3>
+                        <pre><code class="language-yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: read-nodes-global
+subjects:
+  - kind: Group
+    name: platform-team
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: node-reader
+  apiGroup: rbac.authorization.k8s.io</code></pre>
+                    </div>
+                </div>
+                <div class="highlight-box">
+                    <strong>Subject kinds:</strong> <code>User</code>, <code>Group</code>, and <code>ServiceAccount</code>. Groups are extracted from authentication credentials (certificate O field, OIDC group claims).
+                </div>
+            </section>
+
+            <!-- Aggregated ClusterRoles -->
+            <section>
+                <h2>&#x1F504; Aggregated ClusterRoles</h2>
+                <p>Aggregated ClusterRoles automatically combine rules from other ClusterRoles using label selectors.</p>
+                <div class="two-columns">
+                    <div>
+                        <h3>Aggregation Target</h3>
+                        <pre><code class="language-yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: monitoring-aggregate
+aggregationRule:
+  clusterRoleSelectors:
+    - matchLabels:
+        rbac.example.com/aggregate-to-monitoring:
+          "true"
+rules: [] # Rules are auto-filled</code></pre>
+                    </div>
+                    <div>
+                        <h3>Contributing Role</h3>
+                        <pre><code class="language-yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: monitoring-pods
+  labels:
+    rbac.example.com/aggregate-to-monitoring:
+      "true"
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services"]
+    verbs: ["get", "list", "watch"]</code></pre>
+                    </div>
+                </div>
+                <div class="highlight-box success">
+                    <strong>Built-in example:</strong> The <code>admin</code>, <code>edit</code>, and <code>view</code> ClusterRoles use aggregation, allowing CRD controllers to automatically extend them.
+                </div>
+                <aside class="notes">Aggregated ClusterRoles are how built-in roles like admin and edit automatically gain permissions for new CRDs. Operators should add labels to their CRD ClusterRoles to integrate with the standard roles.</aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SECTION 4: Designing Least-Privilege Roles   -->
+            <!-- ============================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2>&#x1F6E1;&#xFE0F; Section 4</h2>
+                <h3>Designing Least-Privilege Roles</h3>
+            </section>
+
+            <!-- Least Privilege Principle -->
+            <section>
+                <h2>&#x1F3AF; The Principle of Least Privilege</h2>
+                <div class="key-point">
+                    "Grant only the minimum permissions required for the task, for the shortest duration necessary, and in the narrowest scope possible."
+                </div>
+                <div class="three-columns">
+                    <div class="card success">
+                        <h3>Narrow Resources</h3>
+                        <p class="small-text">Specify exact resources and subresources, avoid wildcards.</p>
+                    </div>
+                    <div class="card success">
+                        <h3>Narrow Verbs</h3>
+                        <p class="small-text">Use read-only verbs when write access is unnecessary.</p>
+                    </div>
+                    <div class="card success">
+                        <h3>Narrow Scope</h3>
+                        <p class="small-text">Prefer namespace Roles over ClusterRoles whenever possible.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Pattern: Namespace-Scoped Operator -->
+            <section>
+                <h2>&#x1F527; Pattern: Namespace-Scoped Operator</h2>
+                <p>An operator that manages custom resources and deployments within a single namespace.</p>
+                <pre><code class="language-yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: app-system
+  name: app-operator
+rules:
+  # Manage the custom resource
+  - apiGroups: ["apps.example.com"]
+    resources: ["myapps", "myapps/status"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Create and manage deployments
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Read-only on services and configmaps
+  - apiGroups: [""]
+    resources: ["services", "configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  # Create events for status reporting
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]</code></pre>
+                <aside class="notes">Walk through each rule and explain why the operator needs each permission. Contrast this with giving the operator cluster-admin, which is far too broad.</aside>
+            </section>
+
+            <!-- Pattern: Read-Only Dashboard & CI/CD -->
+            <section>
+                <h2>&#x1F4CA; Pattern: Read-Only Dashboard</h2>
+                <pre><code class="language-yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dashboard-viewer
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "endpoints", "namespaces"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+  # Explicitly exclude secrets, configmaps with sensitive data
+  # Do NOT add: resources: ["secrets"]</code></pre>
+                <div class="highlight-box warning">
+                    <strong>Important:</strong> Never grant <code>get</code> on <code>secrets</code> for dashboard roles. Even read-only access to secrets exposes credentials and tokens.
+                </div>
+            </section>
+
+            <!-- Pattern: CI/CD Deployer -->
+            <section>
+                <h2>&#x1F680; Pattern: CI/CD Deployer</h2>
+                <pre><code class="language-yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: production
+  name: cicd-deployer
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+    resourceNames: ["frontend", "backend", "api-gateway"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list"]</code></pre>
+                <div class="highlight-box success">
+                    <strong>Notice:</strong> The <code>resourceNames</code> field restricts the deployer to only the specific deployments it manages. This prevents accidental or malicious modification of other workloads.
+                </div>
+                <aside class="notes">Emphasize resourceNames as a powerful but underused feature. Also note that resourceNames cannot be used with create, list, watch, or deletecollection verbs since those operate on collections rather than named resources.</aside>
+            </section>
+
+            <!-- Pattern: Monitoring Agent -->
+            <section>
+                <h2>&#x1F4C8; Pattern: Monitoring Agent</h2>
+                <pre><code class="language-yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: monitoring-agent
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "nodes", "services", "endpoints"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["pods", "nodes"]
+    verbs: ["get", "list"]
+  - nonResourceURLs: ["/metrics", "/healthz"]
+    verbs: ["get"]</code></pre>
+                <div class="two-columns">
+                    <div class="highlight-box success">
+                        <strong>Read-only:</strong> No write verbs needed for a monitoring agent.
+                    </div>
+                    <div class="highlight-box">
+                        <strong>Cluster-scoped:</strong> Monitoring typically needs visibility across all namespaces.
+                    </div>
+                </div>
+            </section>
+
+            <!-- Lab 2: RBAC Deep Dive -->
+            <section class="lab-callout" data-background="linear-gradient(135deg, #2f855a 0%, #276749 100%)">
+                <div class="lab-badge">HANDS-ON LAB</div>
+                <h2>&#x1F9EA; Lab 2b: RBAC Deep Dive</h2>
+                <div class="lab-description">
+                    <ul>
+                        <li>Create Roles and ClusterRoles with least-privilege permissions</li>
+                        <li>Bind roles to users, groups, and service accounts</li>
+                        <li>Test access with <code>kubectl auth can-i</code></li>
+                        <li>Implement the CI/CD deployer pattern with <code>resourceNames</code></li>
+                        <li>Build an aggregated ClusterRole for a custom operator</li>
+                    </ul>
+                </div>
+                <p style="margin-top: 20px;"><strong>Duration: 45 minutes</strong></p>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SECTION 5: RBAC Anti-Patterns                -->
+            <!-- ============================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2>&#x1F6E1;&#xFE0F; Section 5</h2>
+                <h3>RBAC Anti-Patterns</h3>
+            </section>
+
+            <!-- Anti-Pattern: cluster-admin Everywhere -->
+            <section>
+                <h2>&#x26A0;&#xFE0F; Anti-Pattern: cluster-admin for Everyone</h2>
+                <div class="highlight-box danger">
+                    <strong>Never do this:</strong>
+                </div>
+                <pre><code class="language-yaml"># The most dangerous ClusterRoleBinding in existence
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: everyone-is-admin
+subjects:
+  - kind: Group
+    name: system:authenticated
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io</code></pre>
+                <div class="two-columns">
+                    <div class="card danger">
+                        <h3>Risks</h3>
+                        <ul class="small-text">
+                            <li>Any authenticated user can delete any resource</li>
+                            <li>Can read all secrets in all namespaces</li>
+                            <li>Can create privileged pods for node escape</li>
+                            <li>Can modify RBAC to persist access</li>
+                        </ul>
+                    </div>
+                    <div class="card success">
+                        <h3>Instead</h3>
+                        <ul class="small-text">
+                            <li>Grant cluster-admin only to break-glass accounts</li>
+                            <li>Use namespace-scoped admin roles</li>
+                            <li>Implement just-in-time access elevation</li>
+                            <li>Audit all cluster-admin bindings regularly</li>
+                        </ul>
+                    </div>
+                </div>
+                <aside class="notes">This exact pattern has been found in real production clusters. Ask the class: "How would you detect this in your own cluster?" This leads into the auditing section.</aside>
+            </section>
+
+            <!-- Anti-Pattern: Wildcard Permissions -->
+            <section>
+                <h2>&#x26A0;&#xFE0F; Anti-Pattern: Wildcard Permissions</h2>
+                <div class="two-columns">
+                    <div>
+                        <h3 style="color: var(--danger-color);">Dangerous</h3>
+                        <pre><code class="language-yaml">rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]</code></pre>
+                        <p class="small-text">Equivalent to <code>cluster-admin</code>. Grants full access to every resource and every action.</p>
+                        <pre><code class="language-yaml"># Also dangerous:
+rules:
+  - apiGroups: [""]
+    resources: ["*"]
+    verbs: ["get", "list", "watch"]</code></pre>
+                        <p class="small-text">Includes secrets, even if not intended.</p>
+                    </div>
+                    <div>
+                        <h3 style="color: var(--success-color);">Safe Alternative</h3>
+                        <pre><code class="language-yaml">rules:
+  - apiGroups: [""]
+    resources:
+      - "pods"
+      - "services"
+      - "configmaps"
+    verbs:
+      - "get"
+      - "list"
+      - "watch"
+  - apiGroups: ["apps"]
+    resources:
+      - "deployments"
+    verbs:
+      - "get"
+      - "list"
+      - "watch"</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Anti-Pattern: Bind and Escalate -->
+            <section>
+                <h2>&#x26A0;&#xFE0F; Anti-Pattern: Bind &amp; Escalate Permissions</h2>
+                <p>Granting <code>bind</code> or <code>escalate</code> verbs allows a subject to give themselves higher privileges.</p>
+                <div class="two-columns">
+                    <div class="card danger">
+                        <h3>Privilege Escalation via Bind</h3>
+                        <pre><code class="language-yaml"># If a user can bind roles...
+rules:
+  - apiGroups:
+      ["rbac.authorization.k8s.io"]
+    resources: ["rolebindings"]
+    verbs: ["create"]
+  - apiGroups:
+      ["rbac.authorization.k8s.io"]
+    resources: ["roles"]
+    verbs: ["bind"]</code></pre>
+                        <p class="small-text">They can bind <em>any</em> role to themselves, including cluster-admin.</p>
+                    </div>
+                    <div class="card danger">
+                        <h3>Privilege Escalation via Escalate</h3>
+                        <pre><code class="language-yaml"># If a user can escalate...
+rules:
+  - apiGroups:
+      ["rbac.authorization.k8s.io"]
+    resources: ["roles"]
+    verbs: ["escalate"]</code></pre>
+                        <p class="small-text">They can modify a role to add permissions beyond their own, then use that role.</p>
+                    </div>
+                </div>
+                <div class="highlight-box danger">
+                    <strong>Rule:</strong> Never grant <code>bind</code>, <code>escalate</code>, or <code>impersonate</code> verbs unless absolutely required and thoroughly documented.
+                </div>
+            </section>
+
+            <!-- More Anti-Patterns -->
+            <section>
+                <h2>&#x26A0;&#xFE0F; More Common Anti-Patterns</h2>
+                <div class="two-columns">
+                    <div class="card warning">
+                        <h3>ClusterRoles When Roles Suffice</h3>
+                        <p class="small-text">Using ClusterRoles + ClusterRoleBindings for namespace-scoped workloads unnecessarily broadens access.</p>
+                        <div class="highlight-box success">
+                            <strong>Fix:</strong> If the workload operates in a single namespace, use a namespace-scoped Role and RoleBinding.
+                        </div>
+                    </div>
+                    <div class="card warning">
+                        <h3>Not Using resourceNames</h3>
+                        <p class="small-text">Granting access to all resources of a type when only specific resources are needed.</p>
+                        <div class="highlight-box success">
+                            <strong>Fix:</strong> Use <code>resourceNames</code> to restrict access to specific named resources.
+                        </div>
+                        <pre><code class="language-yaml">rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["app-tls-cert"]
+    verbs: ["get"]</code></pre>
+                    </div>
+                </div>
+                <aside class="notes">Walk through a scenario: "A CI/CD pipeline only deploys three microservices. Should it have access to modify ALL deployments in the namespace? No - use resourceNames to scope it down."</aside>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SECTION 6: Auditing RBAC                     -->
+            <!-- ============================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2>&#x1F6E1;&#xFE0F; Section 6</h2>
+                <h3>Auditing RBAC</h3>
+            </section>
+
+            <!-- kubectl auth can-i -->
+            <section>
+                <h2>&#x1F50D; Auditing with kubectl auth can-i</h2>
+                <p>The built-in tool for checking authorization decisions.</p>
+                <pre><code class="language-bash"># Can I create deployments in production?
+kubectl auth can-i create deployments -n production
+# yes
+
+# Can a specific user list pods?
+kubectl auth can-i list pods --as jane -n default
+# no
+
+# Can a service account delete secrets?
+kubectl auth can-i delete secrets \
+  --as system:serviceaccount:monitoring:prom-sa -n monitoring
+# no
+
+# List ALL permissions for the current user in a namespace
+kubectl auth can-i --list -n production
+# Resources                          Non-Resource URLs   Verbs
+# pods                               []                  [get list watch]
+# deployments.apps                   []                  [get list watch]
+# ...</code></pre>
+                <div class="highlight-box success">
+                    <strong>Tip:</strong> Use <code>kubectl auth can-i --list</code> during security audits to discover the full permission set of any identity.
+                </div>
+                <aside class="notes">Live demo opportunity: run these commands against the lab cluster and show the output. Demonstrate both user impersonation (--as) and service account impersonation.</aside>
+            </section>
+
+            <!-- Third-Party RBAC Audit Tools -->
+            <section>
+                <h2>&#x1F6E0;&#xFE0F; RBAC Audit Tools</h2>
+                <div class="two-columns">
+                    <div class="card">
+                        <h3>rbac-lookup</h3>
+                        <p class="small-text">Find roles and bindings for any user, group, or service account.</p>
+                        <pre><code class="language-bash"># Install
+brew install FairwindsOps/tap/rbac-lookup
+
+# Look up permissions for a user
+rbac-lookup jane
+
+# Look up all service accounts
+rbac-lookup --kind serviceaccount
+
+# Wide output with roles
+rbac-lookup jane --output wide</code></pre>
+                    </div>
+                    <div class="card">
+                        <h3>rakkess</h3>
+                        <p class="small-text">Show access matrix - which resources can be accessed with which verbs.</p>
+                        <pre><code class="language-bash"># Install
+brew install corneliusweig/rakkess/rakkess
+
+# Show all access for current user
+rakkess
+
+# Show access for a service account
+rakkess --as system:serviceaccount:default:my-sa
+
+# Filter by namespace
+rakkess -n production</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Identifying Over-Privileged SAs -->
+            <section>
+                <h2>&#x1F50E; Identifying Over-Privileged Service Accounts</h2>
+                <p>A systematic approach to finding and fixing excessive permissions:</p>
+                <div class="concept-box">
+                    <h3>Audit Checklist</h3>
+                    <ol class="small-text">
+                        <li><strong>List all ClusterRoleBindings:</strong> <code>kubectl get clusterrolebindings -o wide</code></li>
+                        <li><strong>Find bindings to cluster-admin:</strong> Filter for <code>roleRef: cluster-admin</code></li>
+                        <li><strong>Check default service accounts:</strong> Ensure no extra permissions on <code>default</code> SAs</li>
+                        <li><strong>Review wildcard rules:</strong> Search for <code>"*"</code> in verbs or resources</li>
+                        <li><strong>Check secret access:</strong> Identify who can <code>get</code> or <code>list</code> secrets</li>
+                    </ol>
+                </div>
+                <pre><code class="language-bash"># Find all subjects with cluster-admin
+kubectl get clusterrolebindings -o json | \
+  jq -r '.items[] | select(.roleRef.name=="cluster-admin") |
+    .subjects[]? | "\(.kind)/\(.name) in \(.namespace // "cluster-wide")"'
+
+# Find roles with wildcard access
+kubectl get roles,clusterroles -A -o json | \
+  jq -r '.items[] | select(.rules[]? | .verbs[]? == "*" or .resources[]? == "*") |
+    "\(.kind)/\(.metadata.name)"'</code></pre>
+                <aside class="notes">Run these commands live. The jq queries are powerful for bulk auditing. Recommend incorporating these checks into CI/CD pipelines and periodic security scans.</aside>
+            </section>
+
+            <!-- Lab: Auditing RBAC -->
+            <section class="lab-callout" data-background="linear-gradient(135deg, #2f855a 0%, #276749 100%)">
+                <div class="lab-badge">HANDS-ON LAB</div>
+                <h2>&#x1F9EA; Lab 2c: RBAC Auditing</h2>
+                <div class="lab-description">
+                    <ul>
+                        <li>Use <code>kubectl auth can-i</code> to test permissions for different identities</li>
+                        <li>Install and use <code>rbac-lookup</code> to map users to roles</li>
+                        <li>Identify over-privileged service accounts in the cluster</li>
+                        <li>Remediate a deliberately misconfigured RBAC policy</li>
+                    </ul>
+                </div>
+                <p style="margin-top: 20px;"><strong>Duration: 30 minutes</strong></p>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SECTION 7: OIDC Integration                  -->
+            <!-- ============================================ -->
+            <section class="section-divider" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2>&#x1F6E1;&#xFE0F; Section 7</h2>
+                <h3>OIDC Integration</h3>
+            </section>
+
+            <!-- Why External Identity -->
+            <section>
+                <h2>&#x1F310; Why External Identity Providers?</h2>
+                <div class="three-columns">
+                    <div class="card success">
+                        <h3>Centralized Management</h3>
+                        <ul class="small-text">
+                            <li>Single source of truth for identities</li>
+                            <li>Onboarding / offboarding in one place</li>
+                            <li>Consistent identity across systems</li>
+                        </ul>
+                    </div>
+                    <div class="card success">
+                        <h3>Enhanced Security</h3>
+                        <ul class="small-text">
+                            <li>MFA enforcement at the IdP level</li>
+                            <li>Short-lived tokens with refresh</li>
+                            <li>Session management and revocation</li>
+                        </ul>
+                    </div>
+                    <div class="card success">
+                        <h3>Compliance</h3>
+                        <ul class="small-text">
+                            <li>Audit trail for authentication events</li>
+                            <li>Password policies and rotation</li>
+                            <li>Regulatory requirement alignment</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="key-point">
+                    "Kubernetes should verify identity, not manage it. Delegate user management to purpose-built identity platforms."
+                </div>
+            </section>
+
+            <!-- OIDC Flow -->
+            <section>
+                <h2>&#x1F504; OIDC Authentication Flow</h2>
+                <div class="flow-diagram">
+                    <div class="flow-step">1. User Authenticates</div>
+                    <div class="flow-arrow">&#x27A1;</div>
+                    <div class="flow-step warning">2. IdP Issues JWT</div>
+                    <div class="flow-arrow">&#x27A1;</div>
+                    <div class="flow-step">3. kubectl + Token</div>
+                    <div class="flow-arrow">&#x27A1;</div>
+                    <div class="flow-step success">4. API Server Validates</div>
+                </div>
+                <div class="two-columns" style="margin-top: 20px;">
+                    <div class="concept-box">
+                        <h3>Step-by-Step</h3>
+                        <ol class="small-text">
+                            <li>User authenticates with the IdP (login page, SSO)</li>
+                            <li>IdP returns an <code>id_token</code> (JWT) and optionally a <code>refresh_token</code></li>
+                            <li>kubectl sends the <code>id_token</code> in the <code>Authorization: Bearer</code> header</li>
+                            <li>API server validates the JWT signature against the IdP's public keys (JWKS)</li>
+                            <li>Username and groups are extracted from configured claims</li>
+                            <li>RBAC evaluates based on the extracted identity</li>
+                        </ol>
+                    </div>
+                    <div class="highlight-box">
+                        <strong>Key point:</strong> The API server <em>never</em> contacts the IdP at request time. It validates the JWT signature using cached JWKS keys. This means token revocation only takes effect after the token expires.
+                    </div>
+                </div>
+                <aside class="notes">This is a critical architectural detail. Because the API server validates tokens locally, revoked tokens remain valid until they expire. This is why short token lifetimes (5-15 minutes) are important.</aside>
+            </section>
+
+            <!-- Configuring API Server for OIDC -->
+            <section>
+                <h2>&#x2699;&#xFE0F; Configuring the API Server for OIDC</h2>
+                <pre><code class="language-bash"># API server flags for OIDC authentication
+kube-apiserver \
+  --oidc-issuer-url=https://keycloak.example.com/realms/kubernetes \
+  --oidc-client-id=kubernetes \
+  --oidc-username-claim=email \
+  --oidc-username-prefix="oidc:" \
+  --oidc-groups-claim=groups \
+  --oidc-groups-prefix="oidc:" \
+  --oidc-ca-file=/etc/kubernetes/pki/oidc-ca.crt \
+  --oidc-required-claim="aud=kubernetes"</code></pre>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Flag</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>--oidc-issuer-url</code></td>
+                            <td>URL of the OIDC provider (must use HTTPS)</td>
+                        </tr>
+                        <tr>
+                            <td><code>--oidc-client-id</code></td>
+                            <td>Client ID registered with the provider</td>
+                        </tr>
+                        <tr>
+                            <td><code>--oidc-username-claim</code></td>
+                            <td>JWT claim to use as the username (default: <code>sub</code>)</td>
+                        </tr>
+                        <tr>
+                            <td><code>--oidc-groups-claim</code></td>
+                            <td>JWT claim containing group memberships</td>
+                        </tr>
+                        <tr>
+                            <td><code>--oidc-username-prefix</code></td>
+                            <td>Prefix to prevent collisions with other auth methods</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <aside class="notes">Walk through each flag and explain its significance. The prefix flags are important to prevent naming collisions between OIDC users and certificate-based users.</aside>
+            </section>
+
+            <!-- Group Claims for RBAC -->
+            <section>
+                <h2>&#x1F465; Group Claims for RBAC</h2>
+                <p>Map IdP groups to Kubernetes RBAC for scalable access management.</p>
+                <div class="two-columns">
+                    <div>
+                        <h3>JWT Token Claims</h3>
+                        <pre><code class="language-json">{
+  "iss": "https://keycloak.example.com/realms/kubernetes",
+  "sub": "a1b2c3d4",
+  "email": "jane@example.com",
+  "groups": [
+    "platform-team",
+    "production-deployers"
+  ],
+  "aud": "kubernetes",
+  "exp": 1711900800
+}</code></pre>
+                    </div>
+                    <div>
+                        <h3>RBAC Binding to Group</h3>
+                        <pre><code class="language-yaml">apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: platform-team-admin
+subjects:
+  - kind: Group
+    name: "oidc:platform-team"
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: admin
+  apiGroup: rbac.authorization.k8s.io</code></pre>
+                    </div>
+                </div>
+                <div class="highlight-box success">
+                    <strong>Scalable pattern:</strong> When a new team member is added to <code>platform-team</code> in the IdP, they automatically receive the bound Kubernetes permissions. No cluster configuration changes needed.
+                </div>
+            </section>
+
+            <!-- kubeconfig for OIDC -->
+            <section>
+                <h2>&#x1F4CB; Kubeconfig for OIDC Users</h2>
+                <pre><code class="language-yaml">apiVersion: v1
+kind: Config
+clusters:
+  - name: production
+    cluster:
+      server: https://k8s-api.example.com:6443
+      certificate-authority-data: LS0t...
+users:
+  - name: jane
+    user:
+      exec:
+        apiVersion: client.authentication.k8s.io/v1beta1
+        command: kubectl
+        args:
+          - oidc-login
+          - get-token
+          - --oidc-issuer-url=https://keycloak.example.com/realms/kubernetes
+          - --oidc-client-id=kubernetes
+          - --oidc-client-secret=my-secret
+          - --oidc-extra-scope=groups email
+contexts:
+  - name: production
+    context:
+      cluster: production
+      user: jane</code></pre>
+                <div class="highlight-box">
+                    <strong>Note:</strong> The <code>kubectl oidc-login</code> plugin (<a href="https://github.com/int128/kubelogin">kubelogin</a>) handles the browser-based OIDC flow and token caching automatically.
+                </div>
+            </section>
+
+            <!-- ============================================ -->
+            <!-- SUMMARY & KEY TAKEAWAYS                      -->
+            <!-- ============================================ -->
+            <section>
+                <h2>&#x1F4DD; Module 2 Key Takeaways</h2>
+                <ul class="takeaway-list">
+                    <li>Kubernetes relies on external sources for authentication &mdash; it has no user database</li>
+                    <li>Service accounts should use bound tokens and disable auto-mount when API access is unnecessary</li>
+                    <li>RBAC follows a Role + Binding model &mdash; prefer namespace-scoped Roles over ClusterRoles</li>
+                    <li>Apply least-privilege: specify exact resources, verbs, and use <code>resourceNames</code> when possible</li>
+                    <li>Avoid wildcards, cluster-admin bindings, and bind/escalate permissions</li>
+                    <li>Audit RBAC regularly with <code>kubectl auth can-i</code>, rbac-lookup, and rakkess</li>
+                    <li>Integrate OIDC for human users to leverage centralized identity management and MFA</li>
+                </ul>
+            </section>
+
+            <!-- RBAC Decision Flowchart -->
+            <section>
+                <h2>&#x1F9ED; RBAC Design Decision Flowchart</h2>
+                <div style="text-align: center;">
+                    <div class="flow-diagram" style="flex-direction: column; gap: 12px;">
+                        <div class="flow-step" style="width: 400px;">Does the workload need API access?</div>
+                        <div style="display: flex; gap: 40px; justify-content: center;">
+                            <div>
+                                <div class="flow-arrow" style="display: block; transform: rotate(90deg); margin: 5px auto;">&#x27A1;</div>
+                                <div class="flow-step success" style="font-size: 0.75em;">NO: Disable automount</div>
+                            </div>
+                            <div>
+                                <div class="flow-arrow" style="display: block; transform: rotate(90deg); margin: 5px auto;">&#x27A1;</div>
+                                <div class="flow-step" style="font-size: 0.75em;">YES: Continue</div>
+                            </div>
+                        </div>
+                        <div class="flow-step" style="width: 400px;">Single namespace or cluster-wide?</div>
+                        <div style="display: flex; gap: 40px; justify-content: center;">
+                            <div>
+                                <div class="flow-arrow" style="display: block; transform: rotate(90deg); margin: 5px auto;">&#x27A1;</div>
+                                <div class="flow-step success" style="font-size: 0.75em;">Single: Use Role + RoleBinding</div>
+                            </div>
+                            <div>
+                                <div class="flow-arrow" style="display: block; transform: rotate(90deg); margin: 5px auto;">&#x27A1;</div>
+                                <div class="flow-step warning" style="font-size: 0.75em;">Cluster: Use ClusterRole (justify it)</div>
+                            </div>
+                        </div>
+                        <div class="flow-step" style="width: 400px;">Can you restrict to named resources?</div>
+                        <div style="display: flex; gap: 40px; justify-content: center;">
+                            <div>
+                                <div class="flow-arrow" style="display: block; transform: rotate(90deg); margin: 5px auto;">&#x27A1;</div>
+                                <div class="flow-step success" style="font-size: 0.75em;">YES: Add resourceNames</div>
+                            </div>
+                            <div>
+                                <div class="flow-arrow" style="display: block; transform: rotate(90deg); margin: 5px auto;">&#x27A1;</div>
+                                <div class="flow-step" style="font-size: 0.75em;">NO: Document why</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Up Next -->
+            <section>
+                <h2>Up Next: Module 3</h2>
+                <div class="card" style="max-width: 700px;">
+                    <h3>Securing the API Server</h3>
+                    <p>In the next module, we will dive into:</p>
+                    <ul class="small-text">
+                        <li>API server architecture and request flow</li>
+                        <li>Securing the API server endpoint</li>
+                        <li>Kubelet security configuration</li>
+                        <li>etcd encryption and access controls</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Questions -->
+            <section class="questions-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
+                <h2>Questions?</h2>
+                <p>Module 2: Authentication &amp; Authorization</p>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/reveal.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/highlight/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.5.0/plugin/notes/notes.min.js"></script>
+    <script>
+        Reveal.initialize({
+            hash: true,
+            slideNumber: true,
+            plugins: [RevealHighlight, RevealNotes]
+        });
+    </script>
+</body>
+</html>
