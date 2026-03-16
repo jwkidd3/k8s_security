@@ -238,7 +238,7 @@ spec:
             - containerPort: 80
           securityContext:
             privileged: true
-            runAsRoot: true
+            runAsUser: 0
 ---
 apiVersion: v1
 kind: ServiceAccount

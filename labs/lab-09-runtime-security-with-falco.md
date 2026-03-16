@@ -264,6 +264,13 @@ EOF
 ### Step 13: Apply Custom Rules
 
 ```bash
+# Extract custom rules into a Helm values file
+cat > /tmp/falco-custom-values.yaml <<'EOF'
+customRules:
+  custom-rules.yaml: |
+EOF
+kubectl get configmap falco-custom-rules -n falco -o jsonpath='{.data.custom-rules\.yaml}' | sed 's/^/    /' >> /tmp/falco-custom-values.yaml
+
 # Upgrade Falco with custom rules
 helm upgrade falco falcosecurity/falco \
   -n falco \
@@ -272,7 +279,7 @@ helm upgrade falco falcosecurity/falco \
   --set falcosidekick.enabled=true \
   --set falcosidekick.webui.enabled=true \
   --reuse-values \
-  --set-file customRules."custom-rules\.yaml"=<(kubectl get configmap falco-custom-rules -n falco -o jsonpath='{.data.custom-rules\.yaml}')
+  -f /tmp/falco-custom-values.yaml
 
 # Wait for Falco to restart
 sleep 15

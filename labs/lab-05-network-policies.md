@@ -72,7 +72,7 @@ spec:
           ports:
             - containerPort: 5432
               name: postgres
-          command: ["sh", "-c", "echo 'Database tier running' && nginx -g 'daemon off;'"]
+          command: ["sh", "-c", "sed -i 's/listen.*80;/listen 5432;/' /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
 ---
 apiVersion: v1
 kind: Service
@@ -85,7 +85,7 @@ spec:
     tier: database
   ports:
     - port: 5432
-      targetPort: 80
+      targetPort: 5432
 EOF
 
 # Deploy the backend tier
@@ -116,7 +116,7 @@ spec:
           ports:
             - containerPort: 8080
               name: http
-          command: ["sh", "-c", "echo 'Backend tier running' && nginx -g 'daemon off;'"]
+          command: ["sh", "-c", "sed -i 's/listen.*80;/listen 8080;/' /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
 ---
 apiVersion: v1
 kind: Service
@@ -129,7 +129,7 @@ spec:
     tier: backend
   ports:
     - port: 8080
-      targetPort: 80
+      targetPort: 8080
 EOF
 
 # Deploy the frontend tier

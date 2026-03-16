@@ -368,7 +368,7 @@
             <section>
                 <h2>&#x1F504; NIST IR Lifecycle</h2>
                 <div class="concept-box">
-                    <h4>The Five Phases</h4>
+                    <h4>The Four Phases</h4>
                     <ol>
                         <li><strong>Preparation</strong> — tools, runbooks, team training</li>
                         <li><strong>Detection &amp; Analysis</strong> — identify and validate the incident</li>
@@ -1249,8 +1249,7 @@ kubectl get cronjobs,daemonsets --all-namespaces</code></pre>
                     <div>
                         <h4>Admission Policy Updates</h4>
                         <pre><code class="language-yaml"># OPA/Gatekeeper constraint
-apiVersion: constraints
-         .gatekeeper.sh/v1beta1
+apiVersion: constraints.gatekeeper.sh/v1beta1
 kind: K8sBlockHostPath
 metadata:
   name: block-host-path

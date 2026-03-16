@@ -267,7 +267,7 @@ stringData:
 EOF
 
 # Seal it using kubeseal
-kubeseal --format yaml < /tmp/my-secret.yaml > /tmp/sealed-secret.yaml
+kubeseal --format yaml -n secrets-lab < /tmp/my-secret.yaml > /tmp/sealed-secret.yaml
 
 # View the sealed secret — this is safe to commit to git
 cat /tmp/sealed-secret.yaml

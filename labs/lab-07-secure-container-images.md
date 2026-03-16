@@ -266,12 +266,9 @@ cosign verify --key /tmp/image-lab/cosign.pub --insecure-ignore-tlog localhost:5
 ### Step 17: Use Image Digests Instead of Tags
 
 ```bash
-# Get the image digest
-DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' localhost:5001/secure-app:v1 2>/dev/null || \
-  crane digest localhost:5001/secure-app:v1 2>/dev/null || \
-  echo "sha256:unknown")
-
-echo "Image digest: $DIGEST"
+# Get the image digest (RepoDigests returns "repo@sha256:...")
+FULL_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' localhost:5001/secure-app:v1)
+echo "Image with digest: $FULL_DIGEST"
 
 # Deploy using digest instead of tag
 kubectl apply -f - <<EOF
@@ -283,7 +280,7 @@ metadata:
 spec:
   containers:
     - name: app
-      image: localhost:5001/secure-app@${DIGEST}
+      image: ${FULL_DIGEST}
       ports:
         - containerPort: 8080
 EOF

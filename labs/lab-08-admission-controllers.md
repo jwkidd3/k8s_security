@@ -393,6 +393,9 @@ spec:
         name: default-deny-ingress
         namespace: "{{request.object.metadata.name}}"
         data:
+          metadata:
+            labels:
+              generated-by: kyverno
           spec:
             podSelector: {}
             policyTypes:
@@ -413,6 +416,9 @@ spec:
         name: default-deny-egress
         namespace: "{{request.object.metadata.name}}"
         data:
+          metadata:
+            labels:
+              generated-by: kyverno
           spec:
             podSelector: {}
             policyTypes:
