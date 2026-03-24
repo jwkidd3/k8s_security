@@ -19,20 +19,43 @@ By the end of this lab, you will be able to:
 
 ## Lab Environment Setup
 
-### Step 1: Create a Cluster with Audit Logging
+### Step 1: Create a Cluster with Audit Logging and Encryption at Rest
 
-For this lab, we use a specialized kind configuration with audit logging enabled:
+For this lab, we use a specialized kind configuration with audit logging **and** encryption at rest pre-configured. First, we generate an encryption key and prepare the config file, then create the cluster.
 
 ```bash
-# First, ensure the audit policy file is in place
-cat labs/setup/audit-policy.yaml
+# Generate a 32-byte encryption key
+ENCRYPTION_KEY=$(head -c 32 /dev/urandom | base64)
 
-# Create the kind cluster with audit logging
-kind create cluster --name api-hardening --config labs/setup/kind-config-audit.yaml
+# Write the encryption config (used by the kind extraMounts)
+cat > labs/setup/encryption-config.yaml <<EOF
+apiVersion: apiserver.config.k8s.io/v1
+kind: EncryptionConfiguration
+resources:
+  - resources:
+      - secrets
+    providers:
+      - aescbc:
+          keys:
+            - name: key1
+              secret: ${ENCRYPTION_KEY}
+      - identity: {}
+EOF
+
+echo "Encryption key generated and config written to labs/setup/encryption-config.yaml"
+
+# Review the kind config — note the audit AND encryption settings
+cat labs/setup/kind-config-api-hardening.yaml
+
+# Create the kind cluster with audit logging and encryption at rest
+kind create cluster --name api-hardening --config labs/setup/kind-config-api-hardening.yaml
 
 # Verify the cluster
 kubectl cluster-info --context kind-api-hardening
 kubectl get nodes
+
+# Install jq for JSON parsing
+sudo yum install -y jq 2>/dev/null || sudo apt-get install -y jq 2>/dev/null
 ```
 
 ## Part 1: Exploring API Server Configuration
@@ -138,7 +161,7 @@ echo "  - Read-only port: disabled (0)"
 docker exec api-hardening-control-plane ls -la /var/log/kubernetes/audit/
 
 # View recent audit log entries
-docker exec api-hardening-control-plane tail -5 /var/log/kubernetes/audit/audit.log 2>/dev/null | python3 -m json.tool
+docker exec api-hardening-control-plane tail -5 /var/log/kubernetes/audit/audit.log 2>/dev/null | jq .
 ```
 
 ### Step 9: Generate Audit Events
@@ -156,17 +179,8 @@ kubectl delete secret test-secret -n audit-test
 ```bash
 # Find audit events for secret operations
 docker exec api-hardening-control-plane cat /var/log/kubernetes/audit/audit.log | \
-  python3 -c "
-import json, sys
-for line in sys.stdin:
-    try:
-        event = json.loads(line.strip())
-        resource = event.get('objectRef', {}).get('resource', '')
-        if resource == 'secrets':
-            print(f\"Verb: {event['verb']:10s} | User: {event['user']['username']:30s} | Resource: {event['objectRef'].get('name', 'N/A')}\")
-    except:
-        pass
-"
+  jq -r 'select(.objectRef.resource == "secrets") |
+    "Verb: \(.verb | . + " " * (10 - length)) | User: \(.user.username | . + " " * (30 - length)) | Resource: \(.objectRef.name // "N/A")"'
 ```
 
 ### Step 11: Understand Audit Policy Levels
@@ -225,47 +239,24 @@ echo "  - Pod exec/attach (full request/response)"
 echo "  - Namespace operations (metadata only)"
 ```
 
-### Step 12: Query Audit Logs with jq-style Analysis
+### Step 12: Query Audit Logs with jq
 
 ```bash
 # Count events by verb
 docker exec api-hardening-control-plane cat /var/log/kubernetes/audit/audit.log | \
-  python3 -c "
-import json, sys
-from collections import Counter
-verbs = Counter()
-for line in sys.stdin:
-    try:
-        event = json.loads(line.strip())
-        verbs[event['verb']] += 1
-    except:
-        pass
-for verb, count in verbs.most_common():
-    print(f'  {verb}: {count}')
-"
+  jq -r '.verb' | sort | uniq -c | sort -rn | awk '{printf "  %s: %s\n", $2, $1}'
 
 # Find all unique users in audit log
 docker exec api-hardening-control-plane cat /var/log/kubernetes/audit/audit.log | \
-  python3 -c "
-import json, sys
-users = set()
-for line in sys.stdin:
-    try:
-        event = json.loads(line.strip())
-        users.add(event['user']['username'])
-    except:
-        pass
-for user in sorted(users):
-    print(f'  {user}')
-"
+  jq -r '.user.username' | sort -u | awk '{printf "  %s\n", $0}'
 ```
 
 ## Part 4: Encryption at Rest
 
-### Step 13: Check Current Encryption Status
+### Step 13: Inspect How Secrets Are Stored in etcd
 
 ```bash
-# Read a secret and check how it's stored in etcd
+# Create a secret and inspect its raw storage in etcd
 kubectl create secret generic encryption-test -n audit-test --from-literal=api-key=my-super-secret-key
 
 # Access etcd directly to see how the secret is stored
@@ -278,65 +269,33 @@ docker exec api-hardening-control-plane sh -c \
     get /registry/secrets/audit-test/encryption-test' | hexdump -C | head -20
 ```
 
-Notice: The secret value is stored in plain text (base64-decoded) in etcd.
+Because encryption at rest was configured at cluster creation, the output should already show encrypted data (look for the `k8s:enc:aescbc:v1:key1:` prefix). Without encryption, the secret value would be visible in plain text.
 
-### Step 14: Create an Encryption Configuration
+### Step 14: Review the Pre-Configured Encryption Setup
+
+Because we generated the encryption key and created the config **before** the cluster was created, the kind config mounted the file and passed the `--encryption-provider-config` flag to the API server at boot. No manual manifest patching is needed.
 
 ```bash
-# Generate an encryption key
-ENCRYPTION_KEY=$(head -c 32 /dev/urandom | base64)
+# Review the encryption config that was mounted into the control plane
+docker exec api-hardening-control-plane cat /etc/kubernetes/encryption-config.yaml
 
-# Create the encryption configuration
-cat > /tmp/encryption-config.yaml <<EOF
-apiVersion: apiserver.config.k8s.io/v1
-kind: EncryptionConfiguration
-resources:
-  - resources:
-      - secrets
-    providers:
-      - aescbc:
-          keys:
-            - name: key1
-              secret: ${ENCRYPTION_KEY}
-      - identity: {}
-EOF
-
-echo "Encryption configuration created."
-echo "Provider: aescbc (AES-CBC with PKCS#7 padding)"
-echo "Key name: key1"
+# Key things to note:
+# - Provider: aescbc (AES-CBC with PKCS#7 padding)
+# - Key name: key1
+# - Fallback: identity (allows reading unencrypted data written before encryption was enabled)
 ```
 
-### Step 15: Apply Encryption at Rest
+### Step 15: Verify Encryption at Rest Is Active
 
 ```bash
-# Copy the encryption config into the control plane container
-docker cp /tmp/encryption-config.yaml api-hardening-control-plane:/etc/kubernetes/encryption-config.yaml
+# Confirm the API server was started with the encryption-provider-config flag
+docker exec api-hardening-control-plane cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep encryption-provider-config
 
-# Add the encryption provider config flag to the API server
-# In kind, we modify the static pod manifest
-docker exec api-hardening-control-plane sh -c '
-  # Backup the original manifest
-  cp /etc/kubernetes/manifests/kube-apiserver.yaml /etc/kubernetes/kube-apiserver.yaml.backup
+# Confirm the encryption config volume is mounted
+docker exec api-hardening-control-plane cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep -A 2 "encryption-config"
 
-  # Check if the flag already exists
-  if ! grep -q "encryption-provider-config" /etc/kubernetes/manifests/kube-apiserver.yaml; then
-    # Add the flag and volume mount using sed
-    sed -i "/--etcd-servers/a\\    - --encryption-provider-config=/etc/kubernetes/encryption-config.yaml" /etc/kubernetes/manifests/kube-apiserver.yaml
-
-    # Add volume mount
-    sed -i "/volumeMounts:/a\\    - mountPath: /etc/kubernetes/encryption-config.yaml\\n      name: encryption-config\\n      readOnly: true" /etc/kubernetes/manifests/kube-apiserver.yaml
-
-    # Add volume
-    sed -i "/volumes:/a\\  - hostPath:\\n      path: /etc/kubernetes/encryption-config.yaml\\n      type: File\\n    name: encryption-config" /etc/kubernetes/manifests/kube-apiserver.yaml
-  fi
-'
-
-echo "Waiting for API server to restart..."
-sleep 30
-
-# Wait for the API server to come back
-kubectl wait --for=condition=Ready node/api-hardening-control-plane --timeout=120s 2>/dev/null || true
-kubectl get nodes
+# Verify the API server pod is running and healthy
+kubectl get pods -n kube-system -l component=kube-apiserver
 ```
 
 ### Step 16: Verify Encryption at Rest

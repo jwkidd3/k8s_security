@@ -1,0 +1,52 @@
+# kind cluster configuration - API Server Hardening
+# Extends audit logging config with encryption at rest pre-configured
+# Used for: Lab 03
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "ingress-ready=true"
+      - |
+        kind: ClusterConfiguration
+        apiServer:
+          extraArgs:
+            audit-policy-file: /etc/kubernetes/audit/audit-policy.yaml
+            audit-log-path: /var/log/kubernetes/audit/audit.log
+            audit-log-maxage: "7"
+            audit-log-maxbackup: "3"
+            audit-log-maxsize: "100"
+            encryption-provider-config: /etc/kubernetes/encryption-config.yaml
+          extraVolumes:
+            - name: audit-config
+              hostPath: /etc/kubernetes/audit
+              mountPath: /etc/kubernetes/audit
+              readOnly: true
+            - name: audit-logs
+              hostPath: /var/log/kubernetes/audit
+              mountPath: /var/log/kubernetes/audit
+              readOnly: false
+            - name: encryption-config
+              hostPath: /etc/kubernetes/encryption-config.yaml
+              mountPath: /etc/kubernetes/encryption-config.yaml
+              readOnly: true
+    extraMounts:
+      - hostPath: ./audit-policy.yaml
+        containerPath: /etc/kubernetes/audit/audit-policy.yaml
+        readOnly: true
+      - hostPath: ./encryption-config.yaml
+        containerPath: /etc/kubernetes/encryption-config.yaml
+        readOnly: true
+    extraPortMappings:
+      - containerPort: 30000
+        hostPort: 30000
+        protocol: TCP
+      - containerPort: 30001
+        hostPort: 30001
+        protocol: TCP
+  - role: worker
+  - role: worker

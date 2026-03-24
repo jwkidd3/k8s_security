@@ -29,7 +29,14 @@ kubectl cluster-info --context kind-audit-lab
 kubectl get nodes
 ```
 
-### Step 2: Verify Audit Logging Is Active
+### Step 2: Install jq for JSON Parsing
+
+```bash
+# Install jq for JSON parsing
+sudo yum install -y jq 2>/dev/null || sudo apt-get install -y jq 2>/dev/null
+```
+
+### Step 3: Verify Audit Logging Is Active
 
 ```bash
 # Check the API server has audit flags
@@ -38,19 +45,19 @@ docker exec audit-lab-control-plane cat /etc/kubernetes/manifests/kube-apiserver
 # Check audit log file exists
 docker exec audit-lab-control-plane ls -la /var/log/kubernetes/audit/
 
-# View recent audit events
-docker exec audit-lab-control-plane tail -3 /var/log/kubernetes/audit/audit.log | python3 -m json.tool
+# View recent audit events (formatted)
+docker exec audit-lab-control-plane tail -3 /var/log/kubernetes/audit/audit.log | jq .
 ```
 
 ## Part 1: Audit Policy Configuration
 
-### Step 3: Review the Current Audit Policy
+### Step 4: Review the Current Audit Policy
 
 ```bash
 docker exec audit-lab-control-plane cat /etc/kubernetes/audit/audit-policy.yaml
 ```
 
-### Step 4: Understand Audit Levels
+### Step 5: Understand Audit Levels
 
 ```bash
 cat <<'EXPLANATION'
@@ -71,7 +78,7 @@ Best Practices:
 EXPLANATION
 ```
 
-### Step 5: Create an Enhanced Audit Policy
+### Step 6: Create an Enhanced Audit Policy
 
 ```bash
 cat > /tmp/enhanced-audit-policy.yaml <<'EOF'
@@ -142,7 +149,7 @@ EOF
 echo "Enhanced audit policy created"
 ```
 
-### Step 6: Apply the Enhanced Audit Policy
+### Step 7: Apply the Enhanced Audit Policy
 
 ```bash
 # Copy into the control plane container
@@ -158,7 +165,7 @@ kubectl get nodes --timeout=60s
 
 ## Part 2: Generating and Analyzing Audit Events
 
-### Step 7: Generate Security-Relevant Events
+### Step 8: Generate Security-Relevant Events
 
 ```bash
 # Create a namespace
@@ -204,97 +211,60 @@ kubectl wait --for=condition=Ready pod/test-pod -n audit-test --timeout=60s
 kubectl exec -n audit-test test-pod -- whoami
 ```
 
-### Step 8: Analyze Secret Access Events
+### Step 9: Analyze Secret Access Events
 
 ```bash
 echo "=== Secret Access Events ==="
 docker exec audit-lab-control-plane cat /var/log/kubernetes/audit/audit.log | \
-  python3 -c "
-import json, sys
-for line in sys.stdin:
-    try:
-        e = json.loads(line.strip())
-        ref = e.get('objectRef', {})
-        if ref.get('resource') == 'secrets':
-            print(f\"  {e['verb']:8s} | {e['user']['username']:30s} | {ref.get('namespace','')}/{ref.get('name','')} | {e.get('responseStatus',{}).get('code','')}\")
-    except: pass
-"
+  jq -r 'select(.objectRef.resource == "secrets") |
+    "  \(.verb | . + " " * (8 - length)) | \(.user.username | . + " " * ([30 - length, 0] | max)) | \(.objectRef.namespace // "")/\(.objectRef.name // "") | \(.responseStatus.code // "")"'
 ```
 
-### Step 9: Analyze RBAC Change Events
+### Step 10: Analyze RBAC Change Events
 
 ```bash
 echo "=== RBAC Change Events ==="
 docker exec audit-lab-control-plane cat /var/log/kubernetes/audit/audit.log | \
-  python3 -c "
-import json, sys
-for line in sys.stdin:
-    try:
-        e = json.loads(line.strip())
-        ref = e.get('objectRef', {})
-        if ref.get('apiGroup') == 'rbac.authorization.k8s.io':
-            print(f\"  {e['verb']:8s} | {ref.get('resource'):20s} | {ref.get('name',''):25s} | {e['user']['username']}\")
-    except: pass
-"
+  jq -r 'select(.objectRef.apiGroup == "rbac.authorization.k8s.io") |
+    "  \(.verb | . + " " * (8 - length)) | \(.objectRef.resource | . + " " * ([20 - length, 0] | max)) | \(.objectRef.name // "" | . + " " * ([25 - length, 0] | max)) | \(.user.username)"'
 ```
 
-### Step 10: Analyze Pod Exec Events
+### Step 11: Analyze Pod Exec Events
 
 ```bash
 echo "=== Pod Exec Events ==="
 docker exec audit-lab-control-plane cat /var/log/kubernetes/audit/audit.log | \
-  python3 -c "
-import json, sys
-for line in sys.stdin:
-    try:
-        e = json.loads(line.strip())
-        ref = e.get('objectRef', {})
-        if ref.get('subresource') in ('exec', 'attach'):
-            print(f\"  {e['verb']:8s} | {e['user']['username']:30s} | {ref.get('namespace','')}/{ref.get('name','')} | {e.get('requestURI','')}\")
-    except: pass
-"
+  jq -r 'select(.objectRef.subresource == "exec" or .objectRef.subresource == "attach") |
+    "  \(.verb | . + " " * (8 - length)) | \(.user.username | . + " " * ([30 - length, 0] | max)) | \(.objectRef.namespace // "")/\(.objectRef.name // "") | \(.requestURI // "")"'
 ```
 
-### Step 11: Build a Suspicious Activity Query
+### Step 12: Build a Suspicious Activity Query
 
 ```bash
 echo "=== Suspicious Activity Detection ==="
 docker exec audit-lab-control-plane cat /var/log/kubernetes/audit/audit.log | \
-  python3 -c "
-import json, sys
-from collections import defaultdict
+  jq -r '
+    # Flag: secret access by non-system users
+    (if .objectRef.resource == "secrets" and (.user.username | startswith("system:") | not)
+     then "  [!] SECRET ACCESS: \(.user.username) \(.verb) \(.objectRef.namespace // "")/\(.objectRef.name // "")"
+     else empty end),
+    # Flag: RBAC modifications
+    (if .objectRef.apiGroup == "rbac.authorization.k8s.io" and (.verb == "create" or .verb == "update" or .verb == "patch" or .verb == "delete")
+     then "  [!] RBAC CHANGE: \(.user.username) \(.verb) \(.objectRef.resource // "") \(.objectRef.name // "")"
+     else empty end),
+    # Flag: pod exec
+    (if .objectRef.subresource == "exec"
+     then "  [!] POD EXEC: \(.user.username) into \(.objectRef.namespace // "")/\(.objectRef.name // "")"
+     else empty end)
+  ' | tee /tmp/suspicious_events.txt
 
-suspicious = []
-for line in sys.stdin:
-    try:
-        e = json.loads(line.strip())
-        ref = e.get('objectRef', {})
-        user = e['user']['username']
-        verb = e['verb']
-
-        # Flag: secret access by non-system users
-        if ref.get('resource') == 'secrets' and not user.startswith('system:'):
-            suspicious.append(f'SECRET ACCESS: {user} {verb} {ref.get(\"namespace\",\"\")}/{ref.get(\"name\",\"\")}')
-
-        # Flag: RBAC modifications
-        if ref.get('apiGroup') == 'rbac.authorization.k8s.io' and verb in ('create','update','patch','delete'):
-            suspicious.append(f'RBAC CHANGE: {user} {verb} {ref.get(\"resource\",\"\")} {ref.get(\"name\",\"\")}')
-
-        # Flag: pod exec
-        if ref.get('subresource') == 'exec':
-            suspicious.append(f'POD EXEC: {user} into {ref.get(\"namespace\",\"\")}/{ref.get(\"name\",\"\")}')
-
-    except: pass
-
-for item in suspicious:
-    print(f'  [!] {item}')
-print(f'\n  Total suspicious events: {len(suspicious)}')
-"
+echo ""
+echo "  Total suspicious events: $(wc -l < /tmp/suspicious_events.txt | tr -d ' ')"
 ```
 
 ## Part 3: CIS Benchmark Scanning with kube-bench
 
-### Step 12: Run kube-bench
+### Step 13: Run kube-bench
 
 ```bash
 kubectl apply -f - <<EOF
@@ -340,50 +310,44 @@ EOF
 kubectl wait --for=condition=complete job/kube-bench --timeout=120s
 ```
 
-### Step 13: Analyze CIS Benchmark Results
+### Step 14: Analyze CIS Benchmark Results
 
 ```bash
 # Get summary
 echo "=== CIS Benchmark Summary ==="
-kubectl logs job/kube-bench | python3 -c "
-import json, sys
-data = json.load(sys.stdin)
-total_pass = total_fail = total_warn = total_info = 0
-for control in data.get('Controls', []):
-    desc = control.get('text', 'Unknown')
-    p = f = w = i = 0
-    for group in control.get('tests', []):
-        for result in group.get('results', []):
-            status = result.get('status', '')
-            if status == 'PASS': p += 1
-            elif status == 'FAIL': f += 1
-            elif status == 'WARN': w += 1
-            elif status == 'INFO': i += 1
-    total_pass += p; total_fail += f; total_warn += w; total_info += i
-    print(f'  {desc}: PASS={p} FAIL={f} WARN={w} INFO={i}')
-print(f'\n  TOTAL: PASS={total_pass} FAIL={total_fail} WARN={total_warn} INFO={total_info}')
-"
+kubectl logs job/kube-bench | jq -r '
+  .Controls[] |
+  .text as $desc |
+  [.tests[].results[] | .status] |
+  {desc: $desc,
+   PASS: (map(select(. == "PASS")) | length),
+   FAIL: (map(select(. == "FAIL")) | length),
+   WARN: (map(select(. == "WARN")) | length),
+   INFO: (map(select(. == "INFO")) | length)} |
+  "  \($desc): PASS=\(.PASS) FAIL=\(.FAIL) WARN=\(.WARN) INFO=\(.INFO)"
+'
+kubectl logs job/kube-bench | jq -r '
+  [.Controls[].tests[].results[] | .status] |
+  {PASS: (map(select(. == "PASS")) | length),
+   FAIL: (map(select(. == "FAIL")) | length),
+   WARN: (map(select(. == "WARN")) | length),
+   INFO: (map(select(. == "INFO")) | length)} |
+  "\n  TOTAL: PASS=\(.PASS) FAIL=\(.FAIL) WARN=\(.WARN) INFO=\(.INFO)"
+'
 
 # Show failed checks
 echo ""
 echo "=== Failed Checks ==="
-kubectl logs job/kube-bench | python3 -c "
-import json, sys
-data = json.load(sys.stdin)
-for control in data.get('Controls', []):
-    for group in control.get('tests', []):
-        for result in group.get('results', []):
-            if result.get('status') == 'FAIL':
-                print(f\"  [{result['test_number']}] {result['test_desc']}\")
-                if result.get('remediation'):
-                    print(f\"    Remediation: {result['remediation'][:120]}...\")
-                print()
-" | head -60
+kubectl logs job/kube-bench | jq -r '
+  [.Controls[].tests[].results[] | select(.status == "FAIL")] |
+  .[] |
+  "  [\(.test_number)] \(.test_desc)\n    Remediation: \(.remediation // "" | .[0:120])...\n"
+' | head -60
 ```
 
 ## Part 4: Polaris Compliance Checking
 
-### Step 14: Install Polaris
+### Step 15: Install Polaris
 
 ```bash
 # Install Polaris via Helm
@@ -398,7 +362,7 @@ helm install polaris fairwinds-stable/polaris \
 kubectl wait --for=condition=Ready pods --all -n polaris --timeout=120s
 ```
 
-### Step 15: Run Polaris Audit
+### Step 16: Run Polaris Audit
 
 ```bash
 # Install the Polaris CLI for command-line auditing
@@ -411,7 +375,7 @@ rm polaris_linux_amd64.tar.gz
 polaris audit --format=pretty --kubeconfig ~/.kube/config 2>/dev/null | head -80
 ```
 
-### Step 16: Deploy Test Workloads and Re-Audit
+### Step 17: Deploy Test Workloads and Re-Audit
 
 ```bash
 # Deploy a poorly configured workload
@@ -503,7 +467,7 @@ polaris audit --namespace audit-test --format=pretty --kubeconfig ~/.kube/config
 
 ## Part 5: Compliance Report
 
-### Step 17: Generate Compliance Summary
+### Step 18: Generate Compliance Summary
 
 ```bash
 echo "============================================"
@@ -518,23 +482,13 @@ echo "  Status: Enabled"
 docker exec audit-lab-control-plane cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep -c "audit" | xargs -I{} echo "  Audit flags configured: {}"
 echo ""
 echo "--- CIS Benchmark ---"
-kubectl logs job/kube-bench 2>/dev/null | python3 -c "
-import json, sys
-try:
-    data = json.load(sys.stdin)
-    p = f = w = 0
-    for c in data.get('Controls', []):
-        for g in c.get('tests', []):
-            for r in g.get('results', []):
-                s = r.get('status', '')
-                if s == 'PASS': p += 1
-                elif s == 'FAIL': f += 1
-                elif s == 'WARN': w += 1
-    print(f'  Pass: {p}  Fail: {f}  Warn: {w}')
-    score = (p / (p + f + w) * 100) if (p + f + w) > 0 else 0
-    print(f'  Score: {score:.1f}%')
-except: print('  Unable to parse results')
-"
+kubectl logs job/kube-bench 2>/dev/null | jq -r '
+  [.Controls[].tests[].results[] | .status] |
+  {p: (map(select(. == "PASS")) | length),
+   f: (map(select(. == "FAIL")) | length),
+   w: (map(select(. == "WARN")) | length)} |
+  "  Pass: \(.p)  Fail: \(.f)  Warn: \(.w)\n  Score: \(if (.p + .f + .w) > 0 then ((.p * 1000 / (.p + .f + .w) | round) / 10) else 0 end)%"
+' 2>/dev/null || echo "  Unable to parse results"
 ```
 
 ## Cleanup

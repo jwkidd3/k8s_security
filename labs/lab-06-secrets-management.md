@@ -19,11 +19,34 @@ By the end of this lab, you will be able to:
 
 ## Lab Environment Setup
 
-### Step 1: Create Lab Cluster and Namespace
+### Step 1: Prepare Encryption Config and Create Cluster
 
 ```bash
-# Create cluster if needed
-kind create cluster --name security-lab --config labs/setup/kind-config-default.yaml
+# Generate a 32-byte encryption key
+ENCRYPTION_KEY=$(head -c 32 /dev/urandom | base64)
+
+# Create the encryption configuration using the generated key
+cat > /tmp/encryption-config.yaml <<EOF
+apiVersion: apiserver.config.k8s.io/v1
+kind: EncryptionConfiguration
+resources:
+  - resources:
+      - secrets
+    providers:
+      - aescbc:
+          keys:
+            - name: key1
+              secret: ${ENCRYPTION_KEY}
+      - identity: {}
+EOF
+
+# Copy the populated config into the setup directory so kind can mount it
+cp /tmp/encryption-config.yaml labs/setup/encryption-config-generated.yaml
+
+# Create the cluster with encryption at rest pre-configured
+cd labs/setup
+kind create cluster --name security-lab --config kind-config-encryption.yaml
+cd ../..
 
 # Create lab namespace
 kubectl create namespace secrets-lab
@@ -67,7 +90,8 @@ docker exec security-lab-control-plane sh -c \
     --key=/etc/kubernetes/pki/etcd/server.key \
     get /registry/secrets/secrets-lab/db-credentials' | hexdump -C | head -30
 
-# You can see the secret values in plain text in etcd
+# Because this cluster has encryption at rest enabled, you should see
+# encrypted data (look for "k8s:enc:aescbc" prefix) rather than plain text
 ```
 
 ## Part 2: Volume Mounts vs Environment Variables
@@ -165,42 +189,24 @@ echo "  - May appear in docker inspect output"
 
 ## Part 3: Encryption at Rest
 
-### Step 7: Configure Encryption at Rest
+### Step 7: Verify Encryption at Rest Is Configured
+
+Since the cluster was created with `kind-config-encryption.yaml`, the API server
+already has encryption at rest enabled. Verify the configuration:
 
 ```bash
-# Generate encryption key
-ENCRYPTION_KEY=$(head -c 32 /dev/urandom | base64)
+# Confirm the API server has the encryption-provider-config flag
+docker exec security-lab-control-plane \
+  cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep encryption-provider-config
+# Expected: --encryption-provider-config=/etc/kubernetes/encryption-config.yaml
 
-# Create encryption configuration
-cat > /tmp/encryption-config.yaml <<EOF
-apiVersion: apiserver.config.k8s.io/v1
-kind: EncryptionConfiguration
-resources:
-  - resources:
-      - secrets
-    providers:
-      - aescbc:
-          keys:
-            - name: key1
-              secret: ${ENCRYPTION_KEY}
-      - identity: {}
-EOF
+# Confirm the encryption config file is mounted inside the control plane
+docker exec security-lab-control-plane \
+  cat /etc/kubernetes/encryption-config.yaml | head -5
+# Expected: the EncryptionConfiguration header
 
-# Copy into control plane and configure API server
-docker cp /tmp/encryption-config.yaml security-lab-control-plane:/etc/kubernetes/encryption-config.yaml
-
-# Patch the API server manifest
-docker exec security-lab-control-plane sh -c '
-  if ! grep -q "encryption-provider-config" /etc/kubernetes/manifests/kube-apiserver.yaml; then
-    sed -i "/--etcd-servers/a\\    - --encryption-provider-config=/etc/kubernetes/encryption-config.yaml" /etc/kubernetes/manifests/kube-apiserver.yaml
-    sed -i "/volumeMounts:/a\\    - mountPath: /etc/kubernetes/encryption-config.yaml\\n      name: encryption-config\\n      readOnly: true" /etc/kubernetes/manifests/kube-apiserver.yaml
-    sed -i "/volumes:/a\\  - hostPath:\\n      path: /etc/kubernetes/encryption-config.yaml\\n      type: File\\n    name: encryption-config" /etc/kubernetes/manifests/kube-apiserver.yaml
-  fi
-'
-
-echo "Waiting for API server to restart..."
-sleep 30
-kubectl get nodes --timeout=120s
+# Confirm the API server is running with the flag
+kubectl get pods -n kube-system -l component=kube-apiserver -o yaml | grep encryption-provider-config
 ```
 
 ### Step 8: Verify Encryption Works
@@ -299,7 +305,8 @@ echo "Key point: Only the cluster's private key can decrypt."
 echo "The SealedSecret is safe to store in version control."
 
 # Verify: modifying a sealed secret breaks it
-cat /tmp/sealed-secret.yaml | sed 's/encryptedData:/encryptedData:\n  tampered: dGFtcGVyZWQ=/' > /tmp/tampered-sealed-secret.yaml
+awk '/encryptedData:/{print; print "  tampered: dGFtcGVyZWQ="; next} {print}' \
+  /tmp/sealed-secret.yaml > /tmp/tampered-sealed-secret.yaml
 # The controller will reject tampered values
 ```
 
@@ -393,6 +400,7 @@ kubectl exec -n secrets-lab no-token-pod -- ls /var/run/secrets/kubernetes.io/se
 ```bash
 kubectl delete namespace secrets-lab
 rm -f /tmp/sealed-secret.yaml /tmp/tampered-sealed-secret.yaml /tmp/encryption-config.yaml
+rm -f labs/setup/encryption-config-generated.yaml
 
 # (Optional) Delete the cluster
 # kind delete cluster --name security-lab

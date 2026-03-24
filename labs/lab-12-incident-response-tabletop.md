@@ -30,6 +30,9 @@ kind create cluster --name ir-lab --config labs/setup/kind-config-audit.yaml
 
 # Wait for the cluster
 kubectl wait --for=condition=Ready nodes --all --timeout=120s
+
+# Install jq for JSON parsing
+sudo yum install -y jq 2>/dev/null || sudo apt-get install -y jq 2>/dev/null
 ```
 
 ### Step 2: Stage the Compromise Scenario
@@ -236,16 +239,8 @@ kubectl get pods -n production -o jsonpath='{range .items[*]}{.metadata.name}: {
 ```bash
 echo "--- Recent Secret Access in Audit Logs ---"
 docker exec ir-lab-control-plane cat /var/log/kubernetes/audit/audit.log 2>/dev/null | \
-  python3 -c "
-import json, sys
-for line in sys.stdin:
-    try:
-        e = json.loads(line.strip())
-        ref = e.get('objectRef', {})
-        if ref.get('resource') == 'secrets' and ref.get('namespace') == 'production':
-            print(f\"  {e.get('requestReceivedTimestamp','')} | {e['verb']:6s} | {e['user']['username']:50s} | {ref.get('name','')}\")
-    except: pass
-" | tail -20
+  jq -r 'select(.objectRef.resource == "secrets" and .objectRef.namespace == "production") |
+    "  \(.requestReceivedTimestamp // "") | \(.verb | . + " " * (6 - length)) | \(.user.username | . + " " * ([50 - length, 0] | max)) | \(.objectRef.name // "")"' | tail -20
 ```
 
 ## Phase 2: Investigation (15 minutes)
@@ -318,14 +313,9 @@ kubectl auth can-i get pods --all-namespaces --as system:serviceaccount:producti
 kubectl auth can-i get secrets --all-namespaces --as system:serviceaccount:production:web-app-sa
 
 # Check for any ClusterRoleBindings referencing the SA
-kubectl get clusterrolebindings -o json | python3 -c "
-import json, sys
-data = json.load(sys.stdin)
-for item in data['items']:
-    for s in item.get('subjects', []):
-        if s.get('name') == 'web-app-sa' and s.get('namespace') == 'production':
-            print(f\"  ClusterRoleBinding: {item['metadata']['name']} -> {item['roleRef']['name']}\")
-" || echo "  No cluster-level bindings found"
+kubectl get clusterrolebindings -o json | \
+  jq -r '.items[] | select(.subjects[]? | .name == "web-app-sa" and .namespace == "production") |
+    "  ClusterRoleBinding: \(.metadata.name) -> \(.roleRef.name)"' || echo "  No cluster-level bindings found"
 
 # Check for pods running in other namespaces
 echo ""
@@ -448,25 +438,12 @@ echo "=== Incident Timeline ==="
 echo ""
 
 # Build timeline from audit logs
-cat /tmp/incident-evidence/audit-log.json | python3 -c "
-import json, sys
-events = []
-for line in sys.stdin:
-    try:
-        e = json.loads(line.strip())
-        ref = e.get('objectRef', {})
-        ns = ref.get('namespace', '')
-        if ns == 'production' and e['verb'] in ('create','delete','get','update','patch'):
-            ts = e.get('requestReceivedTimestamp', '')
-            user = e['user']['username']
-            resource = f\"{ref.get('resource','')}/{ref.get('name','')}\".rstrip('/')
-            events.append((ts, e['verb'], user, resource))
-    except: pass
-
-events.sort()
-for ts, verb, user, resource in events[-30:]:
-    print(f'  {ts} | {verb:8s} | {user[:40]:40s} | {resource}')
-" 2>/dev/null || echo "  Unable to parse audit logs"
+cat /tmp/incident-evidence/audit-log.json | \
+  jq -r 'select(.objectRef.namespace == "production" and (.verb == "create" or .verb == "delete" or .verb == "get" or .verb == "update" or .verb == "patch")) |
+    "\(.requestReceivedTimestamp // "")\t\(.verb)\t\(.user.username)\t\((.objectRef.resource // "") + "/" + (.objectRef.name // "") | rtrimstr("/"))"' | \
+  sort | tail -30 | \
+  awk -F'\t' '{printf "  %-30s | %-8s | %-40s | %s\n", $1, $2, substr($3,1,40), $4}' \
+  2>/dev/null || echo "  Unable to parse audit logs"
 ```
 
 ## Phase 5: Documentation (15 minutes)

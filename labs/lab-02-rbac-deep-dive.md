@@ -291,15 +291,10 @@ kubectl auth can-i get secrets --all-namespaces --as system:serviceaccount:dev-t
 ```bash
 # List all ClusterRoleBindings that reference cluster-admin
 kubectl get clusterrolebindings -o json | \
-  python3 -c "
-import json, sys
-data = json.load(sys.stdin)
-for item in data['items']:
-    if item['roleRef']['name'] == 'cluster-admin':
-        subjects = item.get('subjects', [])
-        for s in subjects:
-            print(f\"  {s.get('kind')}: {s.get('name')} (ns: {s.get('namespace', 'cluster-wide')})  [{item['metadata']['name']}]\")
-"
+  jq -r '.items[] | select(.roleRef.name == "cluster-admin") |
+    .metadata.name as $binding |
+    (.subjects // [])[] |
+    "  \(.kind): \(.name) (ns: \(.namespace // "cluster-wide"))  [\($binding)]"'
 ```
 
 ### Step 14: Check Default Service Account Permissions

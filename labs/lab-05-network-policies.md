@@ -40,9 +40,47 @@ kubectl get nodes
 
 ### Step 2: Deploy a Three-Tier Application
 
+We use ConfigMaps to provide custom nginx configurations that listen on the correct ports for each tier. This avoids fragile `sed` commands and is a more Kubernetes-native approach.
+
 ```bash
 # Create namespace
 kubectl create namespace three-tier
+
+# Create ConfigMap for the database tier (listens on port 5432)
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-nginx-config
+  namespace: three-tier
+data:
+  default.conf: |
+    server {
+        listen 5432;
+        location / {
+            return 200 'Database OK\n';
+            add_header Content-Type text/plain;
+        }
+    }
+EOF
+
+# Create ConfigMap for the backend tier (listens on port 8080)
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-nginx-config
+  namespace: three-tier
+data:
+  default.conf: |
+    server {
+        listen 8080;
+        location / {
+            return 200 'Backend OK\n';
+            add_header Content-Type text/plain;
+        }
+    }
+EOF
 
 # Deploy the database tier
 kubectl apply -f - <<EOF
@@ -72,7 +110,13 @@ spec:
           ports:
             - containerPort: 5432
               name: postgres
-          command: ["sh", "-c", "sed -i 's/listen.*80;/listen 5432;/' /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: database-nginx-config
 ---
 apiVersion: v1
 kind: Service
@@ -116,7 +160,13 @@ spec:
           ports:
             - containerPort: 8080
               name: http
-          command: ["sh", "-c", "sed -i 's/listen.*80;/listen 8080;/' /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: backend-nginx-config
 ---
 apiVersion: v1
 kind: Service
@@ -132,7 +182,7 @@ spec:
       targetPort: 8080
 EOF
 
-# Deploy the frontend tier
+# Deploy the frontend tier (uses default nginx port 80, no ConfigMap needed)
 kubectl apply -f - <<EOF
 apiVersion: apps/v1
 kind: Deployment

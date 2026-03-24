@@ -264,12 +264,50 @@ EOF
 ### Step 13: Apply Custom Rules
 
 ```bash
-# Extract custom rules into a Helm values file
+# Create a Helm values file with our custom rules
 cat > /tmp/falco-custom-values.yaml <<'EOF'
 customRules:
   custom-rules.yaml: |
+    - rule: Detect Crypto Mining Process
+      desc: Detect processes commonly associated with crypto mining
+      condition: >
+        spawned_process and container and
+        (proc.name in (xmrig, minerd, minergate, cpuminer) or
+         proc.cmdline contains "stratum+tcp" or
+         proc.cmdline contains "cryptonight")
+      output: >
+        Crypto mining process detected
+        (user=%user.name container=%container.name
+        process=%proc.name cmdline=%proc.cmdline
+        image=%container.image.repository)
+      priority: CRITICAL
+      tags: [container, crypto, mitre_execution]
+    - rule: Kubectl Exec Into Pod
+      desc: Detect kubectl exec commands
+      condition: >
+        spawned_process and container and
+        proc.pname = "runc:[2:INIT]" and proc.tty != 0
+      output: >
+        Interactive exec detected in container
+        (user=%user.name container=%container.name
+        command=%proc.cmdline image=%container.image.repository
+        namespace=%k8s.ns.name pod=%k8s.pod.name)
+      priority: WARNING
+      tags: [container, kubectl, mitre_execution]
+    - rule: Sensitive Mount Detected
+      desc: Detect when container has sensitive host paths mounted
+      condition: >
+        container and evt.type = open and
+        (fd.name startswith /host/etc or
+         fd.name startswith /host/var/run/docker.sock or
+         fd.name startswith /host/root)
+      output: >
+        Sensitive host path accessed in container
+        (user=%user.name container=%container.name
+        file=%fd.name image=%container.image.repository)
+      priority: ERROR
+      tags: [container, filesystem, mitre_persistence]
 EOF
-kubectl get configmap falco-custom-rules -n falco -o jsonpath='{.data.custom-rules\.yaml}' | sed 's/^/    /' >> /tmp/falco-custom-values.yaml
 
 # Upgrade Falco with custom rules
 helm upgrade falco falcosecurity/falco \
