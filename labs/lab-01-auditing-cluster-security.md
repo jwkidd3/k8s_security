@@ -13,9 +13,35 @@
 
 ## Prerequisites
 
-- Cloud9 environment (Amazon Linux) with Docker installed
+- AWS account with access to create Cloud9 environments
 
 ---
+
+### Step 0: Create Your Cloud9 Environment
+
+1. Open the [AWS Cloud9 Console](https://us-east-1.console.aws.amazon.com/cloud9/) in **us-east-1**
+2. Click **Create environment**
+3. Configure:
+   - **Name:** `kubernetes-security`
+   - **Environment type:** New EC2 instance
+   - **Instance type:** `m5.large`
+   - **Platform:** Amazon Linux 2023
+   - **Connection:** SSH
+   - Leave all other settings as defaults
+4. Click **Create**
+5. Wait for the environment to be ready, then click **Open** to launch the IDE
+6. In the Cloud9 terminal, increase the disk size (default 10 GB is not enough for container images):
+
+```bash
+# Resize the EBS volume to 30 GB
+INSTANCE_ID=$(ec2-metadata -i | awk '{print $2}')
+VOLUME_ID=$(aws ec2 describe-volumes --filters "Name=attachment.instance-id,Values=$INSTANCE_ID" --query 'Volumes[0].VolumeId' --output text)
+aws ec2 modify-volume --volume-id $VOLUME_ID --size 30
+sleep 10
+sudo growpart /dev/nvme0n1 1
+sudo xfs_growfs /
+df -h /
+```
 
 ### Step 1: Clone the Course Repository
 

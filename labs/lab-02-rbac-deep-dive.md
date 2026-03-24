@@ -12,9 +12,8 @@
 
 ## Prerequisites
 
-- Running kind cluster from Lab 1 (or create one with `kind create cluster --name security-lab --config labs/setup/kind-config-default.yaml`)
-- `kubectl` CLI configured
-- `jq` installed (from Lab 1)
+- Cloud9 environment from Lab 1 (m5.large, us-east-1)
+- Tools installed from Lab 1 (`kind`, `kubectl`, `jq`)
 
 ---
 

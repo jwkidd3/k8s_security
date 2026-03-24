@@ -13,9 +13,8 @@
 
 ## Prerequisites
 
-- Cloud9 environment (Amazon Linux) with Docker installed
-- `kubectl` and `kind` installed
-- `jq` installed (from Lab 1)
+- Cloud9 environment from Lab 1 (m5.large, us-east-1)
+- Tools installed from Lab 1 (`kind`, `kubectl`, `jq`)
 
 ---
 

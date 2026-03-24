@@ -15,8 +15,8 @@ By the end of this lab, you will be able to:
 
 ## Prerequisites
 
-- Cloud9 environment with Docker
-- `kubectl` and `kind` installed
+- Cloud9 environment from Lab 1 (m5.large, us-east-1)
+- Tools installed from Lab 1 (`kind`, `kubectl`, `jq`)
 
 ## Scenario
 

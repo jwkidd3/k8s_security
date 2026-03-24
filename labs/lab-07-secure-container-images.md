@@ -16,9 +16,8 @@ By the end of this lab, you will be able to:
 
 ## Prerequisites
 
-- Cloud9 environment (Amazon Linux)
-- Running kind cluster
-- Docker installed and `kubectl` CLI configured
+- Cloud9 environment from Lab 1 (m5.large, us-east-1)
+- Tools installed from Lab 1 (`kind`, `kubectl`)
 
 ---
 
