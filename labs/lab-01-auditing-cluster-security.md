@@ -22,7 +22,7 @@
 1. Open the [AWS Cloud9 Console](https://us-east-1.console.aws.amazon.com/cloud9/) in **us-east-1**
 2. Click **Create environment**
 3. Configure:
-   - **Name:** `kubernetes-security`
+   - **Name:** `kubernetes-security-<your-username>` (e.g., `kubernetes-security-jsmith`)
    - **Environment type:** New EC2 instance
    - **Instance type:** `m5.large`
    - **Platform:** Amazon Linux 2023
