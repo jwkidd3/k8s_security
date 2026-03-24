@@ -1,36 +1,32 @@
 # Lab 8: Admission Controllers
 
-**Duration:** 60 minutes
+**Duration:** 40 minutes
 
 ## Objectives
 
 By the end of this lab, you will be able to:
 
 - Install and configure Kyverno as a policy engine
-- Create validate, mutate, and generate policies
+- Create validation policies to enforce labeling and image tag standards
+- Create mutation policies to auto-inject security contexts
+- Create generate policies to auto-create resources when namespaces are created
+- View Kyverno policy reports to assess cluster compliance
 - Test policy enforcement with compliant and non-compliant resources
-- Use Kyverno policy reports for compliance visibility
 
 ## Prerequisites
 
-- Running kind cluster (or create a new one with default config)
+- Cloud9 environment (Amazon Linux)
+- Running kind cluster
 - `kubectl` and `helm` CLI configured
 
-## Lab Environment Setup
+---
 
-### Step 1: Create Lab Cluster
+### Step 1: Install Kyverno via Helm
 
 ```bash
-# Create cluster if needed
-kind create cluster --name security-lab --config labs/setup/kind-config-default.yaml
-
 # Create lab namespace
 kubectl create namespace policy-lab
-```
 
-### Step 2: Install Kyverno
-
-```bash
 # Add Kyverno Helm repo
 helm repo add kyverno https://kyverno.github.io/kyverno/
 helm repo update
@@ -48,9 +44,7 @@ echo "Kyverno installed and running"
 kubectl get pods -n kyverno
 ```
 
-## Part 1: Validation Policies
-
-### Step 3: Require Labels on All Pods
+### Step 2: Create Policy — Require Labels on All Pods
 
 ```bash
 kubectl apply -f - <<EOF
@@ -95,7 +89,7 @@ EOF
 echo "Policy 'require-labels' created in Enforce mode"
 ```
 
-### Step 4: Test Label Requirement
+### Step 3: Test Enforcement — Labels
 
 ```bash
 # Try to create a pod without labels (should FAIL)
@@ -123,7 +117,7 @@ echo "Expected: Created successfully"
 kubectl get pods -n policy-lab --show-labels
 ```
 
-### Step 5: Block `latest` Tag
+### Step 4: Create Policy — Block Latest Tag
 
 ```bash
 kubectl apply -f - <<EOF
@@ -164,12 +158,8 @@ spec:
             containers:
               - image: "*:*"
 EOF
-```
 
-### Step 6: Test Latest Tag Blocking
-
-```bash
-# Try using :latest tag (should FAIL)
+# Test: latest tag (should FAIL)
 kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Pod
@@ -186,24 +176,7 @@ spec:
 EOF
 echo "Expected: Blocked - latest tag not allowed"
 
-# Try without a tag (should FAIL - defaults to latest)
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Pod
-metadata:
-  name: no-tag
-  namespace: policy-lab
-  labels:
-    app: test
-    team: test
-spec:
-  containers:
-    - name: web
-      image: nginx
-EOF
-echo "Expected: Blocked - no tag specified"
-
-# Use a specific tag (should SUCCEED)
+# Test: specific tag (should SUCCEED)
 kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Pod
@@ -221,86 +194,7 @@ EOF
 echo "Expected: Created successfully"
 ```
 
-### Step 7: Enforce Resource Limits
-
-```bash
-kubectl apply -f - <<EOF
-apiVersion: kyverno.io/v1
-kind: ClusterPolicy
-metadata:
-  name: require-resource-limits
-spec:
-  validationFailureAction: Enforce
-  background: true
-  rules:
-    - name: require-limits
-      match:
-        any:
-          - resources:
-              kinds:
-                - Pod
-              namespaces:
-                - policy-lab
-      validate:
-        message: "CPU and memory limits are required for all containers."
-        pattern:
-          spec:
-            containers:
-              - resources:
-                  limits:
-                    memory: "?*"
-                    cpu: "?*"
-EOF
-```
-
-### Step 8: Test Resource Limits Policy
-
-```bash
-# Pod without limits (should FAIL)
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Pod
-metadata:
-  name: no-limits
-  namespace: policy-lab
-  labels:
-    app: test
-    team: test
-spec:
-  containers:
-    - name: web
-      image: nginx:1.25-alpine
-EOF
-echo "Expected: Blocked - no resource limits"
-
-# Pod with limits (should SUCCEED)
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Pod
-metadata:
-  name: with-limits
-  namespace: policy-lab
-  labels:
-    app: test
-    team: test
-spec:
-  containers:
-    - name: web
-      image: nginx:1.25-alpine
-      resources:
-        limits:
-          cpu: 200m
-          memory: 128Mi
-        requests:
-          cpu: 100m
-          memory: 64Mi
-EOF
-echo "Expected: Created successfully"
-```
-
-## Part 2: Mutation Policies
-
-### Step 9: Auto-Add Security Defaults
+### Step 5: Create Mutation Policy — Add Default Security Context
 
 ```bash
 kubectl apply -f - <<EOF
@@ -334,12 +228,14 @@ spec:
                     drop:
                       - ALL
 EOF
+
+echo "Mutation policy created"
 ```
 
-### Step 10: Test Mutation
+### Step 6: Test Mutation — Verify Security Context Injection
 
 ```bash
-# Create a pod without security context
+# Create a pod without any security context
 kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Pod
@@ -352,28 +248,30 @@ metadata:
 spec:
   containers:
     - name: web
-      image: nginx:1.25-alpine
+      image: nginxinc/nginx-unprivileged:1.25-alpine
       resources:
         limits:
           cpu: 200m
           memory: 128Mi
 EOF
 
-# Check that security context was automatically added
-kubectl get pod mutated-pod -n policy-lab -o jsonpath='{.spec.securityContext}' | python3 -m json.tool
-kubectl get pod mutated-pod -n policy-lab -o jsonpath='{.spec.containers[0].securityContext}' | python3 -m json.tool
+# Verify that pod-level security context was injected
+echo "=== Pod Security Context ==="
+kubectl get pod mutated-pod -n policy-lab -o jsonpath='{.spec.securityContext}' | jq .
+
+# Verify that container-level security context was injected
+echo "=== Container Security Context ==="
+kubectl get pod mutated-pod -n policy-lab -o jsonpath='{.spec.containers[0].securityContext}' | jq .
 ```
 
-## Part 3: Generate Policies
-
-### Step 11: Auto-Generate NetworkPolicies
+### Step 7: Create Generate Policy — Auto-Create NetworkPolicy for New Namespaces
 
 ```bash
 kubectl apply -f - <<EOF
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy
 metadata:
-  name: generate-default-deny
+  name: generate-default-networkpolicy
 spec:
   background: false
   rules:
@@ -383,223 +281,110 @@ spec:
           - resources:
               kinds:
                 - Namespace
-              selector:
-                matchLabels:
-                  security-policies: enabled
+      exclude:
+        any:
+          - resources:
+              names:
+                - kube-system
+                - kyverno
+                - falco
       generate:
-        synchronize: true
         apiVersion: networking.k8s.io/v1
         kind: NetworkPolicy
         name: default-deny-ingress
         namespace: "{{request.object.metadata.name}}"
+        synchronize: true
         data:
-          metadata:
-            labels:
-              generated-by: kyverno
           spec:
             podSelector: {}
             policyTypes:
               - Ingress
-    - name: default-deny-egress
-      match:
-        any:
-          - resources:
-              kinds:
-                - Namespace
-              selector:
-                matchLabels:
-                  security-policies: enabled
-      generate:
-        synchronize: true
-        apiVersion: networking.k8s.io/v1
-        kind: NetworkPolicy
-        name: default-deny-egress
-        namespace: "{{request.object.metadata.name}}"
-        data:
-          metadata:
-            labels:
-              generated-by: kyverno
-          spec:
-            podSelector: {}
-            policyTypes:
-              - Egress
 EOF
+
+echo "Generate policy created: new namespaces will automatically get a default-deny ingress NetworkPolicy"
 ```
 
-### Step 12: Test Generate Policy
+### Step 8: Test the Generate Policy
 
 ```bash
-# Create a namespace with the label
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: auto-secured
-  labels:
-    security-policies: enabled
-EOF
+# Create a new namespace — the NetworkPolicy should be auto-generated
+kubectl create namespace test-generated
 
-# Check that network policies were auto-generated
+# Wait a moment for Kyverno to generate the resource
 sleep 5
-kubectl get networkpolicies -n auto-secured
-echo "Expected: default-deny-ingress and default-deny-egress"
-```
 
-## Part 4: Policy Reports
+# Verify the NetworkPolicy was auto-created
+echo "=== NetworkPolicies in test-generated namespace ==="
+kubectl get networkpolicy -n test-generated
 
-### Step 13: View Policy Reports
+# Inspect the generated NetworkPolicy
+echo ""
+echo "=== NetworkPolicy Details ==="
+kubectl get networkpolicy default-deny-ingress -n test-generated -o yaml
 
-```bash
-# List policy reports
-kubectl get policyreport -A 2>/dev/null || kubectl get polr -A
-
-# Get detailed report for our namespace
-kubectl get policyreport -n policy-lab -o yaml 2>/dev/null | head -50
-
-# Check cluster-level reports
-kubectl get clusterpolicyreport -o yaml 2>/dev/null | head -50
-```
-
-### Step 14: Create a Compliance Dashboard View
-
-```bash
-# List all policies and their status
-echo "=== Active Kyverno Policies ==="
-kubectl get clusterpolicies
+# Create another namespace to confirm it works consistently
+kubectl create namespace test-generated-2
+sleep 5
+echo ""
+echo "=== NetworkPolicies in test-generated-2 namespace ==="
+kubectl get networkpolicy -n test-generated-2
 
 echo ""
-echo "=== Policy Compliance Summary ==="
-for policy in $(kubectl get clusterpolicies -o jsonpath='{.items[*].metadata.name}'); do
-  echo "Policy: $policy"
-  action=$(kubectl get clusterpolicy $policy -o jsonpath='{.spec.validationFailureAction}')
-  echo "  Action: $action"
-  rules=$(kubectl get clusterpolicy $policy -o jsonpath='{.spec.rules[*].name}')
-  echo "  Rules: $rules"
-  echo ""
-done
+echo "Every new namespace now starts with a default-deny ingress policy"
 ```
 
-## Part 5: Advanced — Block Privileged Pods
-
-### Step 15: Create a Comprehensive Security Policy
+### Step 9: View Kyverno Policy Reports
 
 ```bash
-kubectl apply -f - <<EOF
-apiVersion: kyverno.io/v1
-kind: ClusterPolicy
-metadata:
-  name: pod-security-hardening
-spec:
-  validationFailureAction: Enforce
-  background: true
-  rules:
-    - name: deny-privileged
-      match:
-        any:
-          - resources:
-              kinds:
-                - Pod
-              namespaces:
-                - policy-lab
-      validate:
-        message: "Privileged containers are not allowed."
-        pattern:
-          spec:
-            containers:
-              - =(securityContext):
-                  =(privileged): false
-    - name: deny-host-namespaces
-      match:
-        any:
-          - resources:
-              kinds:
-                - Pod
-              namespaces:
-                - policy-lab
-      validate:
-        message: "Host namespaces (hostPID, hostIPC, hostNetwork) are not allowed."
-        pattern:
-          spec:
-            =(hostPID): false
-            =(hostIPC): false
-            =(hostNetwork): false
-EOF
+# List all cluster-level policy reports
+echo "=== Cluster Policy Reports ==="
+kubectl get clusterpolicyreport
+
+# View detailed results from policy reports
+echo ""
+echo "=== Policy Report Results ==="
+kubectl get clusterpolicyreport -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{range .results[*]}  Rule: {.rule} | Result: {.result} | Resource: {.resources[0].name}{"\n"}{end}{end}'
+
+# Check namespace-level policy reports
+echo ""
+echo "=== Namespace Policy Reports ==="
+kubectl get policyreport --all-namespaces
+
+# Summarize compliance status
+echo ""
+echo "=== Compliance Summary ==="
+kubectl get policyreport --all-namespaces -o json | jq -r '
+  [.items[].results[]?.result // empty] |
+  group_by(.) |
+  map({status: .[0], count: length}) |
+  sort_by(-.count) |
+  .[] | "\(.count)\t\(.status)"
+'
+
+echo ""
+echo "Policy reports provide an audit trail of which resources pass or fail policy checks"
 ```
 
-### Step 16: Test Security Policy
-
-```bash
-# Try privileged pod (should FAIL)
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Pod
-metadata:
-  name: privileged-test
-  namespace: policy-lab
-  labels:
-    app: test
-    team: test
-spec:
-  containers:
-    - name: web
-      image: nginx:1.25-alpine
-      securityContext:
-        privileged: true
-      resources:
-        limits:
-          cpu: 200m
-          memory: 128Mi
-EOF
-echo "Expected: Blocked - privileged not allowed"
-
-# Try hostNetwork (should FAIL)
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Pod
-metadata:
-  name: hostnet-test
-  namespace: policy-lab
-  labels:
-    app: test
-    team: test
-spec:
-  hostNetwork: true
-  containers:
-    - name: web
-      image: nginx:1.25-alpine
-      resources:
-        limits:
-          cpu: 200m
-          memory: 128Mi
-EOF
-echo "Expected: Blocked - hostNetwork not allowed"
-```
-
-## Cleanup
+### Step 10: Cleanup
 
 ```bash
 # Delete lab resources
-kubectl delete namespace policy-lab auto-secured
+kubectl delete namespace policy-lab
+kubectl delete namespace test-generated
+kubectl delete namespace test-generated-2
 
 # Delete Kyverno policies
-kubectl delete clusterpolicy require-labels disallow-latest-tag require-resource-limits add-default-securitycontext generate-default-deny pod-security-hardening
+kubectl delete clusterpolicy require-labels disallow-latest-tag add-default-securitycontext generate-default-networkpolicy
 
 # Uninstall Kyverno
 helm uninstall kyverno -n kyverno
 kubectl delete namespace kyverno
-
-# (Optional) Delete the cluster
-# kind delete cluster --name security-lab
 ```
 
 ## Summary
 
-In this lab, you:
-- Installed Kyverno as a policy engine
-- Created validation policies to require labels, block `latest` tags, and enforce resource limits
-- Used mutation policies to auto-inject security contexts
-- Created generate policies to auto-create NetworkPolicies for labeled namespaces
-- Viewed policy reports for compliance visibility
-- Blocked privileged containers and host namespace access
-
-Key takeaway: Admission controllers are the enforcement point between "what you ask for" and "what you get." Use them to codify security policies and prevent misconfigurations before they reach the cluster.
+- Kyverno validation policies enforce standards (required labels, banned image tags) at admission time
+- Mutation policies automatically inject security defaults so developers do not need to remember every setting
+- Generate policies auto-create resources like default-deny NetworkPolicies when new namespaces are provisioned
+- Policy reports provide a compliance dashboard showing which resources pass or fail each policy rule
+- Enforce mode blocks non-compliant resources immediately, preventing misconfigurations from reaching the cluster

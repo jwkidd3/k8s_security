@@ -1,23 +1,23 @@
 # Lab 6: Secrets Management
 
-**Duration:** 60 minutes
+**Duration:** 40 minutes
 
 ## Objectives
 
 By the end of this lab, you will be able to:
 
-- Configure encryption at rest for Kubernetes Secrets
-- Compare volume mounts vs environment variable approaches for secret consumption
+- Configure and verify encryption at rest for Kubernetes Secrets
+- Compare volume mounts vs environment variables for secret consumption
+- Create RBAC policies to restrict secret access by resource name
+- Disable automatic service account token mounting
 - Install and use Bitnami Sealed Secrets for GitOps-friendly secret management
-- Implement RBAC controls to restrict secret access
 
 ## Prerequisites
 
-- Running kind cluster (or create a new one with default config)
-- `kubectl` CLI configured
-- `helm` CLI installed (for Sealed Secrets)
+- Cloud9 environment (Amazon Linux) with Docker
+- `kubectl` and `kind` installed
 
-## Lab Environment Setup
+---
 
 ### Step 1: Prepare Encryption Config and Create Cluster
 
@@ -25,7 +25,7 @@ By the end of this lab, you will be able to:
 # Generate a 32-byte encryption key
 ENCRYPTION_KEY=$(head -c 32 /dev/urandom | base64)
 
-# Create the encryption configuration using the generated key
+# Create the encryption configuration
 cat > /tmp/encryption-config.yaml <<EOF
 apiVersion: apiserver.config.k8s.io/v1
 kind: EncryptionConfiguration
@@ -40,7 +40,7 @@ resources:
       - identity: {}
 EOF
 
-# Copy the populated config into the setup directory so kind can mount it
+# Copy into the setup directory so kind can mount it
 cp /tmp/encryption-config.yaml labs/setup/encryption-config-generated.yaml
 
 # Create the cluster with encryption at rest pre-configured
@@ -50,35 +50,32 @@ cd ../..
 
 # Create lab namespace
 kubectl create namespace secrets-lab
-
-# Install Helm if not already installed
-curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
 ```
 
-## Part 1: Kubernetes Secrets Fundamentals
-
-### Step 2: Create Secrets and Understand Base64
+### Step 2: Create a Secret and Demonstrate Base64 Is Not Encryption
 
 ```bash
-# Create a secret using kubectl
+# Create a secret
 kubectl create secret generic db-credentials \
   -n secrets-lab \
   --from-literal=username=admin \
   --from-literal=password='S3cur3P@ssw0rd!'
 
 # View the secret — values are base64-encoded, NOT encrypted
-kubectl get secret db-credentials -n secrets-lab -o yaml
+kubectl get secret db-credentials -n secrets-lab -o jsonpath='{.data}' | jq .
 
-# Decode the values — this is trivial
+# Decode the values — this is trivial for anyone with read access
 kubectl get secret db-credentials -n secrets-lab -o jsonpath='{.data.username}' | base64 -d
 echo ""
 kubectl get secret db-credentials -n secrets-lab -o jsonpath='{.data.password}' | base64 -d
 echo ""
 ```
 
-**Key lesson:** Base64 encoding is NOT encryption. Anyone with access to read secrets can decode them.
+**Key lesson:** Base64 encoding is NOT encryption. Anyone with access to read secrets can decode them instantly.
 
-### Step 3: Examine How Secrets Are Stored in etcd
+### Step 3: Verify Encryption at Rest
+
+Check that secrets are actually encrypted when stored in etcd:
 
 ```bash
 # Read the secret directly from etcd
@@ -88,15 +85,15 @@ docker exec security-lab-control-plane sh -c \
     --cacert=/etc/kubernetes/pki/etcd/ca.crt \
     --cert=/etc/kubernetes/pki/etcd/server.crt \
     --key=/etc/kubernetes/pki/etcd/server.key \
-    get /registry/secrets/secrets-lab/db-credentials' | hexdump -C | head -30
+    get /registry/secrets/secrets-lab/db-credentials' | hexdump -C | head -20
 
-# Because this cluster has encryption at rest enabled, you should see
-# encrypted data (look for "k8s:enc:aescbc" prefix) rather than plain text
+# Look for the "k8s:enc:aescbc" prefix in the output —
+# this confirms the secret is encrypted at rest, not stored as plain text
 ```
 
-## Part 2: Volume Mounts vs Environment Variables
+### Step 4: Mount Secret as Volume
 
-### Step 4: Mount Secrets as Volumes
+Volume mounts are the preferred way to consume secrets:
 
 ```bash
 kubectl apply -f - <<EOF
@@ -124,17 +121,21 @@ EOF
 kubectl wait --for=condition=Ready pod/secret-volume-pod -n secrets-lab --timeout=60s
 
 # Read the mounted secrets
-kubectl exec -n secrets-lab secret-volume-pod -- ls -la /etc/secrets/
 kubectl exec -n secrets-lab secret-volume-pod -- cat /etc/secrets/username
 echo ""
 kubectl exec -n secrets-lab secret-volume-pod -- cat /etc/secrets/password
 echo ""
 
+# Verify file permissions (0400 = owner read-only)
+kubectl exec -n secrets-lab secret-volume-pod -- ls -la /etc/secrets/
+
 # Secrets mounted as volumes are stored in tmpfs (memory, not disk)
 kubectl exec -n secrets-lab secret-volume-pod -- df -T /etc/secrets
 ```
 
-### Step 5: Mount Secrets as Environment Variables
+### Step 5: Mount Secret as Env Var and Show the Risks
+
+Environment variables are convenient but have security downsides:
 
 ```bash
 kubectl apply -f - <<EOF
@@ -166,77 +167,177 @@ kubectl wait --for=condition=Ready pod/secret-env-pod -n secrets-lab --timeout=6
 # Read the environment variables
 kubectl exec -n secrets-lab secret-env-pod -- env | grep DB_
 
-# Risk: env vars appear in process listing and can leak to child processes
+# Risk: env vars are visible in /proc — any process in the container can read them
 kubectl exec -n secrets-lab secret-env-pod -- cat /proc/1/environ | tr '\0' '\n' | grep DB_
 ```
 
-### Step 6: Compare the Two Approaches
+### Step 6: Create RBAC to Restrict Secret Access
+
+Limit who can read which secrets using Role and RoleBinding with `resourceNames`:
 
 ```bash
-echo "=== Volume Mount Advantages ==="
-echo "  - Stored in tmpfs (memory)"
-echo "  - Can be updated without pod restart (eventual consistency)"
-echo "  - File permissions can be set (0400)"
-echo "  - Less likely to leak in logs/crash dumps"
+# Create a ServiceAccount that represents a restricted application
+kubectl create serviceaccount app-reader -n secrets-lab
+
+# Create a second secret that the restricted account should NOT be able to read
+kubectl create secret generic admin-credentials \
+  -n secrets-lab \
+  --from-literal=admin-token='super-admin-token-DO-NOT-SHARE'
+
+# Create a Role that can ONLY get the db-credentials secret (not admin-credentials)
+kubectl apply -f - <<EOF
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: read-db-credentials-only
+  namespace: secrets-lab
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["db-credentials"]
+    verbs: ["get"]
+EOF
+
+# Bind the role to the service account
+kubectl apply -f - <<EOF
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: app-reader-db-creds
+  namespace: secrets-lab
+subjects:
+  - kind: ServiceAccount
+    name: app-reader
+    namespace: secrets-lab
+roleRef:
+  kind: Role
+  name: read-db-credentials-only
+  apiGroup: rbac.authorization.k8s.io
+EOF
+
+echo "RBAC Role and RoleBinding created."
+
+# Inspect the role to confirm it limits access by resourceNames
+kubectl describe role read-db-credentials-only -n secrets-lab
+```
+
+### Step 7: Test the RBAC Restrictions with kubectl auth can-i
+
+Verify that the restricted service account can only access the intended secret:
+
+```bash
+# Test: can app-reader get the db-credentials secret? (should be YES)
+kubectl auth can-i get secrets/db-credentials \
+  -n secrets-lab \
+  --as=system:serviceaccount:secrets-lab:app-reader
+# Expected: yes
+
+# Test: can app-reader get the admin-credentials secret? (should be NO)
+kubectl auth can-i get secrets/admin-credentials \
+  -n secrets-lab \
+  --as=system:serviceaccount:secrets-lab:app-reader
+# Expected: no
+
+# Test: can app-reader list all secrets? (should be NO)
+kubectl auth can-i list secrets \
+  -n secrets-lab \
+  --as=system:serviceaccount:secrets-lab:app-reader
+# Expected: no
+
+# Test: can app-reader delete secrets? (should be NO)
+kubectl auth can-i delete secrets/db-credentials \
+  -n secrets-lab \
+  --as=system:serviceaccount:secrets-lab:app-reader
+# Expected: no
+
+# Confirm by actually trying to get each secret as the service account
+kubectl get secret db-credentials -n secrets-lab \
+  --as=system:serviceaccount:secrets-lab:app-reader -o jsonpath='{.data.username}' | base64 -d
 echo ""
-echo "=== Environment Variable Risks ==="
-echo "  - Visible in /proc/<pid>/environ"
-echo "  - Inherited by child processes"
-echo "  - Often logged by application frameworks"
-echo "  - Cannot be updated without pod restart"
-echo "  - May appear in docker inspect output"
+echo "app-reader CAN read db-credentials"
+
+kubectl get secret admin-credentials -n secrets-lab \
+  --as=system:serviceaccount:secrets-lab:app-reader 2>&1
+echo "app-reader CANNOT read admin-credentials (expected Forbidden)"
 ```
 
-## Part 3: Encryption at Rest
+### Step 8: Disable Auto-Mounted Service Account Tokens
 
-### Step 7: Verify Encryption at Rest Is Configured
-
-Since the cluster was created with `kind-config-encryption.yaml`, the API server
-already has encryption at rest enabled. Verify the configuration:
+By default, Kubernetes mounts a service account token into every pod. This token can be exploited if the pod is compromised. Disable it when not needed:
 
 ```bash
-# Confirm the API server has the encryption-provider-config flag
-docker exec security-lab-control-plane \
-  cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep encryption-provider-config
-# Expected: --encryption-provider-config=/etc/kubernetes/encryption-config.yaml
+# First, see the default behavior — a token is auto-mounted
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: default-sa-pod
+  namespace: secrets-lab
+spec:
+  containers:
+    - name: app
+      image: busybox:1.36
+      command: ["sleep", "3600"]
+EOF
 
-# Confirm the encryption config file is mounted inside the control plane
-docker exec security-lab-control-plane \
-  cat /etc/kubernetes/encryption-config.yaml | head -5
-# Expected: the EncryptionConfiguration header
+kubectl wait --for=condition=Ready pod/default-sa-pod -n secrets-lab --timeout=60s
 
-# Confirm the API server is running with the flag
-kubectl get pods -n kube-system -l component=kube-apiserver -o yaml | grep encryption-provider-config
-```
-
-### Step 8: Verify Encryption Works
-
-```bash
-# Create a new secret
-kubectl create secret generic encrypted-test -n secrets-lab --from-literal=key=encrypted-value
-
-# Check etcd — should see encrypted data
-docker exec security-lab-control-plane sh -c \
-  'ETCDCTL_API=3 etcdctl \
-    --endpoints=https://127.0.0.1:2379 \
-    --cacert=/etc/kubernetes/pki/etcd/ca.crt \
-    --cert=/etc/kubernetes/pki/etcd/server.crt \
-    --key=/etc/kubernetes/pki/etcd/server.key \
-    get /registry/secrets/secrets-lab/encrypted-test' | hexdump -C | head -10
-
-# Should see "k8s:enc:aescbc:v1:key1:" prefix
-
-# Verify the secret is still readable via API
-kubectl get secret encrypted-test -n secrets-lab -o jsonpath='{.data.key}' | base64 -d
+# The service account token is mounted automatically
+kubectl exec -n secrets-lab default-sa-pod -- ls -la /var/run/secrets/kubernetes.io/serviceaccount/
+kubectl exec -n secrets-lab default-sa-pod -- cat /var/run/secrets/kubernetes.io/serviceaccount/token
 echo ""
+echo "^ This token grants API access — a compromised pod could use it"
+
+# Now deploy a pod with automountServiceAccountToken disabled
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: no-sa-token-pod
+  namespace: secrets-lab
+spec:
+  automountServiceAccountToken: false
+  containers:
+    - name: app
+      image: busybox:1.36
+      command: ["sleep", "3600"]
+EOF
+
+kubectl wait --for=condition=Ready pod/no-sa-token-pod -n secrets-lab --timeout=60s
+
+# Verify no token is mounted
+kubectl exec -n secrets-lab no-sa-token-pod -- ls /var/run/secrets/kubernetes.io/serviceaccount/ 2>&1
+# Expected: No such file or directory
+
+# You can also disable it at the ServiceAccount level
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: no-token-sa
+  namespace: secrets-lab
+automountServiceAccountToken: false
+EOF
+
+echo "ServiceAccount 'no-token-sa' created with automountServiceAccountToken: false"
+kubectl get serviceaccount no-token-sa -n secrets-lab -o json | jq '{name: .metadata.name, automountServiceAccountToken: .automountServiceAccountToken}'
 ```
 
-## Part 4: Sealed Secrets for GitOps
+### Step 9: Install and Use Sealed Secrets
 
-### Step 9: Install Sealed Secrets Controller
+Install the Sealed Secrets controller and kubeseal CLI, then create a sealed secret:
 
 ```bash
-# Install Sealed Secrets via Helm
+# Install Helm if not already installed
+if ! command -v helm &>/dev/null; then
+  HELM_VERSION=v3.14.2
+  curl -LO "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz"
+  tar xzf "helm-${HELM_VERSION}-linux-amd64.tar.gz" linux-amd64/helm
+  sudo mv linux-amd64/helm /usr/local/bin/helm
+  rm -rf linux-amd64 "helm-${HELM_VERSION}-linux-amd64.tar.gz"
+fi
+
+# Install Sealed Secrets controller via Helm
 helm repo add sealed-secrets https://bitnami-labs.github.io/sealed-secrets
 helm repo update
 
@@ -251,15 +352,11 @@ kubectl wait --for=condition=Ready pods -l app.kubernetes.io/name=sealed-secrets
 # Install kubeseal CLI
 KUBESEAL_VERSION=0.24.5
 curl -OL "https://github.com/bitnami-labs/sealed-secrets/releases/download/v${KUBESEAL_VERSION}/kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz"
-tar -xzf kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz
+tar -xzf "kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz"
 sudo mv kubeseal /usr/local/bin/
-rm kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz
-```
+rm "kubeseal-${KUBESEAL_VERSION}-linux-amd64.tar.gz"
 
-### Step 10: Create a Sealed Secret
-
-```bash
-# Create a regular secret manifest (do NOT apply this)
+# Create a regular secret manifest (do NOT apply this directly)
 cat > /tmp/my-secret.yaml <<EOF
 apiVersion: v1
 kind: Secret
@@ -272,134 +369,42 @@ stringData:
   api-secret: "another-secret-value-67890"
 EOF
 
-# Seal it using kubeseal
+# Seal it using kubeseal — the output is safe to commit to git
 kubeseal --format yaml < /tmp/my-secret.yaml > /tmp/sealed-secret.yaml
 
-# View the sealed secret — this is safe to commit to git
+# View the sealed secret
 cat /tmp/sealed-secret.yaml
 
-# Apply the sealed secret
+# Apply the sealed secret to the cluster
 kubectl apply -f /tmp/sealed-secret.yaml
 
-# The controller will decrypt it into a regular secret
-sleep 5
-kubectl get secret api-credentials -n secrets-lab
-kubectl get secret api-credentials -n secrets-lab -o jsonpath='{.data.api-key}' | base64 -d
-echo ""
-
-# Clean up the plain-text file
+# Clean up the plain-text file immediately
 rm /tmp/my-secret.yaml
 ```
 
-### Step 11: Understand the Sealed Secret Flow
+### Step 10: Verify Sealed Secret Was Decrypted
+
+The Sealed Secrets controller decrypts SealedSecrets into regular Secrets:
 
 ```bash
-echo "Sealed Secrets GitOps Flow:"
-echo "1. Developer creates a Secret YAML locally"
-echo "2. kubeseal encrypts it with the cluster's public key"
-echo "3. The SealedSecret YAML is committed to git (safe!)"
-echo "4. GitOps tool (Flux/ArgoCD) applies the SealedSecret"
-echo "5. Controller decrypts it into a regular Secret"
+# Wait for the controller to process the SealedSecret
+sleep 5
+
+# Verify the regular secret was created
+kubectl get secret api-credentials -n secrets-lab
+
+# Read the decrypted values
+kubectl get secret api-credentials -n secrets-lab -o jsonpath='{.data.api-key}' | base64 -d
 echo ""
-echo "Key point: Only the cluster's private key can decrypt."
-echo "The SealedSecret is safe to store in version control."
-
-# Verify: modifying a sealed secret breaks it
-awk '/encryptedData:/{print; print "  tampered: dGFtcGVyZWQ="; next} {print}' \
-  /tmp/sealed-secret.yaml > /tmp/tampered-sealed-secret.yaml
-# The controller will reject tampered values
+kubectl get secret api-credentials -n secrets-lab -o jsonpath='{.data.api-secret}' | base64 -d
+echo ""
 ```
 
-## Part 5: RBAC for Secrets
-
-### Step 12: Create Restrictive RBAC for Secrets
-
-```bash
-# Create a service account that can only read specific secrets
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: app-sa
-  namespace: secrets-lab
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: secret-reader
-  namespace: secrets-lab
-rules:
-  - apiGroups: [""]
-    resources: ["secrets"]
-    resourceNames: ["db-credentials"]
-    verbs: ["get"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: app-secret-reader
-  namespace: secrets-lab
-subjects:
-  - kind: ServiceAccount
-    name: app-sa
-    namespace: secrets-lab
-roleRef:
-  kind: Role
-  name: secret-reader
-  apiGroup: rbac.authorization.k8s.io
-EOF
-```
-
-### Step 13: Test Secret RBAC
-
-```bash
-# Can read the allowed secret
-kubectl auth can-i get secrets/db-credentials -n secrets-lab --as system:serviceaccount:secrets-lab:app-sa
-# Expected: yes
-
-# Cannot read other secrets
-kubectl auth can-i get secrets/api-credentials -n secrets-lab --as system:serviceaccount:secrets-lab:app-sa
-# Expected: no
-
-# Cannot list all secrets
-kubectl auth can-i list secrets -n secrets-lab --as system:serviceaccount:secrets-lab:app-sa
-# Expected: no
-
-# Cannot create or delete secrets
-kubectl auth can-i create secrets -n secrets-lab --as system:serviceaccount:secrets-lab:app-sa
-# Expected: no
-```
-
-### Step 14: Disable Auto-Mounted Service Account Tokens
-
-```bash
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Pod
-metadata:
-  name: no-token-pod
-  namespace: secrets-lab
-spec:
-  serviceAccountName: app-sa
-  automountServiceAccountToken: false
-  containers:
-    - name: app
-      image: busybox:1.36
-      command: ["sleep", "3600"]
-EOF
-
-kubectl wait --for=condition=Ready pod/no-token-pod -n secrets-lab --timeout=60s
-
-# Verify no token is mounted
-kubectl exec -n secrets-lab no-token-pod -- ls /var/run/secrets/kubernetes.io/serviceaccount/ 2>&1
-# Expected: No such file or directory
-```
-
-## Cleanup
+### Step 11: Cleanup
 
 ```bash
 kubectl delete namespace secrets-lab
-rm -f /tmp/sealed-secret.yaml /tmp/tampered-sealed-secret.yaml /tmp/encryption-config.yaml
+rm -f /tmp/sealed-secret.yaml /tmp/encryption-config.yaml
 rm -f labs/setup/encryption-config-generated.yaml
 
 # (Optional) Delete the cluster
@@ -408,11 +413,8 @@ rm -f labs/setup/encryption-config-generated.yaml
 
 ## Summary
 
-In this lab, you:
-- Demonstrated that base64-encoded secrets are not encrypted
-- Compared volume mounts (preferred) vs environment variables (risky) for secrets
-- Configured encryption at rest using EncryptionConfiguration
-- Installed Sealed Secrets and created GitOps-safe encrypted secrets
-- Implemented RBAC controls restricting secret access to specific resources
-
-Key takeaway: Secrets require multiple layers of protection — encryption at rest, RBAC restrictions, secure consumption patterns, and GitOps-safe workflows.
+- Base64 encoding is not encryption; encryption at rest (aescbc) protects secrets stored in etcd
+- Volume mounts are preferred over environment variables because they use tmpfs and support file permissions
+- RBAC with resourceNames restricts which secrets a service account can access, enforcing least-privilege
+- Disabling automountServiceAccountToken prevents compromised pods from accessing the Kubernetes API
+- Sealed Secrets enable GitOps workflows by encrypting secrets with a cluster-specific key

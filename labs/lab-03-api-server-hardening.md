@@ -1,29 +1,31 @@
 # Lab 3: API Server Hardening
 
-**Duration:** 60 minutes
+**Duration:** 40 minutes
 
 ## Objectives
 
-By the end of this lab, you will be able to:
-
-- Configure kubelet security settings in a kind cluster
-- Enable and configure API server audit logging
-- Set up encryption at rest for Kubernetes Secrets
-- Test and verify API server authorization modes
+- Examine API server security configuration and flags
+- Understand audit policy levels and how they control logging granularity
+- Verify audit logging and analyze audit events with advanced jq queries
+- Confirm encryption at rest for Kubernetes Secrets and re-encrypt existing secrets
+- Test kubelet API access and verify authentication is required
+- Test API server authorization modes
 
 ## Prerequisites
 
-- Cloud9 environment with Docker
+- Cloud9 environment (Amazon Linux) with Docker installed
 - `kubectl` and `kind` installed
-- Familiarity with kubeadm configuration
+- `jq` installed (from Lab 1)
 
-## Lab Environment Setup
+---
 
-### Step 1: Create a Cluster with Audit Logging and Encryption at Rest
+### Step 1: Create a Cluster with Audit Logging and Encryption
 
-For this lab, we use a specialized kind configuration with audit logging **and** encryption at rest pre-configured. First, we generate an encryption key and prepare the config file, then create the cluster.
+This lab uses a specialized kind configuration with audit logging and encryption at rest pre-configured. First generate an encryption key, then create the cluster:
 
 ```bash
+cd kubernetes_security
+
 # Generate a 32-byte encryption key
 ENCRYPTION_KEY=$(head -c 32 /dev/urandom | base64)
 
@@ -42,221 +44,147 @@ resources:
       - identity: {}
 EOF
 
-echo "Encryption key generated and config written to labs/setup/encryption-config.yaml"
+echo "Encryption config written to labs/setup/encryption-config.yaml"
 
 # Review the kind config — note the audit AND encryption settings
 cat labs/setup/kind-config-api-hardening.yaml
 
-# Create the kind cluster with audit logging and encryption at rest
+# Create the cluster
 kind create cluster --name api-hardening --config labs/setup/kind-config-api-hardening.yaml
 
 # Verify the cluster
 kubectl cluster-info --context kind-api-hardening
 kubectl get nodes
-
-# Install jq for JSON parsing
-sudo yum install -y jq 2>/dev/null || sudo apt-get install -y jq 2>/dev/null
 ```
 
-## Part 1: Exploring API Server Configuration
-
-### Step 2: Examine the API Server Manifest
+### Step 2: Examine API Server Security Configuration
 
 ```bash
-# The API server runs as a static pod — view its manifest
+# View the API server static pod manifest
 docker exec api-hardening-control-plane cat /etc/kubernetes/manifests/kube-apiserver.yaml
-```
 
-### Step 3: Identify Current Security Settings
-
-```bash
-# Extract the command-line arguments
+# Extract command-line arguments — look for security-relevant flags
 docker exec api-hardening-control-plane cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep -E "^\s+--"
-
-# Key flags to look for:
-# --authorization-mode
-# --enable-admission-plugins
-# --anonymous-auth
-# --audit-policy-file
-# --audit-log-path
-# --encryption-provider-config
 ```
 
-**Questions:**
-1. What authorization modes are enabled?
-2. Which admission plugins are active?
-3. Is anonymous authentication enabled?
+Key flags to identify:
+- `--authorization-mode` (should be Node,RBAC)
+- `--enable-admission-plugins`
+- `--anonymous-auth`
+- `--audit-policy-file` and `--audit-log-path`
+- `--encryption-provider-config`
 
-## Part 2: Kubelet Security
+### Step 3: Examine the Audit Policy File
 
-### Step 4: Check Current Kubelet Configuration
+The audit policy controls what events are logged and at what level of detail. Understanding the four audit levels is critical for tuning logging:
 
 ```bash
-# Check kubelet config on the control plane node
-docker exec api-hardening-control-plane cat /var/lib/kubelet/config.yaml
+# View the audit policy
+docker exec api-hardening-control-plane cat /etc/kubernetes/audit/audit-policy.yaml
+
+# Examine the structure
+echo ""
+echo "=== Audit Levels Explained ==="
+echo "None            - Do not log this event"
+echo "Metadata        - Log request metadata (user, timestamp, resource, verb) but not request/response body"
+echo "Request         - Log metadata + request body, but not response body"
+echo "RequestResponse - Log metadata + request body + response body (most verbose)"
 ```
 
-### Step 5: Verify Kubelet Authentication Settings
+Review the policy and identify:
+1. Which resources are logged at the `RequestResponse` level? (Typically secrets, configmaps, and RBAC resources)
+2. Which resources are set to `Metadata` only? (Often read-heavy resources like pods and events)
+3. Are there any resources set to `None`? (Often health check endpoints to reduce noise)
 
 ```bash
-# Check if anonymous authentication is disabled
-docker exec api-hardening-control-plane cat /var/lib/kubelet/config.yaml | grep -A 5 "authentication"
-
-# Check authorization mode
-docker exec api-hardening-control-plane cat /var/lib/kubelet/config.yaml | grep -A 3 "authorization"
+# Parse the audit policy to see which rules are defined
+docker exec api-hardening-control-plane cat /etc/kubernetes/audit/audit-policy.yaml | grep -E "level:|resources:|verbs:|namespaces:" | head -30
 ```
 
-### Step 6: Test Kubelet API Access
+### Step 4: Verify Audit Logging Is Active
 
 ```bash
-# Get the control plane node's IP
-CONTROL_PLANE_IP=$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' api-hardening-control-plane)
-
-# Try to access the kubelet API (should require authentication)
-docker exec api-hardening-control-plane curl -sk https://localhost:10250/pods/ 2>&1 | head -5
-
-# Check the read-only port (should be disabled)
-docker exec api-hardening-control-plane curl -s http://localhost:10255/pods/ 2>&1 | head -5
-```
-
-### Step 7: Configure Kubelet Security Settings
-
-```bash
-# Create a hardened kubelet configuration patch
-cat > /tmp/kubelet-config-patch.yaml <<EOF
-apiVersion: kubelet.config.k8s.io/v1beta1
-kind: KubeletConfiguration
-authentication:
-  anonymous:
-    enabled: false
-  webhook:
-    enabled: true
-    cacheTTL: 2m0s
-  x509:
-    clientCAFile: /etc/kubernetes/pki/ca.crt
-authorization:
-  mode: Webhook
-  webhook:
-    cacheAuthorizedTTL: 5m0s
-    cacheUnauthorizedTTL: 30s
-readOnlyPort: 0
-protectKernelDefaults: false
-eventRecordQPS: 5
-EOF
-
-echo "Kubelet hardening configuration created."
-echo "Key settings:"
-echo "  - Anonymous auth: disabled"
-echo "  - Webhook authentication: enabled"
-echo "  - Webhook authorization: enabled"
-echo "  - Read-only port: disabled (0)"
-```
-
-## Part 3: Audit Logging
-
-### Step 8: Verify Audit Logging Is Active
-
-```bash
-# Check if audit logs are being written
+# Check if audit logs exist
 docker exec api-hardening-control-plane ls -la /var/log/kubernetes/audit/
 
 # View recent audit log entries
 docker exec api-hardening-control-plane tail -5 /var/log/kubernetes/audit/audit.log 2>/dev/null | jq .
+
+# Check the size of the audit log
+docker exec api-hardening-control-plane du -sh /var/log/kubernetes/audit/audit.log
 ```
 
-### Step 9: Generate Audit Events
+### Step 5: Generate and Analyze Audit Events
 
 ```bash
-# Create some resources to generate audit events
+# Create resources to generate audit events
 kubectl create namespace audit-test
 kubectl create secret generic test-secret -n audit-test --from-literal=password=supersecret
 kubectl get secrets -n audit-test
 kubectl delete secret test-secret -n audit-test
-```
 
-### Step 10: Analyze Audit Logs
-
-```bash
 # Find audit events for secret operations
 docker exec api-hardening-control-plane cat /var/log/kubernetes/audit/audit.log | \
   jq -r 'select(.objectRef.resource == "secrets") |
-    "Verb: \(.verb | . + " " * (10 - length)) | User: \(.user.username | . + " " * (30 - length)) | Resource: \(.objectRef.name // "N/A")"'
+    "Verb: \(.verb)  User: \(.user.username)  Resource: \(.objectRef.name // "N/A")"'
 ```
 
-### Step 11: Understand Audit Policy Levels
+You should see create, get, list, and delete events for secrets, showing who performed each action.
+
+### Step 6: Advanced Audit Log Analysis with jq
+
+Security teams need to query audit logs for specific patterns during incident investigation. Practice these common queries:
 
 ```bash
-# View the current audit policy
-docker exec api-hardening-control-plane cat /etc/kubernetes/audit/audit-policy.yaml
-
-# Create a more detailed audit policy for testing
-cat > /tmp/enhanced-audit-policy.yaml <<EOF
-apiVersion: audit.k8s.io/v1
-kind: Policy
-rules:
-  # Don't log read-only health checks
-  - level: None
-    nonResourceURLs:
-      - /healthz*
-      - /readyz*
-      - /livez*
-
-  # Log all secret operations at RequestResponse level
-  - level: RequestResponse
-    resources:
-      - group: ""
-        resources: ["secrets"]
-
-  # Log RBAC changes at RequestResponse level
-  - level: RequestResponse
-    resources:
-      - group: "rbac.authorization.k8s.io"
-        resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
-
-  # Log pod exec at RequestResponse level
-  - level: RequestResponse
-    resources:
-      - group: ""
-        resources: ["pods/exec", "pods/attach"]
-
-  # Log namespace operations
-  - level: Metadata
-    resources:
-      - group: ""
-        resources: ["namespaces"]
-
-  # Default: log at Metadata level
-  - level: Metadata
-    omitStages:
-      - RequestReceived
-EOF
-
-echo "Enhanced audit policy created at /tmp/enhanced-audit-policy.yaml"
-echo "This policy provides detailed logging for:"
-echo "  - Secret access (full request/response)"
-echo "  - RBAC changes (full request/response)"
-echo "  - Pod exec/attach (full request/response)"
-echo "  - Namespace operations (metadata only)"
-```
-
-### Step 12: Query Audit Logs with jq
-
-```bash
-# Count events by verb
+# Find all failed (403 Forbidden) requests — potential unauthorized access attempts
+echo "=== Failed Authorization Attempts (403) ==="
 docker exec api-hardening-control-plane cat /var/log/kubernetes/audit/audit.log | \
-  jq -r '.verb' | sort | uniq -c | sort -rn | awk '{printf "  %s: %s\n", $2, $1}'
+  jq -r 'select(.responseStatus.code == 403) |
+    "User: \(.user.username)  Verb: \(.verb)  Resource: \(.objectRef.resource // "N/A")  Reason: \(.responseStatus.reason // "Forbidden")"' | head -20
 
-# Find all unique users in audit log
+# Generate some failed requests to see them in the log
+kubectl auth can-i get secrets -n kube-system --as system:anonymous 2>/dev/null
+kubectl get secrets -n kube-system --as system:anonymous 2>/dev/null
+
+# Re-query for 403 events
+echo ""
+echo "=== Recent 403 Events (after test) ==="
 docker exec api-hardening-control-plane cat /var/log/kubernetes/audit/audit.log | \
-  jq -r '.user.username' | sort -u | awk '{printf "  %s\n", $0}'
+  jq -r 'select(.responseStatus.code == 403) |
+    "\(.stageTimestamp // .requestReceivedTimestamp)  User: \(.user.username)  Verb: \(.verb)  Resource: \(.objectRef.resource // "unknown")"' | tail -10
+
+# Find RBAC-related changes (role, rolebinding, clusterrole, clusterrolebinding modifications)
+echo ""
+echo "=== RBAC Changes ==="
+docker exec api-hardening-control-plane cat /var/log/kubernetes/audit/audit.log | \
+  jq -r 'select(
+    (.objectRef.resource == "roles" or
+     .objectRef.resource == "rolebindings" or
+     .objectRef.resource == "clusterroles" or
+     .objectRef.resource == "clusterrolebindings") and
+    (.verb == "create" or .verb == "update" or .verb == "patch" or .verb == "delete")
+  ) |
+    "\(.stageTimestamp // .requestReceivedTimestamp)  \(.verb) \(.objectRef.resource)/\(.objectRef.name // "N/A")  by \(.user.username)"' | tail -10
+
+# Find all unique users who have accessed the API server
+echo ""
+echo "=== Unique API Server Users ==="
+docker exec api-hardening-control-plane cat /var/log/kubernetes/audit/audit.log | \
+  jq -r '.user.username' | sort -u
+
+# Summarize operations by verb
+echo ""
+echo "=== Operations by Verb ==="
+docker exec api-hardening-control-plane cat /var/log/kubernetes/audit/audit.log | \
+  jq -r '.verb' | sort | uniq -c | sort -rn | head -10
 ```
 
-## Part 4: Encryption at Rest
+These queries are the foundation of Kubernetes security monitoring. In production, you would stream audit logs to a SIEM (Splunk, Elasticsearch) for real-time alerting.
 
-### Step 13: Inspect How Secrets Are Stored in etcd
+### Step 7: Verify Encryption at Rest
 
 ```bash
-# Create a secret and inspect its raw storage in etcd
+# Create a secret
 kubectl create secret generic encryption-test -n audit-test --from-literal=api-key=my-super-secret-key
 
 # Access etcd directly to see how the secret is stored
@@ -267,96 +195,137 @@ docker exec api-hardening-control-plane sh -c \
     --cert=/etc/kubernetes/pki/etcd/server.crt \
     --key=/etc/kubernetes/pki/etcd/server.key \
     get /registry/secrets/audit-test/encryption-test' | hexdump -C | head -20
+
+# Look for the "k8s:enc:aescbc:v1:key1:" prefix — this confirms the data is encrypted
+# Without encryption, the secret value would be visible as plain text
+
+# Verify we can still read the secret through the API (it gets decrypted transparently)
+kubectl get secret encryption-test -n audit-test -o jsonpath='{.data.api-key}' | base64 -d
+echo ""
 ```
 
-Because encryption at rest was configured at cluster creation, the output should already show encrypted data (look for the `k8s:enc:aescbc:v1:key1:` prefix). Without encryption, the secret value would be visible in plain text.
+### Step 8: Re-Encrypt Existing Secrets
 
-### Step 14: Review the Pre-Configured Encryption Setup
-
-Because we generated the encryption key and created the config **before** the cluster was created, the kind config mounted the file and passed the `--encryption-provider-config` flag to the API server at boot. No manual manifest patching is needed.
+When you first enable encryption at rest, only newly created secrets are encrypted. Any secrets that existed before the encryption configuration was applied remain stored in plaintext in etcd. You must re-encrypt them:
 
 ```bash
-# Review the encryption config that was mounted into the control plane
-docker exec api-hardening-control-plane cat /etc/kubernetes/encryption-config.yaml
+# First, create a secret BEFORE encryption is fully applied to simulate a pre-existing secret
+# (In our lab, encryption was enabled at cluster creation, so we simulate the process)
 
-# Key things to note:
-# - Provider: aescbc (AES-CBC with PKCS#7 padding)
-# - Key name: key1
-# - Fallback: identity (allows reading unencrypted data written before encryption was enabled)
-```
+# List all secrets across the cluster
+echo "=== All Secrets in the Cluster ==="
+kubectl get secrets --all-namespaces --no-headers | head -20
 
-### Step 15: Verify Encryption at Rest Is Active
+# Re-encrypt all secrets in every namespace
+# This reads each secret through the API (decrypting it) and writes it back (re-encrypting with current key)
+echo ""
+echo "=== Re-encrypting all secrets ==="
+kubectl get secrets --all-namespaces -o json | \
+  jq -r '.items[] | "\(.metadata.namespace) \(.metadata.name)"' | \
+  while read NAMESPACE NAME; do
+    kubectl get secret "${NAME}" -n "${NAMESPACE}" -o json | \
+      kubectl replace -f - 2>/dev/null && \
+      echo "Re-encrypted: ${NAMESPACE}/${NAME}" || \
+      echo "Skipped (immutable): ${NAMESPACE}/${NAME}"
+  done
 
-```bash
-# Confirm the API server was started with the encryption-provider-config flag
-docker exec api-hardening-control-plane cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep encryption-provider-config
-
-# Confirm the encryption config volume is mounted
-docker exec api-hardening-control-plane cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep -A 2 "encryption-config"
-
-# Verify the API server pod is running and healthy
-kubectl get pods -n kube-system -l component=kube-apiserver
-```
-
-### Step 16: Verify Encryption at Rest
-
-```bash
-# Create a new secret (this will be encrypted)
-kubectl create secret generic encrypted-secret -n audit-test --from-literal=password=this-should-be-encrypted
-
-# Check etcd — the new secret should be encrypted
+# Verify the encryption-test secret is still encrypted in etcd after re-encryption
+echo ""
+echo "=== Verifying encryption after re-encrypt ==="
 docker exec api-hardening-control-plane sh -c \
   'ETCDCTL_API=3 etcdctl \
     --endpoints=https://127.0.0.1:2379 \
     --cacert=/etc/kubernetes/pki/etcd/ca.crt \
     --cert=/etc/kubernetes/pki/etcd/server.crt \
     --key=/etc/kubernetes/pki/etcd/server.key \
-    get /registry/secrets/audit-test/encrypted-secret' | hexdump -C | head -20
+    get /registry/secrets/audit-test/encryption-test' | hexdump -C | head -5
 
-# The output should show "k8s:enc:aescbc:v1:key1:" prefix instead of plain text
+# Confirm the encrypted prefix is present
+docker exec api-hardening-control-plane sh -c \
+  'ETCDCTL_API=3 etcdctl \
+    --endpoints=https://127.0.0.1:2379 \
+    --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+    --cert=/etc/kubernetes/pki/etcd/server.crt \
+    --key=/etc/kubernetes/pki/etcd/server.key \
+    get /registry/secrets/audit-test/encryption-test' | grep -c "k8s:enc:aescbc" && \
+  echo "Encryption confirmed: aescbc prefix found" || \
+  echo "WARNING: Encryption prefix not found"
+```
 
-# Verify we can still read the secret through the API
-kubectl get secret encrypted-secret -n audit-test -o jsonpath='{.data.password}' | base64 -d
+In production, after enabling encryption at rest or rotating encryption keys, you must always re-encrypt all existing secrets to ensure none remain stored in plaintext.
+
+### Step 9: Verify Kubelet Security Settings
+
+```bash
+# Check kubelet configuration on the control plane node
+docker exec api-hardening-control-plane cat /var/lib/kubelet/config.yaml | grep -A 5 "authentication"
+
+# Check authorization mode
+docker exec api-hardening-control-plane cat /var/lib/kubelet/config.yaml | grep -A 3 "authorization"
+```
+
+Key settings to verify:
+- Anonymous authentication should be **disabled**
+- Webhook authentication should be **enabled**
+- Authorization mode should be **Webhook** (not AlwaysAllow)
+- Read-only port should be **0** (disabled)
+
+### Step 10: Test Kubelet API Access
+
+The kubelet exposes an API on port 10250. Verify that authentication is required and anonymous access is blocked:
+
+```bash
+# Get the IP address of the control plane node
+NODE_IP=$(docker inspect api-hardening-control-plane --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
+echo "Control plane node IP: ${NODE_IP}"
+
+# Attempt to access the kubelet API without credentials (should fail with 401 Unauthorized)
 echo ""
+echo "=== Testing unauthenticated kubelet access ==="
+docker exec api-hardening-control-plane curl -sk https://localhost:10250/pods 2>&1 | head -5
+
+# Check if the read-only port (10255) is disabled
+echo ""
+echo "=== Testing read-only port (should be disabled) ==="
+docker exec api-hardening-control-plane curl -s http://localhost:10255/pods 2>&1 | head -5
+
+# Verify the kubelet's read-only port setting
+echo ""
+echo "=== Read-only port configuration ==="
+docker exec api-hardening-control-plane cat /var/lib/kubelet/config.yaml | grep "readOnlyPort"
 ```
 
-### Step 17: Encrypt Existing Secrets
+If the kubelet is properly secured:
+- HTTPS port 10250 returns `401 Unauthorized` without valid credentials
+- HTTP read-only port 10255 is disabled (connection refused)
+- This prevents unauthenticated access to pod listings, container logs, and exec capabilities
+
+### Step 11: Test Authorization Modes
 
 ```bash
-# Re-encrypt all existing secrets
-kubectl get secrets --all-namespaces -o json | kubectl replace -f -
-
-echo "All existing secrets have been re-encrypted with the new encryption key."
-```
-
-## Part 5: Testing Authorization Modes
-
-### Step 18: Understand Authorization Mode Ordering
-
-```bash
-# Check current authorization modes
+# Check which authorization modes are configured
 docker exec api-hardening-control-plane cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep authorization-mode
 
-# Typical order: Node,RBAC
-# Node: authorizes kubelet API requests
-# RBAC: authorizes all other requests based on roles/bindings
-```
-
-### Step 19: Test Node Authorization
-
-```bash
-# Node authorization allows kubelets to:
-# - Read services, endpoints, nodes, pods
-# - Write node status, pod status
-# - Create events
-
-# Check what the kubelet's node identity can do
+# Node authorization — allows kubelets specific access
 kubectl auth can-i get pods --as system:node:api-hardening-control-plane
 kubectl auth can-i create pods --as system:node:api-hardening-control-plane
 kubectl auth can-i get secrets --as system:node:api-hardening-control-plane
+
+# RBAC authorization — test an unauthenticated request
+kubectl auth can-i get pods --as system:anonymous
+kubectl auth can-i get nodes --as system:anonymous
+
+# Verify that Node and RBAC work together
+echo ""
+echo "=== Authorization Mode Summary ==="
+echo "Node authorizer: grants kubelets read access to pods scheduled on their node"
+echo "RBAC authorizer: handles all other authorization based on roles and bindings"
+echo "Request flow: Node -> RBAC -> Deny (if no authorizer approves)"
 ```
 
-## Cleanup
+The Node authorizer grants kubelets read access to pods and limited access to other resources. RBAC handles all other authorization decisions. Requests are evaluated by each authorizer in order — if none approves, the request is denied.
+
+### Step 12: Cleanup
 
 ```bash
 # Delete lab resources
@@ -368,11 +337,8 @@ kind delete cluster --name api-hardening
 
 ## Summary
 
-In this lab, you:
-- Explored API server configuration and security flags
-- Verified and hardened kubelet security settings
-- Configured and analyzed API server audit logging
-- Set up encryption at rest for Kubernetes Secrets
-- Tested and understood API server authorization modes
-
-Key takeaway: The API server is the central control point for Kubernetes security. Proper configuration of authentication, authorization, audit logging, and encryption at rest are foundational security controls.
+- The API server manifest reveals all security-relevant flags including authorization modes, admission plugins, audit logging, and encryption configuration.
+- Audit policies control logging granularity with four levels (None, Metadata, Request, RequestResponse) — tune them to balance security visibility with log volume.
+- Audit log analysis with jq enables detection of failed authentication attempts, unauthorized access, and RBAC changes during incident investigation.
+- Encryption at rest ensures secrets stored in etcd are encrypted; after enabling encryption or rotating keys, you must re-encrypt all existing secrets.
+- Kubelet API security requires disabling anonymous authentication, enabling webhook authorization, and closing the read-only port to prevent unauthenticated access.

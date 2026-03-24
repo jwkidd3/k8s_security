@@ -1,48 +1,37 @@
 # Lab 2: RBAC Deep Dive
 
-**Duration:** 45 minutes
+**Duration:** 40 minutes
 
 ## Objectives
 
-By the end of this lab, you will be able to:
-
-- Create and manage Roles, ClusterRoles, RoleBindings, and ClusterRoleBindings
-- Design least-privilege RBAC policies for common use cases
+- Create Roles, ClusterRoles, RoleBindings, and ServiceAccounts with least-privilege permissions
 - Use `kubectl auth can-i` to test and audit permissions
+- Restrict access to specific resources by name using `resourceNames`
+- Audit cluster-wide RBAC bindings for overly permissive configurations
 - Identify and fix overly permissive RBAC configurations
 
 ## Prerequisites
 
-- Running kind cluster from Lab 1 (or create a new one)
+- Running kind cluster from Lab 1 (or create one with `kind create cluster --name security-lab --config labs/setup/kind-config-default.yaml`)
 - `kubectl` CLI configured
+- `jq` installed (from Lab 1)
 
-## Lab Environment Setup
+---
 
-### Step 1: Verify Cluster Access
-
-```bash
-# If you need to create a new cluster
-kind create cluster --name security-lab --config labs/setup/kind-config-default.yaml
-
-# Verify cluster access
-kubectl cluster-info --context kind-security-lab
-```
-
-### Step 2: Create Lab Namespaces
+### Step 1: Create Lab Namespaces
 
 ```bash
-# Create namespaces for our RBAC exercises
 kubectl create namespace dev-team
 kubectl create namespace staging
-kubectl create namespace production
+kubectl create namespace monitoring
 ```
 
-## Part 1: Understanding Roles and RoleBindings
+### Step 2: Create a Role, ServiceAccount, and RoleBinding
 
-### Step 3: Create a Namespace-Scoped Role
+Create a read-only role for pods in the `dev-team` namespace and bind it to a new ServiceAccount:
 
 ```bash
-# Create a read-only role for the dev-team namespace
+# Create the Role
 kubectl apply -f - <<EOF
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -57,15 +46,11 @@ rules:
     resources: ["pods/log"]
     verbs: ["get"]
 EOF
-```
 
-### Step 4: Create a ServiceAccount and Bind the Role
-
-```bash
-# Create a service account
+# Create the ServiceAccount
 kubectl create serviceaccount dev-viewer -n dev-team
 
-# Bind the role to the service account
+# Bind the Role to the ServiceAccount
 kubectl apply -f - <<EOF
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -83,35 +68,27 @@ roleRef:
 EOF
 ```
 
-### Step 5: Test the Permissions
+### Step 3: Test Permissions with kubectl auth can-i
 
 ```bash
-# Test what the service account can do
+# Should be ALLOWED — get pods in dev-team
 kubectl auth can-i get pods --namespace dev-team --as system:serviceaccount:dev-team:dev-viewer
-# Expected: yes
 
+# Should be DENIED — create pods in dev-team
 kubectl auth can-i create pods --namespace dev-team --as system:serviceaccount:dev-team:dev-viewer
-# Expected: no
 
-kubectl auth can-i get pods --namespace production --as system:serviceaccount:dev-team:dev-viewer
-# Expected: no
+# Should be DENIED — get pods in staging (different namespace)
+kubectl auth can-i get pods --namespace staging --as system:serviceaccount:dev-team:dev-viewer
 
+# Should be DENIED — get secrets in dev-team (different resource)
 kubectl auth can-i get secrets --namespace dev-team --as system:serviceaccount:dev-team:dev-viewer
-# Expected: no
 ```
 
-### Step 6: List All Permissions
+This demonstrates that Roles are scoped to a single namespace and only grant the specific verbs and resources listed.
 
-```bash
-# List all permissions for the service account
-kubectl auth can-i --list --namespace dev-team --as system:serviceaccount:dev-team:dev-viewer
-```
+### Step 4: Create a CI/CD Deployer Role
 
-## Part 2: Designing Least-Privilege Roles
-
-### Step 7: Create a CI/CD Deployer Role
-
-This role allows deploying applications but not accessing secrets or modifying RBAC:
+Create a role in the `staging` namespace that allows deploying applications but not accessing secrets or modifying RBAC:
 
 ```bash
 kubectl apply -f - <<EOF
@@ -121,29 +98,24 @@ metadata:
   namespace: staging
   name: deployer
 rules:
-  # Can manage deployments
   - apiGroups: ["apps"]
     resources: ["deployments"]
     verbs: ["get", "list", "watch", "create", "update", "patch"]
-  # Can manage services
   - apiGroups: [""]
     resources: ["services"]
     verbs: ["get", "list", "watch", "create", "update", "patch"]
-  # Can view pods and logs (for deployment verification)
   - apiGroups: [""]
     resources: ["pods"]
     verbs: ["get", "list", "watch"]
   - apiGroups: [""]
     resources: ["pods/log"]
     verbs: ["get"]
-  # Can manage configmaps (for app config)
   - apiGroups: [""]
     resources: ["configmaps"]
     verbs: ["get", "list", "watch", "create", "update", "patch"]
-  # Cannot access secrets, RBAC, or namespaces
 EOF
 
-# Create the service account and binding
+# Create the ServiceAccount and RoleBinding
 kubectl create serviceaccount ci-deployer -n staging
 
 kubectl apply -f - <<EOF
@@ -163,66 +135,134 @@ roleRef:
 EOF
 ```
 
-### Step 8: Verify the Deployer Role
+### Step 5: Verify Deployer Permissions
 
 ```bash
-# Should be allowed
+# Should be ALLOWED
 kubectl auth can-i create deployments -n staging --as system:serviceaccount:staging:ci-deployer
 kubectl auth can-i update services -n staging --as system:serviceaccount:staging:ci-deployer
 kubectl auth can-i get configmaps -n staging --as system:serviceaccount:staging:ci-deployer
 
-# Should be denied
+# Should be DENIED
 kubectl auth can-i get secrets -n staging --as system:serviceaccount:staging:ci-deployer
 kubectl auth can-i create roles -n staging --as system:serviceaccount:staging:ci-deployer
 kubectl auth can-i delete namespaces -n staging --as system:serviceaccount:staging:ci-deployer
 ```
 
-### Step 9: Create a Monitoring Agent Role
+The deployer can manage applications but cannot access secrets, modify RBAC, or perform destructive cluster operations.
+
+### Step 6: Create a Monitoring Agent ClusterRole
+
+A monitoring agent needs read-only access across the entire cluster — not just one namespace. This requires a ClusterRole and ClusterRoleBinding:
 
 ```bash
+# Create the monitoring ServiceAccount
+kubectl create serviceaccount monitoring-agent -n monitoring
+
+# Create a ClusterRole with read-only access to key resources
 kubectl apply -f - <<EOF
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: monitoring-agent
+  name: monitoring-reader
 rules:
-  # Read-only access to core resources
   - apiGroups: [""]
-    resources: ["pods", "nodes", "services", "endpoints", "namespaces"]
+    resources: ["pods", "nodes", "services", "events", "namespaces"]
     verbs: ["get", "list", "watch"]
-  # Read metrics
-  - apiGroups: ["metrics.k8s.io"]
-    resources: ["pods", "nodes"]
-    verbs: ["get", "list"]
-  # Read events
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "daemonsets", "statefulsets"]
+    verbs: ["get", "list", "watch"]
   - apiGroups: [""]
-    resources: ["events"]
-    verbs: ["get", "list", "watch"]
-  # No write access to anything
-EOF
-
-# Create service account and bind at cluster level
-kubectl create serviceaccount monitoring -n kube-system
-
-kubectl apply -f - <<EOF
+    resources: ["pods/log"]
+    verbs: ["get"]
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: monitoring-agent-binding
+  name: monitoring-reader-binding
 subjects:
   - kind: ServiceAccount
-    name: monitoring
-    namespace: kube-system
+    name: monitoring-agent
+    namespace: monitoring
 roleRef:
   kind: ClusterRole
-  name: monitoring-agent
+  name: monitoring-reader
   apiGroup: rbac.authorization.k8s.io
 EOF
+
+# Test — should be ALLOWED across all namespaces
+kubectl auth can-i get pods --all-namespaces --as system:serviceaccount:monitoring:monitoring-agent
+kubectl auth can-i list nodes --as system:serviceaccount:monitoring:monitoring-agent
+kubectl auth can-i list events -n kube-system --as system:serviceaccount:monitoring:monitoring-agent
+
+# Test — should be DENIED (read-only means no mutations)
+kubectl auth can-i create pods -n default --as system:serviceaccount:monitoring:monitoring-agent
+kubectl auth can-i delete nodes --as system:serviceaccount:monitoring:monitoring-agent
+kubectl auth can-i get secrets --all-namespaces --as system:serviceaccount:monitoring:monitoring-agent
 ```
 
-## Part 3: Identifying RBAC Anti-Patterns
+Notice the monitoring agent can read pods, nodes, services, and events across all namespaces but cannot modify anything or access secrets. This is the principle of least privilege applied to cluster-wide roles.
 
-### Step 10: Create Overly Permissive RBAC (Anti-Pattern)
+### Step 7: Use resourceNames to Restrict Access to a Specific ConfigMap
+
+Sometimes you need to grant access to only a specific named resource, not all resources of that type. The `resourceNames` field enables this:
+
+```bash
+# First, create two ConfigMaps in the dev-team namespace
+kubectl create configmap app-config -n dev-team --from-literal=log-level=info --from-literal=env=development
+kubectl create configmap database-config -n dev-team --from-literal=host=db.internal --from-literal=port=5432
+
+# Create a Role that only allows access to app-config, NOT database-config
+kubectl apply -f - <<EOF
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: dev-team
+  name: app-config-reader
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["app-config"]
+    verbs: ["get", "watch"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["list"]
+EOF
+
+# Create a ServiceAccount and bind it
+kubectl create serviceaccount config-reader -n dev-team
+
+kubectl apply -f - <<EOF
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-app-config
+  namespace: dev-team
+subjects:
+  - kind: ServiceAccount
+    name: config-reader
+    namespace: dev-team
+roleRef:
+  kind: Role
+  name: app-config-reader
+  apiGroup: rbac.authorization.k8s.io
+EOF
+
+# Test — should be ALLOWED (specific named resource)
+kubectl auth can-i get configmaps/app-config -n dev-team --as system:serviceaccount:dev-team:config-reader
+
+# Test — should be DENIED (different named resource)
+kubectl auth can-i get configmaps/database-config -n dev-team --as system:serviceaccount:dev-team:config-reader
+
+# Test — list is allowed (needed to discover resources), but get is restricted by name
+kubectl auth can-i list configmaps -n dev-team --as system:serviceaccount:dev-team:config-reader
+```
+
+The `resourceNames` field is useful for restricting access to specific secrets, ConfigMaps, or other named resources. Note that `list` cannot be restricted by `resourceNames` — it either lists all or none — but `get` is enforced per resource name.
+
+### Step 8: Create an Anti-Pattern and Audit It
+
+This demonstrates the danger of wildcard permissions on a default ServiceAccount:
 
 ```bash
 # WARNING: This is intentionally insecure for learning purposes
@@ -249,12 +289,8 @@ roleRef:
   name: too-permissive
   apiGroup: rbac.authorization.k8s.io
 EOF
-```
 
-### Step 11: Audit the Anti-Pattern
-
-```bash
-# Check what the default service account can do now
+# Audit — the default SA now has full cluster access
 kubectl auth can-i --list --as system:serviceaccount:dev-team:default
 
 # Can it access secrets across all namespaces?
@@ -267,172 +303,83 @@ kubectl auth can-i create clusterrolebindings --as system:serviceaccount:dev-tea
 kubectl auth can-i delete namespaces --as system:serviceaccount:dev-team:default
 ```
 
-**Questions:**
-1. What is the risk of giving wildcard permissions?
-2. Why is this especially dangerous on the `default` service account?
-3. What could an attacker do if they compromised a pod in `dev-team`?
+Every pod in the `dev-team` namespace that uses the `default` ServiceAccount now has full cluster-admin access. If an attacker compromises any pod, they own the entire cluster.
 
-### Step 12: Fix the Anti-Pattern
+### Step 9: Fix the Anti-Pattern
 
 ```bash
-# Remove the overly permissive binding
+# Remove the overly permissive binding and role
 kubectl delete clusterrolebinding overly-permissive-binding
 kubectl delete clusterrole too-permissive
 
-# Verify it is cleaned up
+# Verify the default SA is back to minimal permissions
 kubectl auth can-i get secrets --all-namespaces --as system:serviceaccount:dev-team:default
 # Expected: no
 ```
 
-## Part 4: Auditing Existing RBAC
+### Step 10: Audit Cluster-Wide RBAC for cluster-admin Bindings
 
-### Step 13: Audit Cluster-Wide RBAC
+In production, you should regularly audit which subjects have cluster-admin access. This step uses jq to find all ClusterRoleBindings that reference the `cluster-admin` ClusterRole:
 
 ```bash
 # List all ClusterRoleBindings that reference cluster-admin
-kubectl get clusterrolebindings -o json | \
-  jq -r '.items[] | select(.roleRef.name == "cluster-admin") |
-    .metadata.name as $binding |
-    (.subjects // [])[] |
-    "  \(.kind): \(.name) (ns: \(.namespace // "cluster-wide"))  [\($binding)]"'
-```
+echo "=== ClusterRoleBindings referencing cluster-admin ==="
+kubectl get clusterrolebindings -o json | jq -r '
+  .items[] |
+  select(.roleRef.name == "cluster-admin") |
+  {
+    binding: .metadata.name,
+    subjects: [.subjects[]? | "\(.kind)/\(.name)" + (if .namespace then " (ns: \(.namespace))" else "" end)]
+  } |
+  "\(.binding):\n  Subjects: \(.subjects | join(", "))"
+'
 
-### Step 14: Check Default Service Account Permissions
-
-```bash
-# Check each namespace's default service account
-for ns in dev-team staging production kube-system; do
-  echo "=== Namespace: $ns ==="
-  kubectl auth can-i --list --namespace $ns --as system:serviceaccount:$ns:default 2>/dev/null | head -20
-  echo ""
-done
-```
-
-### Step 15: Use kubectl auth can-i for Comprehensive Auditing
-
-```bash
-# Create a script to audit a service account
-cat > /tmp/audit-rbac.sh <<'SCRIPT'
-#!/bin/bash
-SA=$1
-NS=$2
-echo "Auditing: system:serviceaccount:$NS:$SA"
-echo "========================================="
-
-resources=("pods" "deployments" "services" "secrets" "configmaps" "namespaces" "nodes" "roles" "clusterroles")
-verbs=("get" "list" "create" "update" "delete")
-
-for resource in "${resources[@]}"; do
-  for verb in "${verbs[@]}"; do
-    result=$(kubectl auth can-i $verb $resource -n $NS --as system:serviceaccount:$NS:$SA 2>/dev/null)
-    if [ "$result" = "yes" ]; then
-      echo "  ALLOWED: $verb $resource"
-    fi
-  done
-done
-SCRIPT
-chmod +x /tmp/audit-rbac.sh
-
-# Audit our service accounts
-bash /tmp/audit-rbac.sh dev-viewer dev-team
+# Count how many bindings reference cluster-admin
 echo ""
-bash /tmp/audit-rbac.sh ci-deployer staging
+echo -n "Total cluster-admin bindings: "
+kubectl get clusterrolebindings -o json | jq '[.items[] | select(.roleRef.name == "cluster-admin")] | length'
+
+# Find any ServiceAccounts (not users or groups) with cluster-admin
+echo ""
+echo "=== ServiceAccounts with cluster-admin access ==="
+kubectl get clusterrolebindings -o json | jq -r '
+  .items[] |
+  select(.roleRef.name == "cluster-admin") |
+  .subjects[]? |
+  select(.kind == "ServiceAccount") |
+  "ServiceAccount: \(.name) in namespace: \(.namespace // "N/A")"
+'
+
+# Find all ClusterRoles that use wildcard permissions
+echo ""
+echo "=== ClusterRoles with wildcard permissions ==="
+kubectl get clusterroles -o json | jq -r '
+  .items[] |
+  select(.rules[]? | (.apiGroups[]? == "*") or (.resources[]? == "*") or (.verbs[]? == "*")) |
+  .metadata.name
+'
 ```
 
-## Part 5: Advanced RBAC — resourceNames
+This kind of RBAC auditing should be part of your regular security review process. Any unexpected ServiceAccount with cluster-admin access is a potential privilege escalation path.
 
-### Step 16: Restrict Access to Specific Resources
-
-```bash
-# Create a role that can only read a specific ConfigMap
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: app-config
-  namespace: dev-team
-data:
-  environment: development
-  log-level: info
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: db-credentials
-  namespace: dev-team
-data:
-  connection-string: "postgresql://localhost:5432/mydb"
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  namespace: dev-team
-  name: app-config-reader
-rules:
-  - apiGroups: [""]
-    resources: ["configmaps"]
-    resourceNames: ["app-config"]
-    verbs: ["get"]
-EOF
-
-kubectl create serviceaccount app-reader -n dev-team
-
-kubectl apply -f - <<EOF
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: app-config-reader-binding
-  namespace: dev-team
-subjects:
-  - kind: ServiceAccount
-    name: app-reader
-    namespace: dev-team
-roleRef:
-  kind: Role
-  name: app-config-reader
-  apiGroup: rbac.authorization.k8s.io
-EOF
-```
-
-### Step 17: Verify resourceNames Restriction
-
-```bash
-# Can read app-config
-kubectl auth can-i get configmaps/app-config -n dev-team --as system:serviceaccount:dev-team:app-reader
-# Expected: yes
-
-# Cannot read db-credentials
-kubectl auth can-i get configmaps/db-credentials -n dev-team --as system:serviceaccount:dev-team:app-reader
-# Expected: no
-
-# Cannot list all configmaps (resourceNames doesn't work with list)
-kubectl auth can-i list configmaps -n dev-team --as system:serviceaccount:dev-team:app-reader
-# Expected: no
-```
-
-## Cleanup
+### Step 11: Cleanup
 
 ```bash
 # Clean up lab resources
-kubectl delete namespace dev-team staging production
+kubectl delete namespace dev-team staging monitoring
 
-# Delete cluster-scoped resources
-kubectl delete clusterrole monitoring-agent
-kubectl delete clusterrolebinding monitoring-agent-binding
+# Clean up cluster-scoped resources
+kubectl delete clusterrole monitoring-reader --ignore-not-found
+kubectl delete clusterrolebinding monitoring-reader-binding --ignore-not-found
 
-# (Optional) Delete the cluster
+# (Optional) Delete the cluster — keep it if continuing to Lab 3
 # kind delete cluster --name security-lab
 ```
 
-> **Note:** Keep the cluster running if you plan to continue with Lab 3.
-
 ## Summary
 
-In this lab, you:
-- Created namespace-scoped Roles and RoleBindings for pod viewing
-- Designed least-privilege roles for CI/CD deployer and monitoring use cases
-- Identified and remediated overly permissive RBAC (wildcard anti-pattern)
-- Audited RBAC permissions using `kubectl auth can-i`
-- Used `resourceNames` to restrict access to specific resources
-
-Key takeaway: Always start with zero permissions and add only what is needed. Audit regularly to detect permission creep.
+- Roles and RoleBindings grant namespace-scoped permissions; ClusterRoles and ClusterRoleBindings grant cluster-wide permissions. Always start with zero permissions and add only what is needed.
+- `kubectl auth can-i` is the primary tool for testing and auditing RBAC permissions interactively.
+- The `resourceNames` field restricts access to specific named resources, enabling fine-grained access control beyond resource types.
+- Wildcard permissions (`*`) on default ServiceAccounts are a critical anti-pattern that gives every pod full cluster access.
+- Regular RBAC auditing with jq queries against ClusterRoleBindings helps detect privilege escalation risks before attackers do.

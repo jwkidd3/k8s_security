@@ -1,48 +1,42 @@
 # Lab 4: Pod Security Contexts
 
-**Duration:** 45-60 minutes
+**Duration:** 40 minutes
 
 ## Objectives
 
 By the end of this lab, you will be able to:
 
-- Configure pod-level and container-level SecurityContext settings
 - Enforce Pod Security Standards using Pod Security Admission (PSA)
-- Drop Linux capabilities and apply seccomp profiles
-- Use LimitRange and ResourceQuota for resource-based security
+- Configure SecurityContext settings for hardened pods
+- Explore and manage Linux capabilities on containers
+- Apply seccomp profiles for syscall filtering
+- Set default resource limits and quotas for namespaces
 
 ## Prerequisites
 
-- Running kind cluster (or create a new one with default config)
-- `kubectl` CLI configured
+- Cloud9 environment (Amazon Linux) with Docker
+- `kubectl` and `kind` installed
 
-## Lab Environment Setup
+---
 
-### Step 1: Create Lab Cluster and Namespaces
+### Step 1: Create Namespaces with PSA Labels
+
+Create two namespaces with different Pod Security Standards enforced via labels:
 
 ```bash
 # Create cluster if needed
 kind create cluster --name security-lab --config labs/setup/kind-config-default.yaml
 
-# Create namespaces with different Pod Security Standards
+# Create namespaces with PSA enforcement
 kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: psa-privileged
-  labels:
-    pod-security.kubernetes.io/enforce: privileged
-    pod-security.kubernetes.io/audit: privileged
-    pod-security.kubernetes.io/warn: privileged
----
 apiVersion: v1
 kind: Namespace
 metadata:
   name: psa-baseline
   labels:
     pod-security.kubernetes.io/enforce: baseline
-    pod-security.kubernetes.io/audit: restricted
-    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/audit: baseline
+    pod-security.kubernetes.io/warn: baseline
 ---
 apiVersion: v1
 kind: Namespace
@@ -53,122 +47,18 @@ metadata:
     pod-security.kubernetes.io/audit: restricted
     pod-security.kubernetes.io/warn: restricted
 EOF
+
+# Verify namespace labels
+kubectl get namespace psa-baseline --show-labels
+kubectl get namespace psa-restricted --show-labels
 ```
 
-## Part 1: SecurityContext Basics
+### Step 2: Test PSA Enforcement in the Baseline Namespace
 
-### Step 2: Run a Pod Without SecurityContext
-
-```bash
-# Deploy a pod with no security settings
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Pod
-metadata:
-  name: no-security
-  namespace: psa-privileged
-spec:
-  containers:
-    - name: shell
-      image: ubuntu:22.04
-      command: ["sleep", "3600"]
-EOF
-
-# Check what user it runs as
-kubectl exec -n psa-privileged no-security -- id
-# Likely: uid=0(root) gid=0(root) groups=0(root)
-
-# Check capabilities
-kubectl exec -n psa-privileged no-security -- cat /proc/1/status | grep -i cap
-
-# Check if filesystem is writable
-kubectl exec -n psa-privileged no-security -- touch /test-write && echo "writable" || echo "read-only"
-kubectl exec -n psa-privileged no-security -- rm /test-write
-```
-
-### Step 3: Apply Container-Level SecurityContext
+Try deploying a privileged pod to the baseline namespace. The baseline standard blocks privileged containers:
 
 ```bash
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Pod
-metadata:
-  name: hardened-container
-  namespace: psa-privileged
-spec:
-  containers:
-    - name: shell
-      image: ubuntu:22.04
-      command: ["sleep", "3600"]
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 3000
-        allowPrivilegeEscalation: false
-        readOnlyRootFilesystem: true
-        capabilities:
-          drop:
-            - ALL
-EOF
-
-# Check the user
-kubectl exec -n psa-privileged hardened-container -- id
-# Expected: uid=1000 gid=3000
-
-# Try to write to the filesystem
-kubectl exec -n psa-privileged hardened-container -- touch /test-write 2>&1
-# Expected: Read-only file system
-
-# Check capabilities (should be empty)
-kubectl exec -n psa-privileged hardened-container -- cat /proc/1/status | grep -i capeff
-```
-
-### Step 4: Add Writable Volumes
-
-```bash
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Pod
-metadata:
-  name: hardened-with-volumes
-  namespace: psa-privileged
-spec:
-  containers:
-    - name: app
-      image: ubuntu:22.04
-      command: ["sleep", "3600"]
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        allowPrivilegeEscalation: false
-        readOnlyRootFilesystem: true
-        capabilities:
-          drop:
-            - ALL
-      volumeMounts:
-        - name: tmp
-          mountPath: /tmp
-        - name: cache
-          mountPath: /var/cache
-  volumes:
-    - name: tmp
-      emptyDir: {}
-    - name: cache
-      emptyDir:
-        sizeLimit: 100Mi
-EOF
-
-# Verify: root filesystem is read-only but /tmp is writable
-kubectl exec -n psa-privileged hardened-with-volumes -- touch /test 2>&1
-kubectl exec -n psa-privileged hardened-with-volumes -- touch /tmp/test && echo "tmp is writable"
-```
-
-## Part 2: Pod Security Admission (PSA)
-
-### Step 5: Test Baseline Enforcement
-
-```bash
-# Try to create a privileged pod in the baseline namespace
+# Attempt to deploy a privileged pod (should be REJECTED)
 kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Pod
@@ -185,23 +75,7 @@ spec:
 EOF
 # Expected: DENIED — baseline does not allow privileged containers
 
-# Try hostNetwork (also blocked by baseline)
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Pod
-metadata:
-  name: hostnetwork-pod
-  namespace: psa-baseline
-spec:
-  hostNetwork: true
-  containers:
-    - name: shell
-      image: ubuntu:22.04
-      command: ["sleep", "3600"]
-EOF
-# Expected: DENIED
-
-# A simple pod should work in baseline
+# A simple pod without privileged settings should succeed
 kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Pod
@@ -214,13 +88,161 @@ spec:
       image: ubuntu:22.04
       command: ["sleep", "3600"]
 EOF
-# Expected: Created (baseline allows running as root, etc.)
+# Expected: Created
+
+kubectl wait --for=condition=Ready pod/simple-pod -n psa-baseline --timeout=60s
 ```
 
-### Step 6: Test Restricted Enforcement
+### Step 3: Explore Default Capabilities on an Unprivileged Container
+
+Before dropping capabilities, examine what a default unprivileged container receives:
 
 ```bash
-# Try the simple pod in restricted namespace
+# Check the default capabilities on the simple pod
+kubectl exec -n psa-baseline simple-pod -- cat /proc/1/status | grep -i cap
+
+# Decode the capability bitmask — CapEff shows effective capabilities
+# On a default container you will see capabilities like:
+# CHOWN, DAC_OVERRIDE, FOWNER, FSETID, KILL, SETGID, SETUID, SETPCAP,
+# NET_BIND_SERVICE, NET_RAW, SYS_CHOWN, MKNOD, AUDIT_WRITE, SETFCAP
+CAPEFF=$(kubectl exec -n psa-baseline simple-pod -- cat /proc/1/status | grep CapEff | awk '{print $2}')
+echo "Effective capabilities bitmask: $CAPEFF"
+
+# If capsh is available, decode the bitmask
+kubectl exec -n psa-baseline simple-pod -- sh -c "apt-get update -qq && apt-get install -qq -y libcap2-bin > /dev/null 2>&1 && capsh --decode=$CAPEFF" 2>/dev/null || echo "(capsh not available — use the bitmask above for reference)"
+
+# Key takeaway: default containers get a broad set of capabilities
+# Many of these are unnecessary for typical application workloads
+```
+
+### Step 4: Deploy a Pod with Proper SecurityContext
+
+Deploy a hardened pod with read-only root filesystem, non-root user, and all capabilities dropped:
+
+```bash
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hardened-pod
+  namespace: psa-baseline
+spec:
+  containers:
+    - name: app
+      image: ubuntu:22.04
+      command: ["sleep", "3600"]
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 3000
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop:
+            - ALL
+      volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+  volumes:
+    - name: tmp
+      emptyDir: {}
+EOF
+
+kubectl wait --for=condition=Ready pod/hardened-pod -n psa-baseline --timeout=60s
+```
+
+### Step 5: Verify the Security Context Is Applied
+
+Exec into the hardened pod and confirm the security settings are in effect:
+
+```bash
+# Check the running user
+kubectl exec -n psa-baseline hardened-pod -- id
+# Expected: uid=1000 gid=3000
+
+# Try to write to the root filesystem (should fail)
+kubectl exec -n psa-baseline hardened-pod -- touch /test-write 2>&1
+# Expected: Read-only file system
+
+# Confirm /tmp is writable (emptyDir mount)
+kubectl exec -n psa-baseline hardened-pod -- touch /tmp/test-write && echo "/tmp is writable"
+
+# Check capabilities (should be empty — all dropped)
+kubectl exec -n psa-baseline hardened-pod -- cat /proc/1/status | grep -i capeff
+# Expected: CapEff value of 0000000000000000
+```
+
+### Step 6: Drop All Capabilities and Add Back Only Specific Ones
+
+In practice, you drop ALL capabilities and selectively add back only what the application requires. Here we add NET_BIND_SERVICE so the container can bind to ports below 1024:
+
+```bash
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: netbind-pod
+  namespace: psa-baseline
+spec:
+  containers:
+    - name: app
+      image: nginx:alpine
+      ports:
+        - containerPort: 80
+      securityContext:
+        runAsUser: 0
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+          add:
+            - NET_BIND_SERVICE
+EOF
+
+kubectl wait --for=condition=Ready pod/netbind-pod -n psa-baseline --timeout=60s
+
+# Verify the pod is running — nginx needs NET_BIND_SERVICE to bind port 80
+kubectl exec -n psa-baseline netbind-pod -- wget -qO- --timeout=3 http://127.0.0.1:80 | head -5
+echo "nginx is serving on port 80 with only NET_BIND_SERVICE capability"
+
+# Confirm that only NET_BIND_SERVICE is in the effective set
+kubectl exec -n psa-baseline netbind-pod -- cat /proc/1/status | grep -i cap
+
+# Now deploy a pod that drops ALL capabilities with no add-backs, running nginx
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: no-caps-nginx
+  namespace: psa-baseline
+spec:
+  containers:
+    - name: app
+      image: nginx:alpine
+      ports:
+        - containerPort: 80
+      securityContext:
+        runAsUser: 0
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
+EOF
+
+# Wait briefly and check the pod status — it should fail because
+# nginx cannot bind to port 80 without NET_BIND_SERVICE
+sleep 10
+kubectl get pod no-caps-nginx -n psa-baseline
+kubectl logs no-caps-nginx -n psa-baseline 2>&1 | tail -5
+echo "Without NET_BIND_SERVICE, nginx cannot bind to port 80"
+```
+
+### Step 7: Test Restricted Namespace Enforcement
+
+The restricted standard requires runAsNonRoot, drop ALL capabilities, seccomp profile, and more:
+
+```bash
+# A simple pod will be REJECTED in the restricted namespace
 kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Pod
@@ -235,7 +257,7 @@ spec:
 EOF
 # Expected: DENIED — restricted requires runAsNonRoot, drop ALL, seccomp, etc.
 
-# Create a pod that passes restricted
+# Deploy a pod that meets all restricted requirements
 kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Pod
@@ -267,80 +289,22 @@ spec:
       emptyDir: {}
 EOF
 # Expected: Created
+
+kubectl wait --for=condition=Ready pod/restricted-pod -n psa-restricted --timeout=60s
+kubectl get pods -n psa-restricted
 ```
 
-### Step 7: Observe PSA Warnings and Audit Annotations
+### Step 8: Apply Seccomp Profile and Verify
+
+Deploy a pod with an explicit RuntimeDefault seccomp profile in the baseline namespace and verify it works:
 
 ```bash
-# The baseline namespace is set to warn on restricted violations
-# Deploy a pod that passes baseline but violates restricted
 kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Pod
 metadata:
-  name: warning-test
+  name: seccomp-pod
   namespace: psa-baseline
-spec:
-  containers:
-    - name: shell
-      image: ubuntu:22.04
-      command: ["sleep", "3600"]
-EOF
-# Observe: You should see warnings about restricted standard violations
-```
-
-## Part 3: Linux Capabilities
-
-### Step 8: Explore Default Capabilities
-
-```bash
-# See the default capabilities of a container
-kubectl exec -n psa-privileged no-security -- grep Cap /proc/1/status
-
-# Decode the capability bitmask
-kubectl exec -n psa-privileged no-security -- sh -c 'apt-get update -qq && apt-get install -y -qq libcap2-bin > /dev/null 2>&1 && capsh --decode=$(grep CapEff /proc/1/status | awk "{print \$2}")'
-```
-
-### Step 9: Drop All and Add Specific Capabilities
-
-```bash
-# Pod that needs to bind to port 80 (needs NET_BIND_SERVICE)
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Pod
-metadata:
-  name: net-bind-pod
-  namespace: psa-privileged
-spec:
-  containers:
-    - name: web
-      image: nginx:alpine
-      securityContext:
-        runAsUser: 0
-        capabilities:
-          drop:
-            - ALL
-          add:
-            - NET_BIND_SERVICE
-EOF
-
-kubectl wait --for=condition=Ready pod/net-bind-pod -n psa-privileged --timeout=60s
-
-# Verify only NET_BIND_SERVICE is available
-kubectl exec -n psa-privileged net-bind-pod -- cat /proc/1/status | grep -i cap
-```
-
-## Part 4: Seccomp Profiles
-
-### Step 10: Apply RuntimeDefault Seccomp Profile
-
-```bash
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Pod
-metadata:
-  name: seccomp-default
-  namespace: psa-privileged
 spec:
   securityContext:
     seccompProfile:
@@ -350,110 +314,126 @@ spec:
       image: ubuntu:22.04
       command: ["sleep", "3600"]
       securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
         allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
 EOF
 
-# The RuntimeDefault profile blocks dangerous syscalls
-# Try operations that should be blocked
-kubectl exec -n psa-privileged seccomp-default -- unshare --user 2>&1
-# May be blocked depending on the runtime's default seccomp profile
+kubectl wait --for=condition=Ready pod/seccomp-pod -n psa-baseline --timeout=60s
+
+# Verify the seccomp profile is set
+kubectl get pod seccomp-pod -n psa-baseline -o jsonpath='{.spec.securityContext.seccompProfile}' | jq .
+
+# The RuntimeDefault profile blocks dangerous syscalls like unshare
+kubectl exec -n psa-baseline seccomp-pod -- unshare --user 2>&1
+# Expected: Operation not permitted (blocked by seccomp)
 ```
 
-## Part 5: Resource Limits as Security
+### Step 9: Create a LimitRange and ResourceQuota
 
-### Step 11: Create ResourceQuota and LimitRange
+Enforce resource governance at the namespace level with default limits and quotas:
 
 ```bash
+# Create a LimitRange — sets default CPU/memory requests and limits for
+# any pod that does not specify them
 kubectl apply -f - <<EOF
-apiVersion: v1
-kind: ResourceQuota
-metadata:
-  name: security-quota
-  namespace: psa-baseline
-spec:
-  hard:
-    pods: "10"
-    requests.cpu: "4"
-    requests.memory: 4Gi
-    limits.cpu: "8"
-    limits.memory: 8Gi
----
 apiVersion: v1
 kind: LimitRange
 metadata:
-  name: security-limits
+  name: default-limits
   namespace: psa-baseline
 spec:
   limits:
     - default:
-        cpu: 500m
-        memory: 256Mi
+        cpu: "500m"
+        memory: "256Mi"
       defaultRequest:
-        cpu: 100m
-        memory: 128Mi
+        cpu: "100m"
+        memory: "128Mi"
       max:
-        cpu: "2"
-        memory: 1Gi
+        cpu: "1"
+        memory: "512Mi"
       min:
-        cpu: 50m
-        memory: 64Mi
+        cpu: "50m"
+        memory: "64Mi"
       type: Container
 EOF
-```
 
-### Step 12: Test Resource Limits
+# Verify the LimitRange
+kubectl describe limitrange default-limits -n psa-baseline
 
-```bash
-# Deploy without resource requests (LimitRange will inject defaults)
+# Create a ResourceQuota — caps the total resources the namespace can consume
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: namespace-quota
+  namespace: psa-baseline
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: "1Gi"
+    limits.cpu: "4"
+    limits.memory: "2Gi"
+    pods: "10"
+    secrets: "10"
+    configmaps: "10"
+EOF
+
+# Verify the ResourceQuota
+kubectl describe resourcequota namespace-quota -n psa-baseline
+
+# Deploy a pod to see the LimitRange defaults applied automatically
 kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Pod
 metadata:
-  name: default-resources
+  name: auto-limits-pod
   namespace: psa-baseline
 spec:
   containers:
     - name: app
-      image: ubuntu:22.04
+      image: busybox:1.36
       command: ["sleep", "3600"]
 EOF
 
-# Check the injected resource limits
-kubectl get pod default-resources -n psa-baseline -o jsonpath='{.spec.containers[0].resources}' | python3 -m json.tool
+kubectl wait --for=condition=Ready pod/auto-limits-pod -n psa-baseline --timeout=60s
 
-# Try to exceed limits
+# Check that default resource requests/limits were injected
+kubectl get pod auto-limits-pod -n psa-baseline -o jsonpath='{.spec.containers[0].resources}' | jq .
+# Expected: requests and limits populated by the LimitRange
+
+# Verify the quota usage updated
+kubectl describe resourcequota namespace-quota -n psa-baseline
+
+# Try to exceed the quota by requesting too much memory
 kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Pod
 metadata:
-  name: excessive-resources
+  name: over-quota-pod
   namespace: psa-baseline
 spec:
   containers:
     - name: app
-      image: ubuntu:22.04
+      image: busybox:1.36
       command: ["sleep", "3600"]
       resources:
         requests:
-          cpu: "4"
-          memory: 4Gi
+          memory: "2Gi"
         limits:
-          cpu: "4"
-          memory: 4Gi
+          memory: "3Gi"
 EOF
-# Expected: Denied by LimitRange (max is 2 CPU / 1Gi)
+# Expected: DENIED — exceeds the LimitRange per-container maximum of 512Mi memory
 ```
 
-### Step 13: View ResourceQuota Usage
+### Step 10: Cleanup
 
 ```bash
-kubectl describe resourcequota security-quota -n psa-baseline
-```
-
-## Cleanup
-
-```bash
-kubectl delete namespace psa-privileged psa-baseline psa-restricted
+kubectl delete namespace psa-baseline psa-restricted
 
 # (Optional) Delete the cluster
 # kind delete cluster --name security-lab
@@ -461,11 +441,8 @@ kubectl delete namespace psa-privileged psa-baseline psa-restricted
 
 ## Summary
 
-In this lab, you:
-- Configured SecurityContext at both pod and container levels
-- Enforced Pod Security Standards (Privileged, Baseline, Restricted) using PSA labels
-- Dropped all Linux capabilities and selectively added required ones
-- Applied seccomp profiles for syscall filtering
-- Used ResourceQuota and LimitRange to prevent resource-based attacks
-
-Key takeaway: Defense in depth — combine SecurityContext, PSA, capabilities, seccomp, and resource limits for comprehensive pod security.
+- PSA labels on namespaces enforce Pod Security Standards (baseline, restricted) at admission time
+- Default unprivileged containers receive a broad set of Linux capabilities that should be reduced
+- Drop ALL capabilities and selectively add back only what the application needs (e.g., NET_BIND_SERVICE)
+- Seccomp profiles filter dangerous syscalls at the kernel level
+- LimitRanges and ResourceQuotas enforce resource governance, preventing pods from consuming unbounded resources

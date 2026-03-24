@@ -1,51 +1,42 @@
 # Lab 9: Runtime Security with Falco
 
-**Duration:** 60 minutes
+**Duration:** 40 minutes
 
 ## Objectives
 
 By the end of this lab, you will be able to:
 
 - Install Falco with the eBPF driver on a kind cluster
-- Deploy Falcosidekick for alert routing
-- Trigger and detect security events in real time
-- Write custom Falco rules for specific threat scenarios
+- Trigger and detect a variety of security events in real time
+- Write custom Falco rules for crypto mining, kubectl exec, and sensitive mount detection
+- Access the Falcosidekick UI for event visualization
+- Export and analyze Falco alert data by priority and rule
 
 ## Prerequisites
 
-- Running kind cluster (or create a new one with default config)
+- Cloud9 environment (Amazon Linux)
+- Running kind cluster
 - `kubectl` and `helm` CLI configured
 
-## Lab Environment Setup
+---
 
-### Step 1: Create Lab Cluster
+### Step 1: Install Falco with eBPF Driver via Helm
 
 ```bash
-# Create cluster if needed
-kind create cluster --name security-lab --config labs/setup/kind-config-default.yaml
-
 # Create lab namespace
 kubectl create namespace falco-lab
-```
 
-### Step 2: Install Falco with eBPF Driver
-
-In kind clusters, the eBPF driver is more reliable than the kernel module:
-
-```bash
 # Add Falco Helm repo
 helm repo add falcosecurity https://falcosecurity.github.io/charts
 helm repo update
 
-# Install Falco with eBPF driver
+# Install Falco with eBPF driver and Falcosidekick (with UI)
 helm install falco falcosecurity/falco \
   -n falco --create-namespace \
   --set driver.kind=ebpf \
   --set tty=true \
   --set falcosidekick.enabled=true \
   --set falcosidekick.webui.enabled=true \
-  --set falcosidekick.webui.service.type=NodePort \
-  --set falcosidekick.webui.service.nodePort=30080 \
   --set resources.requests.cpu=100m \
   --set resources.requests.memory=256Mi
 
@@ -57,214 +48,105 @@ echo "Falco installed and running"
 kubectl get pods -n falco
 ```
 
-### Step 3: Verify Falco Is Working
+### Step 2: Deploy Test Workload
 
 ```bash
-# Check Falco logs
-kubectl logs -l app.kubernetes.io/name=falco -n falco --tail=20
-
-# You should see: "Falco initialized with configuration..."
-```
-
-## Part 1: Detecting Security Events
-
-### Step 4: Deploy a Test Workload
-
-```bash
-kubectl apply -f - <<EOF
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: vulnerable-app
-  namespace: falco-lab
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: vulnerable-app
-  template:
-    metadata:
-      labels:
-        app: vulnerable-app
-    spec:
-      containers:
-        - name: app
-          image: ubuntu:22.04
-          command: ["sleep", "infinity"]
-EOF
-
-kubectl wait --for=condition=Ready pods -l app=vulnerable-app -n falco-lab --timeout=60s
-```
-
-### Step 5: Trigger — Shell in Container
-
-```bash
-# This should trigger Falco's "Terminal shell in container" rule
-VULN_POD=$(kubectl get pod -n falco-lab -l app=vulnerable-app -o jsonpath='{.items[0].metadata.name}')
-
-kubectl exec -n falco-lab $VULN_POD -- bash -c "echo 'shell access detected'"
-
-# Check Falco logs for the alert
-sleep 3
-kubectl logs -l app.kubernetes.io/name=falco -n falco --tail=10 | grep -i "terminal\|shell"
-```
-
-### Step 6: Trigger — Reading Sensitive Files
-
-```bash
-# Read /etc/shadow (sensitive file read)
-kubectl exec -n falco-lab $VULN_POD -- cat /etc/shadow
-
-# Read /etc/passwd
-kubectl exec -n falco-lab $VULN_POD -- cat /etc/passwd
-
-# Check Falco logs
-sleep 3
-kubectl logs -l app.kubernetes.io/name=falco -n falco --tail=20 | grep -i "sensitive\|shadow"
-```
-
-### Step 7: Trigger — Package Management
-
-```bash
-# Install packages (suspicious activity in a running container)
-kubectl exec -n falco-lab $VULN_POD -- bash -c "apt-get update && apt-get install -y curl" 2>/dev/null
-
-# Check Falco logs
-sleep 3
-kubectl logs -l app.kubernetes.io/name=falco -n falco --tail=20 | grep -i "package\|dpkg\|apt"
-```
-
-### Step 8: Trigger — Writing to /etc
-
-```bash
-# Modify files in /etc (filesystem modification)
-kubectl exec -n falco-lab $VULN_POD -- bash -c "echo 'malicious' >> /etc/hosts"
-
-# Check Falco logs
-sleep 3
-kubectl logs -l app.kubernetes.io/name=falco -n falco --tail=20 | grep -i "etc\|write"
-```
-
-### Step 9: Trigger — Network Activity
-
-```bash
-# If curl was installed, make an outbound connection
-kubectl exec -n falco-lab $VULN_POD -- bash -c "curl -s http://google.com > /dev/null 2>&1" || true
-
-# Check Falco logs for network-related alerts
-sleep 3
-kubectl logs -l app.kubernetes.io/name=falco -n falco --tail=20 | grep -i "network\|connect\|outbound"
-```
-
-## Part 2: Understanding Falco Rules
-
-### Step 10: View Default Rules
-
-```bash
-# List the Falco rules files
-kubectl exec -n falco $(kubectl get pod -n falco -l app.kubernetes.io/name=falco -o jsonpath='{.items[0].metadata.name}') -- ls /etc/falco/
-
-# View a few key rules
-kubectl exec -n falco $(kubectl get pod -n falco -l app.kubernetes.io/name=falco -o jsonpath='{.items[0].metadata.name}') -- cat /etc/falco/falco_rules.yaml | head -100
-```
-
-### Step 11: Understand Rule Anatomy
-
-```bash
-cat <<'EXPLANATION'
-A Falco rule has these components:
-
-- rule: Terminal shell in container
-  desc: Detect a shell being spawned inside a container
-  condition: >
-    spawned_process and
-    container and
-    shell_procs and
-    proc.tty != 0
-  output: >
-    Shell spawned in container
-    (user=%user.name container=%container.name
-    shell=%proc.name parent=%proc.pname
-    cmdline=%proc.cmdline)
-  priority: NOTICE
-  tags: [container, shell, mitre_execution]
-
-Components:
-  - condition: Sysdig filter expression that triggers the rule
-  - output: What to log when the rule fires
-  - priority: DEBUG, INFORMATIONAL, NOTICE, WARNING, ERROR, CRITICAL, ALERT, EMERGENCY
-  - tags: For categorization and filtering
-EXPLANATION
-```
-
-## Part 3: Custom Falco Rules
-
-### Step 12: Create Custom Rules
-
-```bash
-# Create a ConfigMap with custom rules
 kubectl apply -f - <<EOF
 apiVersion: v1
-kind: ConfigMap
+kind: Pod
 metadata:
-  name: falco-custom-rules
-  namespace: falco
-data:
-  custom-rules.yaml: |
-    # Custom rule: Detect crypto mining indicators
-    - rule: Detect Crypto Mining Process
-      desc: Detect processes commonly associated with crypto mining
-      condition: >
-        spawned_process and
-        container and
-        (proc.name in (xmrig, minerd, minergate, cpuminer) or
-         proc.cmdline contains "stratum+tcp" or
-         proc.cmdline contains "cryptonight")
-      output: >
-        Crypto mining process detected
-        (user=%user.name container=%container.name
-        process=%proc.name cmdline=%proc.cmdline
-        image=%container.image.repository)
-      priority: CRITICAL
-      tags: [container, crypto, mitre_execution]
-
-    # Custom rule: Detect kubectl exec
-    - rule: Kubectl Exec Into Pod
-      desc: Detect kubectl exec commands
-      condition: >
-        spawned_process and
-        container and
-        proc.pname = "runc:[2:INIT]" and
-        proc.tty != 0
-      output: >
-        Interactive exec detected in container
-        (user=%user.name container=%container.name
-        command=%proc.cmdline image=%container.image.repository
-        namespace=%k8s.ns.name pod=%k8s.pod.name)
-      priority: WARNING
-      tags: [container, kubectl, mitre_execution]
-
-    # Custom rule: Detect sensitive mount
-    - rule: Sensitive Mount Detected
-      desc: Detect when container has sensitive host paths mounted
-      condition: >
-        container and evt.type = open and
-        (fd.name startswith /host/etc or
-         fd.name startswith /host/var/run/docker.sock or
-         fd.name startswith /host/root)
-      output: >
-        Sensitive host path accessed in container
-        (user=%user.name container=%container.name
-        file=%fd.name image=%container.image.repository)
-      priority: ERROR
-      tags: [container, filesystem, mitre_persistence]
+  name: test-app
+  namespace: falco-lab
+  labels:
+    app: test-app
+spec:
+  containers:
+    - name: app
+      image: ubuntu:22.04
+      command: ["sleep", "infinity"]
 EOF
+
+kubectl wait --for=condition=Ready pod/test-app -n falco-lab --timeout=60s
+echo "Test pod is running"
 ```
 
-### Step 13: Apply Custom Rules
+### Step 3: Trigger Security Events — Shell Access and Sensitive Files
 
 ```bash
-# Create a Helm values file with our custom rules
+# Get the pod name
+POD_NAME=test-app
+
+# Trigger 1: Shell in container
+kubectl exec -n falco-lab $POD_NAME -- bash -c "echo 'shell access detected'"
+
+# Trigger 2: Read sensitive file
+kubectl exec -n falco-lab $POD_NAME -- cat /etc/shadow
+
+# Trigger 3: Install a package (suspicious in a running container)
+kubectl exec -n falco-lab $POD_NAME -- bash -c "apt-get update && apt-get install -y curl" 2>/dev/null
+
+echo "Security events triggered. Waiting for Falco to process..."
+sleep 5
+```
+
+### Step 4: Trigger Additional Security Events — File Writes and Network Connections
+
+```bash
+POD_NAME=test-app
+
+# Trigger 4: Write to /etc directory (tampering with system configuration)
+kubectl exec -n falco-lab $POD_NAME -- bash -c "echo '# malicious entry' >> /etc/hosts"
+echo "Trigger: wrote to /etc/hosts"
+
+# Trigger 5: Write to a new file in /etc
+kubectl exec -n falco-lab $POD_NAME -- bash -c "echo 'backdoor' > /etc/cron.d/backdoor"
+echo "Trigger: created file in /etc/cron.d"
+
+# Trigger 6: Outbound network connection (potential data exfiltration)
+kubectl exec -n falco-lab $POD_NAME -- bash -c "curl -s -o /dev/null --connect-timeout 3 http://example.com || true"
+echo "Trigger: outbound network connection attempted"
+
+# Trigger 7: Read sensitive Kubernetes service account token
+kubectl exec -n falco-lab $POD_NAME -- bash -c "cat /var/run/secrets/kubernetes.io/serviceaccount/token 2>/dev/null || echo 'No token mounted'"
+echo "Trigger: attempted to read service account token"
+
+echo ""
+echo "Additional security events triggered. Waiting for Falco to process..."
+sleep 5
+```
+
+### Step 5: Check Falco Logs for Alerts
+
+```bash
+# Check for shell-related alerts
+echo "=== Shell Alerts ==="
+kubectl logs -l app.kubernetes.io/name=falco -n falco --tail=100 | grep -i "terminal\|shell" | tail -5
+
+# Check for sensitive file alerts
+echo ""
+echo "=== Sensitive File Alerts ==="
+kubectl logs -l app.kubernetes.io/name=falco -n falco --tail=100 | grep -i "sensitive\|shadow" | tail -5
+
+# Check for package management alerts
+echo ""
+echo "=== Package Management Alerts ==="
+kubectl logs -l app.kubernetes.io/name=falco -n falco --tail=100 | grep -i "package\|dpkg\|apt" | tail -5
+
+# Check for file write alerts
+echo ""
+echo "=== File Write Alerts ==="
+kubectl logs -l app.kubernetes.io/name=falco -n falco --tail=100 | grep -i "etc\|write\|modify" | tail -5
+
+# Check for network alerts
+echo ""
+echo "=== Network Alerts ==="
+kubectl logs -l app.kubernetes.io/name=falco -n falco --tail=100 | grep -i "network\|connect\|outbound" | tail -5
+```
+
+### Step 6: Write and Apply Custom Rules
+
+```bash
+# Create Helm values file with three custom rules
 cat > /tmp/falco-custom-values.yaml <<'EOF'
 customRules:
   custom-rules.yaml: |
@@ -282,34 +164,39 @@ customRules:
         image=%container.image.repository)
       priority: CRITICAL
       tags: [container, crypto, mitre_execution]
-    - rule: Kubectl Exec Into Pod
-      desc: Detect kubectl exec commands
+
+    - rule: Detect kubectl exec into Container
+      desc: Detect when kubectl exec is used to run a command in a container
       condition: >
         spawned_process and container and
-        proc.pname = "runc:[2:INIT]" and proc.tty != 0
+        proc.pname = runc:[2:INIT] and
+        not proc.name in (sh, bash, ls)
       output: >
-        Interactive exec detected in container
+        kubectl exec detected in container
         (user=%user.name container=%container.name
-        command=%proc.cmdline image=%container.image.repository
+        process=%proc.name parent=%proc.pname
+        cmdline=%proc.cmdline namespace=%k8s.ns.name
+        pod=%k8s.pod.name)
+      priority: WARNING
+      tags: [container, exec, mitre_execution]
+
+    - rule: Detect Sensitive Mount in Container
+      desc: Detect containers that mount sensitive host paths
+      condition: >
+        container and container.image.repository != "" and
+        (fd.name startswith /proc or
+         fd.name startswith /sys or
+         fd.name startswith /var/run/docker.sock)
+      output: >
+        Sensitive path accessed in container
+        (user=%user.name container=%container.name
+        file=%fd.name image=%container.image.repository
         namespace=%k8s.ns.name pod=%k8s.pod.name)
       priority: WARNING
-      tags: [container, kubectl, mitre_execution]
-    - rule: Sensitive Mount Detected
-      desc: Detect when container has sensitive host paths mounted
-      condition: >
-        container and evt.type = open and
-        (fd.name startswith /host/etc or
-         fd.name startswith /host/var/run/docker.sock or
-         fd.name startswith /host/root)
-      output: >
-        Sensitive host path accessed in container
-        (user=%user.name container=%container.name
-        file=%fd.name image=%container.image.repository)
-      priority: ERROR
-      tags: [container, filesystem, mitre_persistence]
+      tags: [container, filesystem, mitre_privilege_escalation]
 EOF
 
-# Upgrade Falco with custom rules
+# Upgrade Falco with the custom rules
 helm upgrade falco falcosecurity/falco \
   -n falco \
   --set driver.kind=ebpf \
@@ -319,107 +206,118 @@ helm upgrade falco falcosecurity/falco \
   --reuse-values \
   -f /tmp/falco-custom-values.yaml
 
-# Wait for Falco to restart
+# Wait for Falco to restart with new rules
 sleep 15
 kubectl wait --for=condition=Ready pods -l app.kubernetes.io/name=falco -n falco --timeout=120s
 
-echo "Custom rules applied"
+echo "Custom rules applied: crypto mining, kubectl exec, and sensitive mount detection"
 ```
 
-### Step 14: Test Custom Rules
+### Step 7: Test Custom Rules
 
 ```bash
-# Trigger the kubectl exec rule
-kubectl exec -n falco-lab $VULN_POD -- whoami
+POD_NAME=test-app
 
-# Check for custom rule alerts
+# Trigger the kubectl exec rule by running commands in the container
+kubectl exec -n falco-lab $POD_NAME -- whoami
+kubectl exec -n falco-lab $POD_NAME -- id
+
+# Trigger the sensitive mount rule by accessing /proc
+kubectl exec -n falco-lab $POD_NAME -- bash -c "ls /proc/1/status 2>/dev/null || true"
+
+# Wait for Falco to process
 sleep 5
-kubectl logs -l app.kubernetes.io/name=falco -n falco --tail=20 | grep -i "exec\|interactive"
+
+# Check for new alerts from custom rules
+echo "=== Recent Alerts (last 2 minutes) ==="
+kubectl logs -l app.kubernetes.io/name=falco -n falco --since=2m | tail -20
 ```
 
-## Part 4: Falcosidekick — Alert Routing
-
-### Step 15: Check Falcosidekick Status
+### Step 8: Access Falcosidekick UI
 
 ```bash
-# View Falcosidekick logs
-kubectl logs -l app.kubernetes.io/name=falcosidekick -n falco --tail=20
-
-# Check available output channels
-kubectl get pods -n falco -l app.kubernetes.io/name=falcosidekick-ui
-```
-
-### Step 16: Access the Falcosidekick UI
-
-```bash
-# Port-forward to access the UI
+# Port-forward to the Falcosidekick UI
+echo "Starting port-forward to Falcosidekick UI..."
 kubectl port-forward svc/falco-falcosidekick-ui -n falco 2802:2802 &
 PF_PID=$!
 
-echo "Falcosidekick UI available at http://localhost:2802"
-echo "Default credentials: admin / admin"
+sleep 3
+
+# Verify the UI is accessible
+echo "Falcosidekick UI is available at http://localhost:2802"
+echo "In a Cloud9 environment, use Preview > Preview Running Application"
 echo ""
-echo "Generate some events, then check the UI for alerts"
 
-# Generate some test events
-kubectl exec -n falco-lab $VULN_POD -- bash -c "cat /etc/shadow"
-kubectl exec -n falco-lab $VULN_POD -- bash -c "ls /root"
-sleep 5
-
+# Show what the UI provides
+echo "The Falcosidekick UI provides:"
+echo "  - Real-time event stream from Falco"
+echo "  - Event filtering by priority, rule, and source"
+echo "  - Event count dashboard"
 echo ""
-echo "Check the UI for new alerts"
 
-# Clean up port-forward
+# Check the Falcosidekick health endpoint
+curl -s http://localhost:2802/api/v1/healthz 2>/dev/null && echo " - UI health check passed" || echo " - UI not yet available (may take a moment)"
+
+# Kill the port-forward
 kill $PF_PID 2>/dev/null
+wait $PF_PID 2>/dev/null
+echo ""
+echo "Port-forward stopped. In production, Falcosidekick forwards events to Slack, PagerDuty, or a SIEM."
 ```
 
-## Part 5: Analyzing Falco Output
-
-### Step 17: Export and Analyze Events
+### Step 9: Export and Analyze Events
 
 ```bash
-# Get all Falco alerts from the last few minutes
-kubectl logs -l app.kubernetes.io/name=falco -n falco --since=10m | grep -E "^{" | head -20
+# Export recent Falco events to a file for analysis
+kubectl logs -l app.kubernetes.io/name=falco -n falco --since=15m > /tmp/falco-events.log
+
+# Count total alerts
+TOTAL=$(grep -c "Warning\|Error\|Critical\|Notice\|Informational" /tmp/falco-events.log 2>/dev/null || echo "0")
+echo "=== Total Alerts: ${TOTAL} ==="
 
 # Count alerts by priority
-echo "=== Alert Summary ==="
-kubectl logs -l app.kubernetes.io/name=falco -n falco --since=10m | \
+echo ""
+echo "=== Alerts by Priority ==="
+kubectl logs -l app.kubernetes.io/name=falco -n falco --since=15m | \
   grep -oP '"priority":"[^"]*"' | sort | uniq -c | sort -rn
 
-# Count alerts by rule
+# Count alerts by rule name
 echo ""
 echo "=== Alerts by Rule ==="
-kubectl logs -l app.kubernetes.io/name=falco -n falco --since=10m | \
+kubectl logs -l app.kubernetes.io/name=falco -n falco --since=15m | \
   grep -oP '"rule":"[^"]*"' | sort | uniq -c | sort -rn
+
+# Show the most recent 5 unique alert types
+echo ""
+echo "=== Most Recent Unique Alert Types ==="
+kubectl logs -l app.kubernetes.io/name=falco -n falco --since=15m | \
+  grep -oP '"rule":"[^"]*"' | sort -u | tail -10
+
+echo ""
+echo "In production, these events feed into a SIEM for correlation with other security data"
 ```
 
-### Step 18: Create an Alert Summary Report
+### Step 10: View Falco Configuration and Rule Statistics
 
 ```bash
-echo "============================================"
-echo "  Falco Runtime Security Report"
-echo "============================================"
+# Show the loaded rules count
+echo "=== Falco Rule Sources ==="
+kubectl logs -l app.kubernetes.io/name=falco -n falco | grep -i "rules\|loaded" | head -10
+
+# List all pods being monitored
 echo ""
-echo "Cluster: kind-security-lab"
-echo "Namespace monitored: falco-lab"
-echo "Report time: $(date)"
+echo "=== Monitored Pods ==="
+kubectl get pods --all-namespaces -o wide | grep -v kube-system
+
+# Show Falco DaemonSet details
 echo ""
-echo "Events Detected:"
-echo "  1. Terminal shell spawned in container"
-echo "  2. Sensitive file read (/etc/shadow)"
-echo "  3. Package management in running container"
-echo "  4. Filesystem modification (/etc/hosts)"
-echo "  5. Outbound network connection"
+echo "=== Falco DaemonSet ==="
+kubectl get daemonset -n falco
 echo ""
-echo "Recommended Actions:"
-echo "  - Investigate shell access to production containers"
-echo "  - Block package managers in production images"
-echo "  - Use read-only root filesystem"
-echo "  - Implement network policies to restrict egress"
-echo "  - Enable immutable containers"
+echo "Falco runs as a DaemonSet so every node in the cluster is monitored"
 ```
 
-## Cleanup
+### Step 11: Cleanup
 
 ```bash
 # Delete test workloads
@@ -429,17 +327,15 @@ kubectl delete namespace falco-lab
 helm uninstall falco -n falco
 kubectl delete namespace falco
 
-# (Optional) Delete the cluster
-# kind delete cluster --name security-lab
+# Remove temp files
+rm -f /tmp/falco-custom-values.yaml
+rm -f /tmp/falco-events.log
 ```
 
 ## Summary
 
-In this lab, you:
-- Installed Falco with the eBPF driver on a kind cluster
-- Triggered and detected multiple security events (shell access, sensitive file reads, package installs, filesystem modifications)
-- Wrote custom Falco rules for crypto mining detection and sensitive mount access
-- Used Falcosidekick for alert routing and visualization
-- Analyzed Falco output and created a security report
-
-Key takeaway: Runtime security detects threats that admission controls and static analysis miss — active exploitation, lateral movement, and unauthorized activity inside running containers.
+- Falco with the eBPF driver detects runtime threats like shell access, sensitive file reads, file tampering, and outbound network connections
+- Custom rules extend detection to specific threats such as crypto mining processes, kubectl exec usage, and sensitive mount access
+- Falcosidekick UI provides a real-time dashboard, and in production forwards events to alerting systems like Slack, PagerDuty, or a SIEM
+- Exporting and analyzing events by priority and rule name helps security teams prioritize response efforts
+- Runtime security catches active exploitation that static analysis and admission controls cannot detect

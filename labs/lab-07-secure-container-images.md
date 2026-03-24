@@ -1,343 +1,288 @@
 # Lab 7: Secure Container Images
 
-**Duration:** 60 minutes
+**Duration:** 40 minutes
 
 ## Objectives
 
 By the end of this lab, you will be able to:
 
 - Scan container images for vulnerabilities using Trivy
-- Sign and verify container images using cosign
-- Generate and analyze Software Bills of Materials (SBOMs) with Syft
+- Scan images for embedded secrets using Trivy's secret scanner
 - Lint Dockerfiles with hadolint for security best practices
-- Set up a local container registry for testing
+- Generate Software Bills of Materials (SBOMs) with Syft
+- Scan SBOMs for vulnerabilities using Grype
+- Sign and verify container images using cosign
+- Use image digest pinning for immutable deployments
 
 ## Prerequisites
 
-- Running kind cluster (or create a new one with default config)
-- Docker installed
-- `kubectl` CLI configured
+- Cloud9 environment (Amazon Linux)
+- Running kind cluster
+- Docker installed and `kubectl` CLI configured
 
-## Lab Environment Setup
+---
 
-### Step 1: Create Lab Cluster and Install Tools
-
-```bash
-# Create cluster if needed
-kind create cluster --name security-lab --config labs/setup/kind-config-default.yaml
-```
-
-### Step 2: Install Required Tools
+### Step 1: Install Tools
 
 ```bash
-# Install Trivy (if not already installed)
-curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sudo sh -s -- -b /usr/local/bin
+# Install Trivy
+TRIVY_VERSION=0.69.3
+curl -LO "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+tar xzf trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz trivy
+sudo mv trivy /usr/local/bin/
+rm -f trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz
 
 # Install cosign
-curl -LO https://github.com/sigstore/cosign/releases/download/v2.2.2/cosign-linux-amd64
+COSIGN_VERSION=v2.2.2
+curl -LO "https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-amd64"
 chmod +x cosign-linux-amd64
 sudo mv cosign-linux-amd64 /usr/local/bin/cosign
 
 # Install Syft
-curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sudo sh -s -- -b /usr/local/bin
-
-# Install Grype
-curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sudo sh -s -- -b /usr/local/bin
+SYFT_VERSION=1.4.1
+curl -LO "https://github.com/anchore/syft/releases/download/v${SYFT_VERSION}/syft_${SYFT_VERSION}_linux_amd64.tar.gz"
+tar xzf syft_${SYFT_VERSION}_linux_amd64.tar.gz syft
+sudo mv syft /usr/local/bin/
+rm -f syft_${SYFT_VERSION}_linux_amd64.tar.gz
 
 # Install hadolint
-curl -LO https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64
+HADOLINT_VERSION=v2.12.0
+curl -LO "https://github.com/hadolint/hadolint/releases/download/${HADOLINT_VERSION}/hadolint-Linux-x86_64"
 chmod +x hadolint-Linux-x86_64
 sudo mv hadolint-Linux-x86_64 /usr/local/bin/hadolint
+
+# Install Grype
+GRYPE_VERSION=0.82.0
+curl -LO "https://github.com/anchore/grype/releases/download/v${GRYPE_VERSION}/grype_${GRYPE_VERSION}_linux_amd64.tar.gz"
+tar xzf grype_${GRYPE_VERSION}_linux_amd64.tar.gz grype
+sudo mv grype /usr/local/bin/
+rm -f grype_${GRYPE_VERSION}_linux_amd64.tar.gz
+
+# Verify all tools
+trivy version && cosign version && syft version && hadolint --version && grype version
 ```
 
-### Step 3: Set Up a Local Registry
+### Step 2: Set Up a Local Registry
 
 ```bash
-# Create a local registry container
+# Run a local registry container
 docker run -d --restart=always -p 5001:5000 --name local-registry registry:2
 
-# Connect the registry to kind network (if using kind)
+# Connect to kind network
 docker network connect kind local-registry 2>/dev/null || true
 
 echo "Local registry running at localhost:5001"
 ```
 
-## Part 1: Dockerfile Security Best Practices
-
-### Step 4: Create an Insecure Dockerfile
+### Step 3: Create and Lint an Insecure Dockerfile
 
 ```bash
 mkdir -p /tmp/image-lab
+echo "print('Hello from insecure app')" > /tmp/image-lab/app.py
+
 cat > /tmp/image-lab/Dockerfile.insecure <<'EOF'
 FROM ubuntu:latest
 RUN apt-get update && apt-get install -y curl wget netcat python3
 COPY . /app
 WORKDIR /app
 RUN echo "SECRET_KEY=hardcoded123" >> /app/.env
+RUN echo "AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE" >> /app/.env
+RUN echo "DB_PASSWORD=supersecret" >> /app/config.txt
 EXPOSE 8080
 USER root
 CMD ["python3", "-m", "http.server", "8080"]
 EOF
 
-# Create a simple app file
-echo "print('Hello from insecure app')" > /tmp/image-lab/app.py
-```
-
-### Step 5: Lint the Insecure Dockerfile
-
-```bash
+# Lint the insecure Dockerfile
 hadolint /tmp/image-lab/Dockerfile.insecure
 ```
 
-**Expected issues:**
-- Using `latest` tag
-- Running as root
-- Not pinning package versions
-- Multiple `RUN` commands that should be combined
+**Expected issues:** using `latest` tag, running as root, unpinned package versions.
 
-### Step 6: Create a Secure Dockerfile
+### Step 4: Create a Secure Dockerfile, Lint It, and Build Both Images
 
 ```bash
 cat > /tmp/image-lab/Dockerfile.secure <<'EOF'
-# Use a specific, minimal base image
 FROM python:3.12-slim-bookworm AS builder
 
-# Install only necessary packages
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       tini=0.19.* && \
     rm -rf /var/lib/apt/lists/*
 
-# Create a non-root user
 RUN groupadd -r appuser && useradd -r -g appuser -d /app -s /sbin/nologin appuser
 
-# Copy application files
 WORKDIR /app
 COPY app.py .
-
-# Set ownership
 RUN chown -R appuser:appuser /app
 
-# Switch to non-root user
 USER appuser
 
-# Use tini as init
 ENTRYPOINT ["tini", "--"]
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s \
-  CMD python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:8080')" || exit 1
-
 EXPOSE 8080
 CMD ["python3", "-m", "http.server", "8080"]
 EOF
 
 # Lint the secure Dockerfile
 hadolint /tmp/image-lab/Dockerfile.secure
-```
 
-### Step 7: Build Both Images
-
-```bash
+# Build both images
 cd /tmp/image-lab
-
-# Build insecure image
 docker build -t localhost:5001/insecure-app:v1 -f Dockerfile.insecure .
-
-# Build secure image
 docker build -t localhost:5001/secure-app:v1 -f Dockerfile.secure .
 
 # Compare image sizes
 docker images | grep -E "insecure-app|secure-app"
 ```
 
-## Part 2: Vulnerability Scanning with Trivy
-
-### Step 8: Scan the Insecure Image
+### Step 5: Scan Both Images with Trivy for Vulnerabilities
 
 ```bash
-# Full vulnerability scan
+# Scan the insecure image
+echo "=== Insecure Image Scan ==="
 trivy image --severity HIGH,CRITICAL localhost:5001/insecure-app:v1
 
-# Count vulnerabilities by severity
+# Scan the secure image
 echo ""
-echo "=== Vulnerability Summary ==="
-trivy image --severity CRITICAL localhost:5001/insecure-app:v1 --quiet 2>/dev/null | tail -5
-```
-
-### Step 9: Scan the Secure Image
-
-```bash
+echo "=== Secure Image Scan ==="
 trivy image --severity HIGH,CRITICAL localhost:5001/secure-app:v1
 
 echo ""
 echo "Compare: The secure image should have significantly fewer vulnerabilities"
 ```
 
-### Step 10: Scan for Misconfigurations
+### Step 6: Scan for Secrets in the Insecure Image
 
 ```bash
-# Trivy can also scan Dockerfiles for misconfigurations
-trivy config /tmp/image-lab/Dockerfile.insecure
-echo ""
-trivy config /tmp/image-lab/Dockerfile.secure
-```
-
-### Step 11: Scan for Secrets in Images
-
-```bash
-# Scan for hardcoded secrets
+# Scan the insecure image specifically for embedded secrets
+echo "=== Secret Scan: Insecure Image ==="
 trivy image --scanners secret localhost:5001/insecure-app:v1
 
 echo ""
-echo "The insecure image contains hardcoded secrets in .env file"
+echo "=== Secret Scan: Secure Image ==="
+trivy image --scanners secret localhost:5001/secure-app:v1
+
+echo ""
+echo "The insecure image should show hardcoded secrets (API keys, passwords)"
+echo "The secure image should be clean of embedded secrets"
 ```
 
-## Part 3: SBOM Generation with Syft
-
-### Step 12: Generate an SBOM
+### Step 7: Generate SBOM with Syft
 
 ```bash
 # Generate SBOM in CycloneDX format
 syft localhost:5001/secure-app:v1 -o cyclonedx-json > /tmp/image-lab/sbom-secure.json
 
-# Generate SBOM in SPDX format
-syft localhost:5001/secure-app:v1 -o spdx-json > /tmp/image-lab/sbom-secure-spdx.json
-
 # View SBOM summary
 echo "=== SBOM Package Count ==="
-cat /tmp/image-lab/sbom-secure.json | python3 -c "import json,sys; data=json.load(sys.stdin); print(f'Components: {len(data.get(\"components\", []))}')"
+jq '.components | length' /tmp/image-lab/sbom-secure.json
+
+# Show top 10 packages by type
+echo ""
+echo "=== Packages by Type ==="
+jq -r '[.components[].type] | group_by(.) | map({type: .[0], count: length}) | sort_by(-.count) | .[] | "\(.count)\t\(.type)"' /tmp/image-lab/sbom-secure.json
 
 # List packages in the image
 syft localhost:5001/secure-app:v1 --output table | head -30
 ```
 
-### Step 13: Scan SBOM for Vulnerabilities
+### Step 8: Scan SBOM with Grype for Vulnerabilities
 
 ```bash
-# Use Grype to scan the SBOM
+# Use Grype to scan the SBOM for known vulnerabilities
+echo "=== Grype SBOM Vulnerability Scan ==="
 grype sbom:/tmp/image-lab/sbom-secure.json
 
+# Show only HIGH and CRITICAL vulnerabilities
 echo ""
-echo "Grype can scan SBOMs without needing the original image"
-echo "This enables offline vulnerability scanning"
+echo "=== HIGH and CRITICAL Only ==="
+grype sbom:/tmp/image-lab/sbom-secure.json --only-fixed --fail-on critical 2>&1 || true
+
+echo ""
+echo "Grype can scan SBOMs offline — useful for auditing images in air-gapped environments"
 ```
 
-## Part 4: Image Signing with cosign
-
-### Step 14: Generate a Signing Key Pair
+### Step 9: Sign and Verify Image with cosign
 
 ```bash
 # Generate a cosign key pair
 cd /tmp/image-lab
 COSIGN_PASSWORD="" cosign generate-key-pair
-
-# This creates cosign.key (private) and cosign.pub (public)
 ls -la cosign.*
-```
 
-### Step 15: Push and Sign an Image
-
-```bash
 # Push the secure image to the local registry
 docker push localhost:5001/secure-app:v1
 
 # Sign the image
 COSIGN_PASSWORD="" cosign sign --key /tmp/image-lab/cosign.key --tlog-upload=false localhost:5001/secure-app:v1
-
 echo "Image signed successfully"
-```
 
-### Step 16: Verify the Image Signature
-
-```bash
 # Verify the signature
 cosign verify --key /tmp/image-lab/cosign.pub --insecure-ignore-tlog localhost:5001/secure-app:v1
-
-echo ""
 echo "Image signature verified successfully"
 
-# Try to verify an unsigned image
+# Try to verify an unsigned image (should fail)
+docker push localhost:5001/insecure-app:v1
 cosign verify --key /tmp/image-lab/cosign.pub --insecure-ignore-tlog localhost:5001/insecure-app:v1 2>&1 || echo "Unsigned image: verification failed (expected)"
 ```
 
-## Part 5: Image Digest Pinning
-
-### Step 17: Use Image Digests Instead of Tags
+### Step 10: Deploy with Image Digest Pinning
 
 ```bash
-# Get the image digest (RepoDigests returns "repo@sha256:...")
-FULL_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' localhost:5001/secure-app:v1)
-echo "Image with digest: $FULL_DIGEST"
+# Get the image digest for the signed secure image
+IMAGE_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' localhost:5001/secure-app:v1)
+echo "Image digest reference: ${IMAGE_DIGEST}"
 
-# Deploy using digest instead of tag
+# Deploy a pod using the digest-pinned image reference
 kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Pod
 metadata:
-  name: digest-pinned
+  name: digest-pinned-pod
   namespace: default
+  labels:
+    app: digest-demo
 spec:
   containers:
     - name: app
-      image: ${FULL_DIGEST}
-      ports:
-        - containerPort: 8080
+      image: ${IMAGE_DIGEST}
+      resources:
+        limits:
+          cpu: 200m
+          memory: 128Mi
 EOF
 
+kubectl wait --for=condition=Ready pod/digest-pinned-pod --timeout=60s
+
+# Verify the pod is running with the digest-pinned image
 echo ""
-echo "Using digests prevents tag mutation attacks"
-echo "Tags can be overwritten, but digests are immutable"
+echo "=== Pod Image Reference ==="
+kubectl get pod digest-pinned-pod -o jsonpath='{.spec.containers[0].image}'
+echo ""
+echo ""
+echo "Digest pinning ensures the exact image bytes are used, preventing tag mutation attacks"
+
+# Compare: tag-based vs digest-based
+echo ""
+echo "Tag-based:   localhost:5001/secure-app:v1 (mutable — tag can be moved)"
+echo "Digest-based: ${IMAGE_DIGEST} (immutable — always the same image)"
+
+# Clean up the demo pod
+kubectl delete pod digest-pinned-pod
 ```
 
-## Part 6: Putting It All Together
-
-### Step 18: Secure Image Pipeline Summary
-
-```bash
-echo "=== Secure Container Image Pipeline ==="
-echo ""
-echo "1. WRITE: Use hadolint to lint Dockerfiles"
-echo "   hadolint Dockerfile"
-echo ""
-echo "2. BUILD: Use multi-stage builds with minimal base images"
-echo "   docker build -t myapp:v1 ."
-echo ""
-echo "3. SCAN: Use Trivy for vulnerability and secret scanning"
-echo "   trivy image --severity HIGH,CRITICAL myapp:v1"
-echo ""
-echo "4. GENERATE SBOM: Use Syft for software inventory"
-echo "   syft myapp:v1 -o cyclonedx-json > sbom.json"
-echo ""
-echo "5. SIGN: Use cosign to sign verified images"
-echo "   cosign sign --key cosign.key myregistry/myapp:v1"
-echo ""
-echo "6. DEPLOY: Use digest pinning in Kubernetes manifests"
-echo "   image: myregistry/myapp@sha256:abc123..."
-echo ""
-echo "7. ENFORCE: Use admission controllers to require signatures"
-echo "   (Covered in Lab 8)"
-```
-
-## Cleanup
+### Step 11: Cleanup
 
 ```bash
 # Remove lab resources
-kubectl delete pod digest-pinned --ignore-not-found
 docker rm -f local-registry
 rm -rf /tmp/image-lab
-
-# (Optional) Delete the cluster
-# kind delete cluster --name security-lab
 ```
 
 ## Summary
 
-In this lab, you:
-- Compared insecure vs secure Dockerfiles and linted them with hadolint
-- Scanned images for vulnerabilities, misconfigurations, and secrets with Trivy
-- Generated SBOMs with Syft and scanned them with Grype
-- Signed and verified container images with cosign
-- Used image digest pinning for immutable deployments
-
-Key takeaway: Secure images require a pipeline approach — lint, build, scan, sign, pin. Each step catches different classes of issues.
+- Hadolint catches Dockerfile anti-patterns like running as root and using unpinned tags
+- Trivy's secret scanner detects hardcoded credentials and API keys embedded in image layers
+- Minimal base images dramatically reduce the vulnerability surface compared to full OS images
+- SBOMs provide a complete software inventory, and Grype can scan them offline for vulnerabilities
+- Cosign image signing combined with digest pinning ensures only verified, immutable images are deployed

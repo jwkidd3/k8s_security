@@ -1,22 +1,23 @@
 # Lab 10: Audit Logging & Compliance
 
-**Duration:** 60 minutes
+**Duration:** 40 minutes
 
 ## Objectives
 
 By the end of this lab, you will be able to:
 
-- Configure and customize Kubernetes API server audit logging policies
-- Generate, collect, and analyze audit log events
-- Run CIS Kubernetes Benchmark scans with kube-bench
-- Use Polaris for automated compliance checking
+- Configure Kubernetes API server audit logging
+- Generate and analyze audit log events with jq
+- Write targeted jq queries for security-relevant events (exec, RBAC, failures)
+- Run CIS Benchmark scans with kube-bench
+- Use Polaris for automated compliance scanning
 
 ## Prerequisites
 
 - Cloud9 environment with Docker
 - `kubectl` and `kind` installed
 
-## Lab Environment Setup
+---
 
 ### Step 1: Create a Cluster with Audit Logging
 
@@ -27,151 +28,45 @@ kind create cluster --name audit-lab --config labs/setup/kind-config-audit.yaml
 # Verify the cluster
 kubectl cluster-info --context kind-audit-lab
 kubectl get nodes
-```
 
-### Step 2: Install jq for JSON Parsing
-
-```bash
-# Install jq for JSON parsing
-sudo yum install -y jq 2>/dev/null || sudo apt-get install -y jq 2>/dev/null
-```
-
-### Step 3: Verify Audit Logging Is Active
-
-```bash
-# Check the API server has audit flags
-docker exec audit-lab-control-plane cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep audit
-
-# Check audit log file exists
+# Confirm audit logging is active
 docker exec audit-lab-control-plane ls -la /var/log/kubernetes/audit/
-
-# View recent audit events (formatted)
 docker exec audit-lab-control-plane tail -3 /var/log/kubernetes/audit/audit.log | jq .
 ```
 
-## Part 1: Audit Policy Configuration
-
-### Step 4: Review the Current Audit Policy
+### Step 2: Review the Audit Policy
 
 ```bash
+# View the audit policy that controls what gets logged
 docker exec audit-lab-control-plane cat /etc/kubernetes/audit/audit-policy.yaml
 ```
 
-### Step 5: Understand Audit Levels
+The audit policy defines rules that determine which API requests are logged and at what detail level. Key levels are:
+- **None** — do not log
+- **Metadata** — log who did what, but not the request/response body
+- **Request** — log metadata plus the request body
+- **RequestResponse** — log everything (use sparingly)
+
+Examine the policy and answer:
+1. Which resources are logged at RequestResponse level?
+2. Which resources are explicitly excluded from logging?
+3. What is the default catch-all level?
 
 ```bash
-cat <<'EXPLANATION'
-Kubernetes Audit Levels:
+# Count the number of rules in the policy
+docker exec audit-lab-control-plane cat /etc/kubernetes/audit/audit-policy.yaml | grep -c "level:"
 
-  None             - Do not log this event
-  Metadata         - Log request metadata (user, timestamp, resource, verb)
-                     but not request or response body
-  Request          - Log metadata + request body (but not response body)
-  RequestResponse  - Log metadata + request body + response body
-
-Best Practices:
-  - Use None for health checks and system noise
-  - Use Metadata for most resources (good signal-to-noise)
-  - Use Request for sensitive resources (secrets, RBAC)
-  - Use RequestResponse only when you need the full trail
-  - Be careful with RequestResponse on high-volume resources (can fill disk)
-EXPLANATION
+# Look at what the API server flags are set to for audit
+docker exec audit-lab-control-plane ps aux | grep audit
 ```
 
-### Step 6: Create an Enhanced Audit Policy
+### Step 3: Generate Audit Events
 
 ```bash
-cat > /tmp/enhanced-audit-policy.yaml <<'EOF'
-apiVersion: audit.k8s.io/v1
-kind: Policy
-rules:
-  # Skip health checks and API discovery
-  - level: None
-    nonResourceURLs:
-      - /healthz*
-      - /readyz*
-      - /livez*
-      - /openapi*
-
-  # Skip system controller noise
-  - level: None
-    users:
-      - system:kube-proxy
-      - system:kube-controller-manager
-      - system:kube-scheduler
-      - system:serviceaccount:kube-system:*
-    verbs: ["get", "list", "watch"]
-
-  # Log all secret operations at Request level (captures who accessed what)
-  - level: Request
-    resources:
-      - group: ""
-        resources: ["secrets"]
-    omitStages:
-      - RequestReceived
-
-  # Log exec/attach/port-forward at RequestResponse level
-  - level: RequestResponse
-    resources:
-      - group: ""
-        resources: ["pods/exec", "pods/attach", "pods/portforward"]
-
-  # Log all RBAC changes at RequestResponse level
-  - level: RequestResponse
-    resources:
-      - group: "rbac.authorization.k8s.io"
-        resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
-
-  # Log service account token creation
-  - level: RequestResponse
-    resources:
-      - group: ""
-        resources: ["serviceaccounts/token"]
-
-  # Log namespace changes
-  - level: Metadata
-    resources:
-      - group: ""
-        resources: ["namespaces"]
-    verbs: ["create", "delete", "update", "patch"]
-
-  # Log all other changes at Metadata level
-  - level: Metadata
-    verbs: ["create", "update", "patch", "delete"]
-    omitStages:
-      - RequestReceived
-
-  # Log reads at None (reduce noise)
-  - level: None
-    verbs: ["get", "list", "watch"]
-EOF
-
-echo "Enhanced audit policy created"
-```
-
-### Step 7: Apply the Enhanced Audit Policy
-
-```bash
-# Copy into the control plane container
-docker cp /tmp/enhanced-audit-policy.yaml audit-lab-control-plane:/etc/kubernetes/audit/audit-policy.yaml
-
-# Restart the API server to pick up the new policy
-docker exec audit-lab-control-plane sh -c 'kill $(pgrep kube-apiserver)' 2>/dev/null || true
-
-echo "Waiting for API server to restart..."
-sleep 20
-kubectl get nodes --timeout=60s
-```
-
-## Part 2: Generating and Analyzing Audit Events
-
-### Step 8: Generate Security-Relevant Events
-
-```bash
-# Create a namespace
+# Create a namespace for testing
 kubectl create namespace audit-test
 
-# Create and access a secret
+# Create and read a secret
 kubectl create secret generic sensitive-data -n audit-test \
   --from-literal=password=MySecret123 \
   --from-literal=api-key=sk-1234567890
@@ -209,62 +104,82 @@ EOF
 kubectl run test-pod --image=busybox:1.36 -n audit-test -- sleep 3600
 kubectl wait --for=condition=Ready pod/test-pod -n audit-test --timeout=60s
 kubectl exec -n audit-test test-pod -- whoami
+
+# Run a few more exec commands to generate more events
+kubectl exec -n audit-test test-pod -- cat /etc/hostname
+kubectl exec -n audit-test test-pod -- ls /tmp
+
+# Generate some failed requests (these should show as forbidden)
+kubectl auth can-i delete nodes --as system:serviceaccount:audit-test:default
+kubectl get secrets -n kube-system --as system:serviceaccount:audit-test:default 2>/dev/null || true
+
+# Delete the pod to generate a delete event
+kubectl delete pod test-pod -n audit-test
 ```
 
-### Step 9: Analyze Secret Access Events
+### Step 4: Analyze Audit Logs with jq — Secret and RBAC Events
 
 ```bash
+# Show secret access events
 echo "=== Secret Access Events ==="
 docker exec audit-lab-control-plane cat /var/log/kubernetes/audit/audit.log | \
-  jq -r 'select(.objectRef.resource == "secrets") |
-    "  \(.verb | . + " " * (8 - length)) | \(.user.username | . + " " * ([30 - length, 0] | max)) | \(.objectRef.namespace // "")/\(.objectRef.name // "") | \(.responseStatus.code // "")"'
-```
+  jq -r 'select(.objectRef.resource == "secrets" and .objectRef.namespace == "audit-test") |
+    "  \(.requestReceivedTimestamp // "") | \(.verb) | \(.user.username) | \(.objectRef.name // "") | status: \(.responseStatus.code // "")"'
 
-### Step 10: Analyze RBAC Change Events
-
-```bash
+# Show RBAC change events
+echo ""
 echo "=== RBAC Change Events ==="
 docker exec audit-lab-control-plane cat /var/log/kubernetes/audit/audit.log | \
-  jq -r 'select(.objectRef.apiGroup == "rbac.authorization.k8s.io") |
-    "  \(.verb | . + " " * (8 - length)) | \(.objectRef.resource | . + " " * ([20 - length, 0] | max)) | \(.objectRef.name // "" | . + " " * ([25 - length, 0] | max)) | \(.user.username)"'
-```
+  jq -r 'select(.objectRef.apiGroup == "rbac.authorization.k8s.io" and .objectRef.namespace == "audit-test") |
+    "  \(.requestReceivedTimestamp // "") | \(.verb) | \(.objectRef.resource)/\(.objectRef.name // "") | \(.user.username)"'
 
-### Step 11: Analyze Pod Exec Events
-
-```bash
-echo "=== Pod Exec Events ==="
-docker exec audit-lab-control-plane cat /var/log/kubernetes/audit/audit.log | \
-  jq -r 'select(.objectRef.subresource == "exec" or .objectRef.subresource == "attach") |
-    "  \(.verb | . + " " * (8 - length)) | \(.user.username | . + " " * ([30 - length, 0] | max)) | \(.objectRef.namespace // "")/\(.objectRef.name // "") | \(.requestURI // "")"'
-```
-
-### Step 12: Build a Suspicious Activity Query
-
-```bash
-echo "=== Suspicious Activity Detection ==="
-docker exec audit-lab-control-plane cat /var/log/kubernetes/audit/audit.log | \
-  jq -r '
-    # Flag: secret access by non-system users
-    (if .objectRef.resource == "secrets" and (.user.username | startswith("system:") | not)
-     then "  [!] SECRET ACCESS: \(.user.username) \(.verb) \(.objectRef.namespace // "")/\(.objectRef.name // "")"
-     else empty end),
-    # Flag: RBAC modifications
-    (if .objectRef.apiGroup == "rbac.authorization.k8s.io" and (.verb == "create" or .verb == "update" or .verb == "patch" or .verb == "delete")
-     then "  [!] RBAC CHANGE: \(.user.username) \(.verb) \(.objectRef.resource // "") \(.objectRef.name // "")"
-     else empty end),
-    # Flag: pod exec
-    (if .objectRef.subresource == "exec"
-     then "  [!] POD EXEC: \(.user.username) into \(.objectRef.namespace // "")/\(.objectRef.name // "")"
-     else empty end)
-  ' | tee /tmp/suspicious_events.txt
-
+# Show pod exec and delete events
 echo ""
-echo "  Total suspicious events: $(wc -l < /tmp/suspicious_events.txt | tr -d ' ')"
+echo "=== Pod Exec and Delete Events ==="
+docker exec audit-lab-control-plane cat /var/log/kubernetes/audit/audit.log | \
+  jq -r 'select((.objectRef.subresource == "exec" or (.objectRef.resource == "pods" and .verb == "delete")) and .objectRef.namespace == "audit-test") |
+    "  \(.requestReceivedTimestamp // "") | \(.verb) | \(.objectRef.name // "") | \(.user.username)"'
 ```
 
-## Part 3: CIS Benchmark Scanning with kube-bench
+### Step 5: Advanced Audit Log Queries
 
-### Step 13: Run kube-bench
+```bash
+# Find ALL kubectl exec events across the entire cluster
+echo "=== All Exec Events (Cluster-Wide) ==="
+docker exec audit-lab-control-plane cat /var/log/kubernetes/audit/audit.log | \
+  jq -r 'select(.objectRef.subresource == "exec") |
+    "  \(.requestReceivedTimestamp // "") | ns:\(.objectRef.namespace // "N/A") | pod:\(.objectRef.name // "") | user:\(.user.username)"'
+
+# Find failed/forbidden requests (HTTP 403)
+echo ""
+echo "=== Failed/Forbidden Requests ==="
+docker exec audit-lab-control-plane cat /var/log/kubernetes/audit/audit.log | \
+  jq -r 'select(.responseStatus.code == 403) |
+    "  \(.requestReceivedTimestamp // "") | \(.verb) \(.objectRef.resource // "")/\(.objectRef.name // "") | user:\(.user.username) | reason:\(.responseStatus.reason // "")"' | tail -20
+
+# Find all RBAC-related changes (roles, bindings, clusterroles)
+echo ""
+echo "=== All RBAC Modifications ==="
+docker exec audit-lab-control-plane cat /var/log/kubernetes/audit/audit.log | \
+  jq -r 'select(.objectRef.apiGroup == "rbac.authorization.k8s.io" and (.verb == "create" or .verb == "update" or .verb == "delete" or .verb == "patch")) |
+    "  \(.requestReceivedTimestamp // "") | \(.verb) | \(.objectRef.resource)/\(.objectRef.name // "") | ns:\(.objectRef.namespace // "cluster") | user:\(.user.username)"'
+
+# Count events by verb for the audit-test namespace
+echo ""
+echo "=== Event Counts by Verb (audit-test) ==="
+docker exec audit-lab-control-plane cat /var/log/kubernetes/audit/audit.log | \
+  jq -r 'select(.objectRef.namespace == "audit-test") | .verb' | sort | uniq -c | sort -rn
+
+# Show the most active users in the audit log
+echo ""
+echo "=== Top 10 Active Users ==="
+docker exec audit-lab-control-plane cat /var/log/kubernetes/audit/audit.log | \
+  jq -r '.user.username' | sort | uniq -c | sort -rn | head -10
+```
+
+### Step 6: Run kube-bench as a Kubernetes Job
+
+kube-bench checks your cluster against the CIS Kubernetes Benchmark. We run it as a Job on the control plane node:
 
 ```bash
 kubectl apply -f - <<EOF
@@ -288,7 +203,7 @@ spec:
       containers:
         - name: kube-bench
           image: aquasec/kube-bench:v0.7.1
-          command: ["kube-bench", "run", "--targets", "master,node,policies", "--json"]
+          command: ["kube-bench", "run", "--targets", "master,node,policies"]
           volumeMounts:
             - name: var-lib-kubelet
               mountPath: /var/lib/kubelet
@@ -306,79 +221,52 @@ spec:
             path: /etc/kubernetes
   backoffLimit: 0
 EOF
+```
 
+### Step 7: Review kube-bench Results
+
+```bash
+# Wait for the job to complete
 kubectl wait --for=condition=complete job/kube-bench --timeout=120s
-```
 
-### Step 14: Analyze CIS Benchmark Results
+# View the full results
+kubectl logs job/kube-bench
 
-```bash
-# Get summary
-echo "=== CIS Benchmark Summary ==="
-kubectl logs job/kube-bench | jq -r '
-  .Controls[] |
-  .text as $desc |
-  [.tests[].results[] | .status] |
-  {desc: $desc,
-   PASS: (map(select(. == "PASS")) | length),
-   FAIL: (map(select(. == "FAIL")) | length),
-   WARN: (map(select(. == "WARN")) | length),
-   INFO: (map(select(. == "INFO")) | length)} |
-  "  \($desc): PASS=\(.PASS) FAIL=\(.FAIL) WARN=\(.WARN) INFO=\(.INFO)"
-'
-kubectl logs job/kube-bench | jq -r '
-  [.Controls[].tests[].results[] | .status] |
-  {PASS: (map(select(. == "PASS")) | length),
-   FAIL: (map(select(. == "FAIL")) | length),
-   WARN: (map(select(. == "WARN")) | length),
-   INFO: (map(select(. == "INFO")) | length)} |
-  "\n  TOTAL: PASS=\(.PASS) FAIL=\(.FAIL) WARN=\(.WARN) INFO=\(.INFO)"
-'
+# Get a summary — count PASS, FAIL, WARN results
+echo "--- Result Counts ---"
+echo -n "PASS: "; kubectl logs job/kube-bench | grep -c "\[PASS\]"
+echo -n "FAIL: "; kubectl logs job/kube-bench | grep -c "\[FAIL\]"
+echo -n "WARN: "; kubectl logs job/kube-bench | grep -c "\[WARN\]"
 
-# Show failed checks
+# Look at failed checks specifically
 echo ""
-echo "=== Failed Checks ==="
-kubectl logs job/kube-bench | jq -r '
-  [.Controls[].tests[].results[] | select(.status == "FAIL")] |
-  .[] |
-  "  [\(.test_number)] \(.test_desc)\n    Remediation: \(.remediation // "" | .[0:120])...\n"
-' | head -60
+echo "--- Failed Checks ---"
+kubectl logs job/kube-bench | grep -A 3 "\[FAIL\]"
 ```
 
-## Part 4: Polaris Compliance Checking
+Review the results and note:
+1. Which CIS benchmark checks are failing?
+2. Do any failures relate to the audit logging configuration we set up?
+3. What remediations does kube-bench suggest for the top failures?
 
-### Step 15: Install Polaris
-
-```bash
-# Install Polaris via Helm
-helm repo add fairwinds-stable https://charts.fairwinds.com/stable
-helm repo update
-
-helm install polaris fairwinds-stable/polaris \
-  -n polaris --create-namespace \
-  --set dashboard.service.type=NodePort
-
-# Wait for Polaris
-kubectl wait --for=condition=Ready pods --all -n polaris --timeout=120s
-```
-
-### Step 16: Run Polaris Audit
+### Step 8: Install and Run Polaris
 
 ```bash
-# Install the Polaris CLI for command-line auditing
-curl -LO https://github.com/FairwindsOps/polaris/releases/download/9.0.1/polaris_linux_amd64.tar.gz
+# Install the Polaris CLI
+POLARIS_VERSION=9.0.1
+curl -LO "https://github.com/FairwindsOps/polaris/releases/download/${POLARIS_VERSION}/polaris_linux_amd64.tar.gz"
 tar -xzf polaris_linux_amd64.tar.gz
 sudo mv polaris /usr/local/bin/
 rm polaris_linux_amd64.tar.gz
 
-# Run an audit
+# Run a cluster-wide compliance audit
 polaris audit --format=pretty --kubeconfig ~/.kube/config 2>/dev/null | head -80
 ```
 
-### Step 17: Deploy Test Workloads and Re-Audit
+### Step 9: Deploy a Test Workload and Re-Scan
 
 ```bash
-# Deploy a poorly configured workload
+# Deploy an insecure workload alongside a hardened one
 kubectl apply -f - <<EOF
 apiVersion: apps/v1
 kind: Deployment
@@ -461,45 +349,47 @@ spec:
           emptyDir: {}
 EOF
 
-# Re-run audit on the specific namespace
+kubectl wait --for=condition=Available deployment/insecure-deploy -n audit-test --timeout=60s
+
+# Re-run Polaris audit scoped to the test namespace — compare the two deployments
 polaris audit --namespace audit-test --format=pretty --kubeconfig ~/.kube/config 2>/dev/null
 ```
 
-## Part 5: Compliance Report
+Notice how `insecure-deploy` fails many checks (no resource limits, no security context, uses `latest` tag) while `secure-deploy` passes most checks.
 
-### Step 18: Generate Compliance Summary
+### Step 10: Correlate Polaris Findings with Audit Events
 
 ```bash
-echo "============================================"
-echo "  Kubernetes Compliance Report"
-echo "============================================"
+# The deployments we just created generated audit events — let's see them
+echo "=== Deployment Creation Events ==="
+docker exec audit-lab-control-plane cat /var/log/kubernetes/audit/audit.log | \
+  jq -r 'select(.objectRef.resource == "deployments" and .objectRef.namespace == "audit-test" and .verb == "create") |
+    "  \(.requestReceivedTimestamp // "") | \(.verb) \(.objectRef.name // "") | user:\(.user.username)"'
+
+# Show a timeline of ALL events in audit-test namespace, sorted by timestamp
 echo ""
-echo "Cluster: kind-audit-lab"
-echo "Date: $(date)"
+echo "=== Full Event Timeline (audit-test namespace) ==="
+docker exec audit-lab-control-plane cat /var/log/kubernetes/audit/audit.log | \
+  jq -r 'select(.objectRef.namespace == "audit-test") |
+    "  \(.requestReceivedTimestamp // "") | \(.verb) \(.objectRef.resource // "")/\(.objectRef.name // "") | \(.user.username)"' | sort | tail -30
+
+# Count events by resource type
 echo ""
-echo "--- Audit Logging ---"
-echo "  Status: Enabled"
-docker exec audit-lab-control-plane cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep -c "audit" | xargs -I{} echo "  Audit flags configured: {}"
-echo ""
-echo "--- CIS Benchmark ---"
-kubectl logs job/kube-bench 2>/dev/null | jq -r '
-  [.Controls[].tests[].results[] | .status] |
-  {p: (map(select(. == "PASS")) | length),
-   f: (map(select(. == "FAIL")) | length),
-   w: (map(select(. == "WARN")) | length)} |
-  "  Pass: \(.p)  Fail: \(.f)  Warn: \(.w)\n  Score: \(if (.p + .f + .w) > 0 then ((.p * 1000 / (.p + .f + .w) | round) / 10) else 0 end)%"
-' 2>/dev/null || echo "  Unable to parse results"
+echo "=== Events by Resource Type ==="
+docker exec audit-lab-control-plane cat /var/log/kubernetes/audit/audit.log | \
+  jq -r 'select(.objectRef.namespace == "audit-test") | .objectRef.resource // "unknown"' | sort | uniq -c | sort -rn
 ```
 
-## Cleanup
+This demonstrates how audit logging and compliance scanning work together: Polaris tells you *what* is misconfigured, and audit logs tell you *who* deployed it and *when*.
+
+### Step 11: Cleanup
 
 ```bash
-kubectl delete namespace audit-test
+# Delete the kube-bench job
 kubectl delete job kube-bench
 
-# Uninstall Polaris
-helm uninstall polaris -n polaris
-kubectl delete namespace polaris
+# Delete the namespace
+kubectl delete namespace audit-test
 
 # (Optional) Delete the cluster
 kind delete cluster --name audit-lab
@@ -507,11 +397,8 @@ kind delete cluster --name audit-lab
 
 ## Summary
 
-In this lab, you:
-- Configured and customized API server audit policies with appropriate levels
-- Generated and analyzed audit log events for secrets, RBAC changes, and pod exec
-- Built suspicious activity detection queries against audit logs
-- Ran CIS Kubernetes Benchmark scans and analyzed results
-- Used Polaris for workload compliance checking
-
-Key takeaway: Audit logging provides the forensic trail needed for compliance and incident investigation. Combine it with automated benchmark scanning for continuous compliance assurance.
+- Audit logging records API activity and is essential for forensic investigation
+- Use jq to query audit logs for secret access, RBAC changes, exec events, and failed requests
+- kube-bench runs CIS Kubernetes Benchmark checks and reveals control plane and node configuration gaps
+- Polaris scans workloads against security best practices and highlights misconfigurations
+- Hardened workloads (non-root, read-only filesystem, resource limits) pass compliance checks that default deployments fail
