@@ -30,18 +30,6 @@
    - Leave all other settings as defaults
 4. Click **Create**
 5. Wait for the environment to be ready, then click **Open** to launch the IDE
-6. In the Cloud9 terminal, increase the disk size (default 10 GB is not enough for container images):
-
-```bash
-# Resize the EBS volume to 30 GB
-INSTANCE_ID=$(ec2-metadata -i | awk '{print $2}')
-VOLUME_ID=$(aws ec2 describe-volumes --filters "Name=attachment.instance-id,Values=$INSTANCE_ID" --query 'Volumes[0].VolumeId' --output text)
-aws ec2 modify-volume --volume-id $VOLUME_ID --size 30
-sleep 10
-sudo growpart /dev/nvme0n1 1
-sudo xfs_growfs /
-df -h /
-```
 
 ### Step 1: Clone the Course Repository
 
