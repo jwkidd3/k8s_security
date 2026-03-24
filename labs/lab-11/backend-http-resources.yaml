@@ -1,0 +1,23 @@
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: backend-http
+  namespace: mesh-demo
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  port: 8080
+  proxyProtocol: HTTP/1
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: database-http
+  namespace: mesh-demo
+spec:
+  podSelector:
+    matchLabels:
+      app: database
+  port: 5432
+  proxyProtocol: HTTP/1

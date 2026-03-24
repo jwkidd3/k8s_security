@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: three-tier
+  labels:
+    app: backend
+    tier: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+      tier: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+        tier: backend
+    spec:
+      containers:
+        - name: api
+          image: nginx:alpine
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: backend-nginx-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: three-tier
+spec:
+  selector:
+    app: backend
+    tier: backend
+  ports:
+    - port: 8080
+      targetPort: 8080

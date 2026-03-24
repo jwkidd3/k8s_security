@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: privileged-pod
+  namespace: psa-baseline
+spec:
+  containers:
+    - name: shell
+      image: ubuntu:22.04
+      command: ["sleep", "3600"]
+      securityContext:
+        privileged: true

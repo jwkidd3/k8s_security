@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mutated-pod
+  namespace: policy-lab
+  labels:
+    app: test
+    team: test
+spec:
+  containers:
+    - name: web
+      image: nginxinc/nginx-unprivileged:1.25-alpine
+      resources:
+        limits:
+          cpu: 200m
+          memory: 128Mi

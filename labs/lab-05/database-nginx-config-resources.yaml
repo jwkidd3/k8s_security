@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-nginx-config
+  namespace: three-tier
+data:
+  default.conf: |
+    server {
+        listen 5432;
+        location / {
+            return 200 'Database OK\n';
+            add_header Content-Type text/plain;
+        }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-nginx-config
+  namespace: three-tier
+data:
+  default.conf: |
+    server {
+        listen 8080;
+        location / {
+            return 200 'Backend OK\n';
+            add_header Content-Type text/plain;
+        }
+    }

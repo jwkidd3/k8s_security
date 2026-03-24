@@ -1,0 +1,38 @@
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
+metadata:
+  name: backend-allow-frontend
+  namespace: mesh-demo
+spec:
+  targetRef:
+    group: policy.linkerd.io
+    kind: Server
+    name: backend-http
+  requiredAuthenticationRefs:
+    - name: mesh-demo-identity
+      kind: MeshTLSAuthentication
+      group: policy.linkerd.io
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
+metadata:
+  name: database-allow-backend
+  namespace: mesh-demo
+spec:
+  targetRef:
+    group: policy.linkerd.io
+    kind: Server
+    name: database-http
+  requiredAuthenticationRefs:
+    - name: mesh-demo-identity
+      kind: MeshTLSAuthentication
+      group: policy.linkerd.io
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: MeshTLSAuthentication
+metadata:
+  name: mesh-demo-identity
+  namespace: mesh-demo
+spec:
+  identities:
+    - "*.mesh-demo.serviceaccount.identity.linkerd.cluster.local"

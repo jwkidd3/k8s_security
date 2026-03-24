@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: debug-tools
+  namespace: production
+  labels:
+    app: web-app
+    purpose: debug
+spec:
+  serviceAccountName: web-app-sa
+  containers:
+    - name: tools
+      image: ubuntu:22.04
+      command: ["sleep", "infinity"]
+      securityContext:
+        privileged: true

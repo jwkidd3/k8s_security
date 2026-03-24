@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: labeled-pod
+  namespace: policy-lab
+  labels:
+    app: web-server
+    team: platform
+spec:
+  containers:
+    - name: web
+      image: nginx:alpine

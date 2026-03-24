@@ -1,0 +1,23 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: audit-test-role
+  namespace: audit-test
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: audit-test-binding
+  namespace: audit-test
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: audit-test
+roleRef:
+  kind: Role
+  name: audit-test-role
+  apiGroup: rbac.authorization.k8s.io

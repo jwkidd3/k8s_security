@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ci-deployer-binding
+  namespace: staging
+subjects:
+  - kind: ServiceAccount
+    name: ci-deployer
+    namespace: staging
+roleRef:
+  kind: Role
+  name: deployer
+  apiGroup: rbac.authorization.k8s.io

@@ -1,6 +1,3 @@
-# Encryption at Rest configuration template for Lab 06
-# Replace ENCRYPTION_KEY_HERE with a base64-encoded 32-byte key:
-#   head -c 32 /dev/urandom | base64
 apiVersion: apiserver.config.k8s.io/v1
 kind: EncryptionConfiguration
 resources:
@@ -10,5 +7,5 @@ resources:
       - aescbc:
           keys:
             - name: key1
-              secret: ENCRYPTION_KEY_HERE
+              secret: kuzO3SfqA94MJrKtjLFM6AX4UoVlsTr86EnFSeJvxjk=
       - identity: {}
