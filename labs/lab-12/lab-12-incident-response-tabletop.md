@@ -1,6 +1,6 @@
 # Lab 12: Incident Response Tabletop
 
-**Duration:** 40 minutes
+**Duration:** 60 minutes
 
 ## Objectives
 
@@ -72,9 +72,9 @@ SHELL
 '
 
 # Simulate secret exfiltration via the service account
-kubectl get secrets -n production -o yaml > /dev/null 2>&1
-kubectl get secret db-credentials -n production -o jsonpath='{.data.password}' > /dev/null 2>&1
-kubectl get secret api-keys -n production -o jsonpath='{.data.stripe-key}' > /dev/null 2>&1
+kubectl get secrets -n production -o yaml --as system:serviceaccount:production:web-app-sa > /dev/null 2>&1
+kubectl get secret db-credentials -n production -o jsonpath='{.data.password}' --as system:serviceaccount:production:web-app-sa > /dev/null 2>&1
+kubectl get secret api-keys -n production -o jsonpath='{.data.stripe-key}' --as system:serviceaccount:production:web-app-sa > /dev/null 2>&1
 
 # Simulate lateral movement attempts — try to access other namespaces
 kubectl get secrets -n kube-system --as system:serviceaccount:production:web-app-sa 2>/dev/null || true

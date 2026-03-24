@@ -41,7 +41,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: app
-          image: nginx:1.25-alpine
+          image: nginxinc/nginx-unprivileged:1.25-alpine
           ports:
             - containerPort: 8080
           securityContext:

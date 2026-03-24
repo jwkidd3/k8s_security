@@ -579,38 +579,20 @@ rules:
 kind: Policy
 omitStages: ["RequestReceived"]
 rules:
-  # 1. Skip noisy endpoints
+  # Skip noisy endpoints and health checks
   - level: None
     resources:
       - group: ""
-        resources: ["endpoints", "services", "services/status"]
-    users: ["system:kube-proxy"]
-
-  # 2. Skip health checks and discovery
+        resources: ["endpoints", "services/status"]
   - level: None
-    nonResourceURLs: ["/healthz*", "/livez*", "/readyz*", "/version"]
-
-  # 3. Log secret access at Metadata level (avoid logging secret values)
+    nonResourceURLs: ["/healthz*", "/livez*", "/readyz*"]
+  # Log secrets at Metadata only (never log secret values!)
   - level: Metadata
-    resources:
-      - group: ""
-        resources: ["secrets"]
-
-  # 4. Log RBAC changes with full detail
+    resources: [{group: "", resources: ["secrets"]}]
+  # Log RBAC changes with full detail
   - level: RequestResponse
-    resources:
-      - group: "rbac.authorization.k8s.io"
-
-  # 5. Log workload changes at Request level
-  - level: Request
-    verbs: ["create", "update", "patch", "delete"]
-    resources:
-      - group: ""
-        resources: ["pods", "deployments", "services"]
-      - group: "apps"
-        resources: ["deployments", "daemonsets", "statefulsets"]
-
-  # 6. Catch-all: metadata for everything else
+    resources: [{group: "rbac.authorization.k8s.io"}]
+  # Catch-all: metadata for everything else
   - level: Metadata</code></pre>
                 <aside class="notes">This is a well-balanced policy for production. Note the important detail on secrets — we use Metadata level, NOT Request or RequestResponse, because those would log the actual secret values in the audit log, creating a security risk. The catch-all rule at the bottom ensures nothing goes completely unlogged.</aside>
             </section>
@@ -672,7 +654,7 @@ rules:
   "kind": "Event",
   "apiVersion": "audit.k8s.io/v1",
   "level": "RequestResponse",
-  "auditID": "a]b12c34-d567-e890-f012-345678901234",
+  "auditID": "ab12c34d-d567-e890-f012-345678901234",
   "stage": "ResponseComplete",
   "requestURI": "/api/v1/namespaces/default/pods",
   "verb": "create",
@@ -974,11 +956,11 @@ kube-bench/main/job.yaml
 kubectl logs job/kube-bench
 
 # Run specific sections
-kubectl run kube-bench --image=aquasec/kube-bench:latest \
+kubectl run kube-bench --image=aquasec/kube-bench:v0.7.1 \
   --restart=Never -- run --targets=master
 
 # Run on worker nodes
-kubectl run kube-bench-node --image=aquasec/kube-bench:latest \
+kubectl run kube-bench-node --image=aquasec/kube-bench:v0.7.1 \
   --restart=Never -- run --targets=node</code></pre>
                 <aside class="notes">kube-bench runs the CIS checks as a Kubernetes Job, so it has access to the node's filesystem and process information. It automatically detects the Kubernetes version and selects the appropriate benchmark version. Results are output to stdout and can be collected from pod logs.</aside>
             </section>
@@ -997,7 +979,7 @@ spec:
       hostPID: true
       containers:
         - name: kube-bench
-          image: aquasec/kube-bench:latest
+          image: aquasec/kube-bench:v0.7.1
           command: ["kube-bench", "run", "--targets=master,node"]
           volumeMounts:
             - name: var-lib-kubelet
@@ -1422,24 +1404,10 @@ spec:
               command: ["/bin/sh", "-c"]
               args:
                 - |
-                  # Collect RBAC state
                   kubectl get clusterroles,clusterrolebindings -o yaml \
                     > /evidence/rbac-$(date +%Y%m%d).yaml
-                  # Collect network policies
                   kubectl get networkpolicies -A -o yaml \
                     > /evidence/netpol-$(date +%Y%m%d).yaml
-                  # Collect pod security contexts
-                  kubectl get pods -A -o json | jq '.items[] | {
-                    name: .metadata.name, ns: .metadata.namespace,
-                    sc: .spec.securityContext}' \
-                    > /evidence/podsec-$(date +%Y%m%d).json
-              volumeMounts:
-                - name: evidence
-                  mountPath: /evidence
-          volumes:
-            - name: evidence
-              persistentVolumeClaim:
-                claimName: compliance-evidence-pvc
           restartPolicy: OnFailure</code></pre>
                 <aside class="notes">Automated evidence collection runs daily and stores snapshots of your security configuration. This creates a timeline that auditors can review and is invaluable for detecting when and how configurations changed. Store evidence in a tamper-evident system for maximum credibility.</aside>
             </section>

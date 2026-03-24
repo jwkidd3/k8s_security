@@ -916,31 +916,14 @@ apiVersion: kubeadm.k8s.io/v1beta3
 kind: ClusterConfiguration
 apiServer:
   extraArgs:
-    # Authentication
     anonymous-auth: "false"
-    # Authorization
     authorization-mode: "Node,RBAC"
-    # TLS
     tls-min-version: "VersionTLS12"
-    # Admission plugins
     enable-admission-plugins: >-
       NodeRestriction,PodSecurity,EventRateLimit
-    # Audit logging
     audit-log-path: "/var/log/kubernetes/audit.log"
-    audit-log-maxage: "30"
-    audit-log-maxbackup: "10"
-    audit-log-maxsize: "100"
     audit-policy-file: "/etc/kubernetes/audit-policy.yaml"
-  extraVolumes:
-  - name: audit-log
-    hostPath: /var/log/kubernetes
-    mountPath: /var/log/kubernetes
-    pathType: DirectoryOrCreate
-  - name: audit-policy
-    hostPath: /etc/kubernetes/audit-policy.yaml
-    mountPath: /etc/kubernetes/audit-policy.yaml
-    readOnly: true
-    pathType: File</code></pre>
+    # ... additional flags (log rotation, volumes, etc.)</code></pre>
                 <aside class="notes">This is the single most important configuration file for hardening a kubeadm cluster. Every flag here maps directly to a CIS Benchmark check.</aside>
             </section>
 
@@ -1330,7 +1313,7 @@ ETCDCTL_API=3 etcdctl snapshot status \
             </section>
 
             <section>
-                <h2>FlowSchema &amp; PriorityLevel Examples</h2>
+                <h2>API Priority &mdash; FlowSchema</h2>
                 <pre><code class="language-yaml"># Protect critical system requests
 apiVersion: flowcontrol.apiserver.k8s.io/v1
 kind: FlowSchema
@@ -1349,9 +1332,13 @@ spec:
         - verbs: ["*"]
           apiGroups: ["*"]
           resources: ["*"]
-          namespaces: ["*"]
----
-# Limit noisy controllers
+          namespaces: ["*"]</code></pre>
+                <p class="small-text">Matches incoming requests by user, group, namespace, verb, or resource and assigns them to a PriorityLevelConfiguration.</p>
+            </section>
+
+            <section>
+                <h2>API Priority &mdash; PriorityLevelConfiguration</h2>
+                <pre><code class="language-yaml"># Limit noisy controllers
 apiVersion: flowcontrol.apiserver.k8s.io/v1
 kind: PriorityLevelConfiguration
 metadata:
@@ -1367,6 +1354,7 @@ spec:
         queues: 64
         handSize: 6
         queueLengthLimit: 50</code></pre>
+                <p class="small-text">Defines the concurrency level and queuing behavior for a class of requests. Higher-priority traffic is served first.</p>
             </section>
 
             <section>
@@ -1477,10 +1465,11 @@ etcd_request_duration_seconds              # etcd latency (indicates backend pre
                 <h3>Duration: 60 minutes</h3>
                 <div class="lab-description">
                     <ul>
-                        <li>Configure kubelet security settings</li>
-                        <li>Enable and configure audit logging</li>
+                        <li>Examine and audit API server configuration</li>
+                        <li>Configure and analyze audit logging</li>
                         <li>Set up encryption at rest for secrets</li>
                         <li>Test API server authorization modes</li>
+                        <li>Manage etcd security and secret encryption</li>
                     </ul>
                 </div>
             </section>

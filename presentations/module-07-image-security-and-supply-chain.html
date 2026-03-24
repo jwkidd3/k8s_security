@@ -1753,11 +1753,11 @@ cosign verify-attestation \
                 <h2>&#x1F9EA; Lab 7: Secure Container Images</h2>
                 <p><strong>Duration: 60 minutes</strong></p>
                 <ul>
-                    <li>Compare an insecure Dockerfile against a hardened version</li>
-                    <li>Implement multi-stage builds for a sample application</li>
-                    <li>Scan images with Trivy and analyze the vulnerability report</li>
-                    <li>Sign an image with cosign and verify the signature</li>
-                    <li>Generate an SBOM with Syft</li>
+                    <li>Lint Dockerfiles with hadolint for security anti-patterns</li>
+                    <li>Scan images for vulnerabilities and embedded secrets with Trivy</li>
+                    <li>Generate SBOMs with Syft and scan with Grype</li>
+                    <li>Sign and verify container images with cosign</li>
+                    <li>Deploy with image digest pinning</li>
                 </ul>
                 <aside class="notes">
                     This is a hands-on lab. Students will work with provided Dockerfiles, first examining the insecure version, then building the hardened version step by step. Ensure Trivy and cosign are pre-installed in the lab environment.

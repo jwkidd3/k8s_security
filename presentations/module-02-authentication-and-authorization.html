@@ -707,22 +707,7 @@ automountServiceAccountToken: false</code></pre>
                 <aside class="notes">This is a critical security hardening step. Many breaches begin with a compromised pod that has unnecessary API access. Walk through a real scenario of lateral movement via a default service account token.</aside>
             </section>
 
-            <!-- Lab 2a: Authentication -->
-            <section class="lab-callout" data-background="linear-gradient(135deg, #2f855a 0%, #276749 100%)">
-                <div class="lab-badge">Hands-On Lab</div>
-                <h2>&#x1F9EA; Lab 2a: Authentication Mechanisms</h2>
-                <div class="lab-description">
-                    <ul>
-                        <li>Generate X.509 client certificates and configure kubeconfig</li>
-                        <li>Create and use service accounts with bound tokens</li>
-                        <li>Disable auto-mounted tokens on workloads</li>
-                        <li>Test authentication with <code>kubectl auth whoami</code></li>
-                    </ul>
-                </div>
-                <p style="margin-top: 20px;"><strong>Duration: 30 minutes</strong></p>
-            </section>
-
-            <!-- ============================================ -->
+<!-- ============================================ -->
             <!-- SECTION 3: RBAC Architecture                 -->
             <!-- ============================================ -->
             <section class="section-divider" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
@@ -1082,14 +1067,13 @@ rules:
             <!-- Lab 2: RBAC Deep Dive -->
             <section class="lab-callout" data-background="linear-gradient(135deg, #2f855a 0%, #276749 100%)">
                 <div class="lab-badge">Hands-On Lab</div>
-                <h2>&#x1F9EA; Lab 2b: RBAC Deep Dive</h2>
+                <h2>&#x1F9EA; Lab 2: RBAC Deep Dive</h2>
                 <div class="lab-description">
                     <ul>
-                        <li>Create Roles and ClusterRoles with least-privilege permissions</li>
-                        <li>Bind roles to users, groups, and service accounts</li>
-                        <li>Test access with <code>kubectl auth can-i</code></li>
-                        <li>Implement the CI/CD deployer pattern with <code>resourceNames</code></li>
-                        <li>Build an aggregated ClusterRole for a custom operator</li>
+                        <li>Create Roles, ClusterRoles, RoleBindings, and ServiceAccounts with least-privilege permissions</li>
+                        <li>Use <code>kubectl auth can-i</code> to test and audit permissions</li>
+                        <li>Restrict access to specific resources by name using <code>resourceNames</code></li>
+                        <li>Audit and fix overly permissive RBAC configurations</li>
                     </ul>
                 </div>
                 <p style="margin-top: 20px;"><strong>Duration: 45 minutes</strong></p>
@@ -1348,22 +1332,7 @@ kubectl get roles,clusterroles -A -o json | \
                 <aside class="notes">Run these commands live. The jq queries are powerful for bulk auditing. Recommend incorporating these checks into CI/CD pipelines and periodic security scans.</aside>
             </section>
 
-            <!-- Lab: Auditing RBAC -->
-            <section class="lab-callout" data-background="linear-gradient(135deg, #2f855a 0%, #276749 100%)">
-                <div class="lab-badge">Hands-On Lab</div>
-                <h2>&#x1F9EA; Lab 2c: RBAC Auditing</h2>
-                <div class="lab-description">
-                    <ul>
-                        <li>Use <code>kubectl auth can-i</code> to test permissions for different identities</li>
-                        <li>Install and use <code>rbac-lookup</code> to map users to roles</li>
-                        <li>Identify over-privileged service accounts in the cluster</li>
-                        <li>Remediate a deliberately misconfigured RBAC policy</li>
-                    </ul>
-                </div>
-                <p style="margin-top: 20px;"><strong>Duration: 30 minutes</strong></p>
-            </section>
-
-            <!-- ============================================ -->
+<!-- ============================================ -->
             <!-- SECTION 7: OIDC Integration                  -->
             <!-- ============================================ -->
             <section class="section-divider" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
@@ -1566,7 +1535,7 @@ contexts:
                     <li>RBAC follows a Role + Binding model &mdash; prefer namespace-scoped Roles over ClusterRoles</li>
                     <li>Apply least-privilege: specify exact resources, verbs, and use <code>resourceNames</code> when possible</li>
                     <li>Avoid wildcards, cluster-admin bindings, and bind/escalate permissions</li>
-                    <li>Audit RBAC regularly with <code>kubectl auth can-i</code>, rbac-lookup, and rakkess</li>
+                    <li>Audit RBAC regularly with <code>kubectl auth can-i</code> and jq-based queries against role definitions</li>
                     <li>Integrate OIDC for human users to leverage centralized identity management and MFA</li>
                 </ul>
             </section>

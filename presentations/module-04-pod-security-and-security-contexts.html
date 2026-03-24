@@ -573,8 +573,6 @@ spec:
   securityContext:
     runAsNonRoot: true
     runAsUser: 1000
-    runAsGroup: 3000
-    fsGroup: 2000
     seccompProfile:
       type: RuntimeDefault
   containers:
@@ -585,19 +583,10 @@ spec:
       readOnlyRootFilesystem: true
       capabilities:
         drop: ["ALL"]
-    resources:
-      limits:
-        memory: "128Mi"
-        cpu: "250m"
-      requests:
-        memory: "64Mi"
-        cpu: "125m"
-    volumeMounts:
-    - name: tmp
-      mountPath: /tmp
-  volumes:
-  - name: tmp
-    emptyDir: {}</code></pre>
+    resources:              # always set limits
+      limits: { memory: "128Mi", cpu: "250m" }
+      requests: { memory: "64Mi", cpu: "125m" }
+    # ... volumeMounts, volumes omitted for brevity</code></pre>
                 <aside class="notes">
                     This is the gold standard hardened pod. Let's walk through each setting: non-root user, all capabilities dropped, read-only filesystem with a writable tmp via emptyDir, seccomp enabled, service account token disabled, and resource limits set.
                 </aside>
@@ -1368,14 +1357,12 @@ spec:
             <!-- ============================================================ -->
             <section class="lab-callout" data-background-color="#2f855a">
                 <h2>&#x1F9EA; Lab 4: Pod Security Contexts</h2>
-                <p><strong>Duration: 45-60 minutes</strong></p>
+                <p><strong>Duration: 45 minutes</strong></p>
                 <ul>
-                    <li>Deploy a default pod and audit its security posture</li>
-                    <li>Apply SecurityContext hardening step by step</li>
-                    <li>Configure Pod Security Admission on a namespace</li>
-                    <li>Test Baseline and Restricted enforcement</li>
-                    <li>Add resource limits and LimitRange defaults</li>
-                    <li>Verify hardened pods pass PSA validation</li>
+                    <li>Apply Pod Security Admission (PSA) labels to enforce Baseline and Restricted profiles</li>
+                    <li>Configure SecurityContext settings: runAsUser, runAsGroup, capabilities</li>
+                    <li>Test capability restrictions and seccomp profiles</li>
+                    <li>Apply LimitRange and ResourceQuota constraints</li>
                 </ul>
                 <aside class="notes">
                     In this lab, students will progressively harden a pod from insecure defaults to a fully Restricted-compliant workload. They'll also experience PSA enforcement rejecting non-compliant pods.
@@ -1454,12 +1441,20 @@ spec:
             </section>
 
             <!-- ============================================================ -->
+            <!-- UP NEXT -->
+            <!-- ============================================================ -->
+            <section data-background="linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
+                <h2>Up Next</h2>
+                <h3 style="color: #fff;">Module 5 — Network Policies</h3>
+                <p style="color: rgba(255,255,255,0.8);">Controlling pod-to-pod communication with NetworkPolicies</p>
+            </section>
+
+            <!-- ============================================================ -->
             <!-- QUESTIONS -->
             <!-- ============================================================ -->
             <section class="questions-slide" data-background="linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%)">
                 <h2 style="color: #fff;">&#x2753; Questions?</h2>
                 <p style="color: #e2e8f0; font-size: 1.2em;">Module 4: Pod Security &amp; Security Contexts</p>
-                <p style="color: #cbd5e0;">Up Next: Module 5 — Network Policies</p>
                 <aside class="notes">
                     Open the floor for questions. Common questions include: how do I know which capabilities my app needs? How do I handle pods that need to write to the filesystem? How do I migrate existing namespaces to Restricted PSA?
                 </aside>

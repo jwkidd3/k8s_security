@@ -950,34 +950,19 @@ spec:
   automountServiceAccountToken: false    # No API access
   securityContext:
     runAsNonRoot: true                   # Enforce non-root
-    runAsUser: 1000
-    runAsGroup: 3000
-    fsGroup: 2000
     seccompProfile:
       type: RuntimeDefault               # Restrict syscalls
   containers:
   - name: app
     image: myapp@sha256:abc123...        # Immutable digest
-    ports:
-    - containerPort: 8080
     securityContext:
       allowPrivilegeEscalation: false    # No privilege escalation
       readOnlyRootFilesystem: true       # Immutable filesystem
       capabilities:
         drop: ["ALL"]                    # Drop all capabilities
-    resources:
-      requests:
-        memory: "128Mi"
-        cpu: "100m"
-      limits:
-        memory: "256Mi"
-        cpu: "500m"
-    volumeMounts:
-    - mountPath: /tmp
-      name: tmp-vol
-  volumes:
-  - name: tmp-vol
-    emptyDir: {}                         # Ephemeral, no host access</code></pre>
+    resources:                           # Resource limits set
+      ...
+    # volumeMounts, volumes omitted for brevity</code></pre>
                 <aside class="notes">
                     Walk through each security control line by line. This is the reference template for a
                     production-ready pod. In the lab, students will compare insecure and hardened configurations.
@@ -1203,23 +1188,15 @@ spec:
                 <h2>Running kube-bench</h2>
                 <pre><code class="language-bash"># Run kube-bench as a Kubernetes Job
 kubectl apply -f https://raw.githubusercontent.com/aquasecurity/kube-bench/main/job.yaml
-
-# View results
 kubectl logs job/kube-bench
 
-# Or run directly on a node
-kube-bench run --targets=master,node
-
 # Example output:
-# [INFO] 1 Control Plane Security Configuration
-# [PASS] 1.1.1 Ensure that the API server pod spec file permissions are set to 644
-# [FAIL] 1.1.2 Ensure that the API server pod spec file ownership is set to root:root
-# [WARN] 1.1.3 Ensure that the proxy kubeconfig file permissions are set to 644
-#
+# [PASS] 1.1.1 Ensure API server pod spec file permissions are 644
+# [FAIL] 1.1.2 Ensure API server pod spec file ownership is root:root
+# [WARN] 1.1.3 Ensure proxy kubeconfig file permissions are 644
+# ...
 # == Summary master ==
-# 42 checks PASS
-# 11 checks FAIL
-# 5 checks WARN</code></pre>
+# 42 checks PASS, 11 checks FAIL, 5 checks WARN</code></pre>
                 <div class="highlight-box warning">
                     <strong>Note:</strong> Not every FAIL requires immediate action. Evaluate each finding against
                     your organization's risk profile and environment.
@@ -1368,20 +1345,13 @@ trivy image nginx:1.25
 
 # Example output:
 # nginx:1.25 (debian 12.2)
-# ========================
-# Total: 142 (UNKNOWN: 0, LOW: 87, MEDIUM: 39, HIGH: 14, CRITICAL: 2)
-#
-# ┌──────────────┬────────────────┬──────────┬─────────────────────────┐
-# │   Library    │ Vulnerability  │ Severity │     Fixed Version       │
-# ├──────────────┼────────────────┼──────────┼─────────────────────────┤
-# │ libssl3      │ CVE-2024-XXXX  │ CRITICAL │ 3.0.13-1~deb12u1       │
-# │ libcurl4     │ CVE-2024-YYYY  │ HIGH     │ 7.88.1-10+deb12u5      │
-# └──────────────┴────────────────┴──────────┴─────────────────────────┘
+# Total: 142 (LOW: 87, MEDIUM: 39, HIGH: 14, CRITICAL: 2)
+# libssl3  | CVE-2024-XXXX | CRITICAL | 3.0.13-1~deb12u1
+# libcurl4 | CVE-2024-YYYY | HIGH     | 7.88.1-10+deb12u5
+# ...
 
-# Scan Kubernetes manifests for misconfigurations
+# Scan manifests or a running cluster
 trivy config ./k8s-manifests/
-
-# Scan a running cluster
 trivy k8s --report=summary cluster</code></pre>
                 <aside class="notes">
                     Trivy is one of the most versatile open-source scanning tools. It can scan images,
@@ -1503,11 +1473,11 @@ trivy k8s --report=summary cluster</code></pre>
                 <h3>45 minutes</h3>
                 <div class="lab-description">
                     <ul>
-                        <li>Inspect cluster health and configuration</li>
-                        <li>Review default security settings and RBAC</li>
-                        <li>Identify common security misconfigurations</li>
-                        <li>Run CIS Benchmark scans with kube-bench</li>
-                        <li>Document findings in a security audit report</li>
+                        <li>Set up a kind cluster for security testing</li>
+                        <li>Run CIS Kubernetes Benchmark scans with kube-bench</li>
+                        <li>Scan container images for vulnerabilities with Trivy</li>
+                        <li>Compare vulnerability surfaces across different base images</li>
+                        <li>Identify security misconfigurations in a running workload</li>
                     </ul>
                 </div>
                 <aside class="notes">

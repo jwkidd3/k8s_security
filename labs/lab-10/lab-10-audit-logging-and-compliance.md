@@ -1,6 +1,6 @@
 # Lab 10: Audit Logging & Compliance
 
-**Duration:** 40 minutes
+**Duration:** 60 minutes
 
 ## Objectives
 

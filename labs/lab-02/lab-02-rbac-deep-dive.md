@@ -1,6 +1,6 @@
 # Lab 2: RBAC Deep Dive
 
-**Duration:** 40 minutes
+**Duration:** 45 minutes
 
 ## Objectives
 

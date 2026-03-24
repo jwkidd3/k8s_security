@@ -1,6 +1,6 @@
 # Lab 11: Service Mesh Security
 
-**Duration:** 40 minutes
+**Duration:** 60 minutes
 
 ## Objectives
 

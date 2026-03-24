@@ -847,35 +847,22 @@ spec:
   podSelector:
     matchLabels:
       app: backend
-  policyTypes:
-    - Ingress
-    - Egress
+  policyTypes: [Ingress, Egress]
   ingress:
     - from:
-        - podSelector:
-            matchLabels:
-              app: frontend
+        - podSelector: { matchLabels: { app: frontend } }
       ports:
-        - protocol: TCP
-          port: 8080
+        - { protocol: TCP, port: 8080 }
   egress:
     - to:
-        - podSelector:
-            matchLabels:
-              app: database
+        - podSelector: { matchLabels: { app: database } }
       ports:
-        - protocol: TCP
-          port: 5432
+        - { protocol: TCP, port: 5432 }
     - to:                           # Allow DNS
         - namespaceSelector: {}
-          podSelector:
-            matchLabels:
-              k8s-app: kube-dns
+          podSelector: { matchLabels: { k8s-app: kube-dns } }
       ports:
-        - protocol: UDP
-          port: 53
-        - protocol: TCP
-          port: 53</code></pre>
+        - { protocol: UDP, port: 53 }</code></pre>
                 <aside class="notes">
                     This is a comprehensive policy for a backend service: it only accepts traffic from the frontend on port 8080, and can only talk to the database on port 5432 and to DNS. This is the level of specificity to aim for in production.
                 </aside>
@@ -1426,29 +1413,19 @@ nc -zv -w 3 database-service 5432</code></pre>
                     <div>
                         <h4>Automated Test Script</h4>
                         <pre><code class="bash">#!/bin/bash
-# test-policies.sh
-
 test_connection() {
   local from=$1 to=$2 port=$3 expect=$4
   result=$(kubectl exec $from -- \
     nc -zv -w 3 $to $port 2>&1)
   if echo "$result" | grep -q "open"; then
     actual="allow"
-  else
-    actual="deny"
-  fi
-  if [ "$actual" = "$expect" ]; then
-    echo "PASS: $from -> $to:$port"
-  else
-    echo "FAIL: $from -> $to:$port"
-    echo "  Expected: $expect, Got: $actual"
-  fi
+  else actual="deny"; fi
+  [ "$actual" = "$expect" ] \
+    && echo "PASS: $from -> $to:$port" \
+    || echo "FAIL: $from -> $to:$port"
 }
-
 test_connection "frontend-pod" \
-  "backend-svc" 8080 "allow"
-test_connection "frontend-pod" \
-  "database-svc" 5432 "deny"</code></pre>
+  "backend-svc" 8080 "allow"</code></pre>
                     </div>
                 </div>
                 <aside class="notes">
@@ -1807,8 +1784,9 @@ spec:
                 <div class="lab-description">
                     <ul>
                         <li>Deploy a 3-tier application (frontend, backend, database)</li>
-                        <li>Implement default-deny policies for the namespace</li>
-                        <li>Create targeted allow policies for each tier</li>
+                        <li>Apply default-deny ingress and egress policies</li>
+                        <li>Create fine-grained allow policies for each tier</li>
+                        <li>Test cross-namespace monitoring access with namespace selectors</li>
                         <li>Test and validate connectivity between tiers</li>
                     </ul>
                 </div>

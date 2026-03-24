@@ -1,6 +1,6 @@
 # Lab 9: Runtime Security with Falco
 
-**Duration:** 40 minutes
+**Duration:** 60 minutes
 
 ## Objectives
 

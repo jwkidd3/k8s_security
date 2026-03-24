@@ -1,6 +1,6 @@
 # Lab 3: API Server Hardening
 
-**Duration:** 40 minutes
+**Duration:** 60 minutes
 
 ## Objectives
 
@@ -300,9 +300,9 @@ If the kubelet is properly secured:
 docker exec api-hardening-control-plane cat /etc/kubernetes/manifests/kube-apiserver.yaml | grep authorization-mode
 
 # Node authorization — allows kubelets specific access
-kubectl auth can-i get pods --as system:node:api-hardening-control-plane
-kubectl auth can-i create pods --as system:node:api-hardening-control-plane
-kubectl auth can-i get secrets --as system:node:api-hardening-control-plane
+kubectl auth can-i get pods --as system:node:api-hardening-control-plane --as-group=system:nodes
+kubectl auth can-i create pods --as system:node:api-hardening-control-plane --as-group=system:nodes
+kubectl auth can-i get secrets --as system:node:api-hardening-control-plane --as-group=system:nodes
 
 # RBAC authorization — test an unauthenticated request
 kubectl auth can-i get pods --as system:anonymous

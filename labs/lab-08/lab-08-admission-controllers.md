@@ -1,6 +1,6 @@
 # Lab 8: Admission Controllers
 
-**Duration:** 40 minutes
+**Duration:** 60 minutes
 
 ## Objectives
 

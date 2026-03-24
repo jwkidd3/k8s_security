@@ -581,9 +581,9 @@
                     </div>
                 </div>
                 <div class="highlight-box success" style="margin-top: 15px;">
-                    <strong>For our labs:</strong> We use the eBPF driver in kind clusters. Set <code>driver.kind=ebpf</code> in the Helm values.
+                    <strong>For our labs:</strong> We use the modern eBPF driver in kind clusters. Set <code>driver.kind=modern_ebpf</code> in the Helm values.
                 </div>
-                <aside class="notes">The eBPF driver is the modern approach and what we'll use in the lab. It's much easier to deploy and doesn't require privileged access to load kernel modules.</aside>
+                <aside class="notes">The modern eBPF driver is the recommended approach and what we'll use in the lab. It's much easier to deploy and doesn't require privileged access to load kernel modules.</aside>
             </section>
 
             <!-- Slide 11: Falco Output Channels -->
@@ -629,10 +629,10 @@
 helm repo add falcosecurity https://falcosecurity.github.io/charts
 helm repo update
 
-# Install Falco with eBPF driver
+# Install Falco with modern eBPF driver
 helm install falco falcosecurity/falco \
   --namespace falco --create-namespace \
-  --set driver.kind=ebpf \
+  --set driver.kind=modern_ebpf \
   --set falcosidekick.enabled=true \
   --set falcosidekick.webui.enabled=true</code></pre>
                 <div class="two-columns" style="margin-top: 15px;">
@@ -1514,13 +1514,13 @@ spec:
                 <h3>60 Minutes</h3>
                 <div class="lab-description">
                     <ul>
-                        <li>Install Falco with eBPF driver in kind cluster</li>
+                        <li>Install Falco with modern eBPF driver in kind cluster</li>
                         <li>Deploy Falcosidekick for alert routing</li>
                         <li>Trigger and detect security events (shell access, sensitive file reads)</li>
                         <li>Write custom Falco rules for your environment</li>
                     </ul>
                 </div>
-                <aside class="notes">This lab brings everything together. Students will install Falco, trigger real attacks, see the alerts, and then write their own custom rules. Emphasize that the eBPF driver is what makes this work in kind clusters.</aside>
+                <aside class="notes">This lab brings everything together. Students will install Falco, trigger real attacks, see the alerts, and then write their own custom rules. Emphasize that the modern eBPF driver is what makes this work in kind clusters.</aside>
             </section>
 
             <!-- Slide 42: Up Next -->
