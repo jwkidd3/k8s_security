@@ -1,6 +1,6 @@
 # Lab 5: Network Policies
 
-**Duration:** 60 minutes
+**Duration:** 45 minutes
 
 ## Objectives
 

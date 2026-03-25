@@ -1,6 +1,6 @@
-# Lab 11: Service Mesh Security
+# Lab 10: Service Mesh Security
 
-**Duration:** 60 minutes
+**Duration:** 45 minutes
 
 ## Objectives
 
@@ -71,7 +71,7 @@ kubectl get pods -n linkerd-viz
 kubectl create namespace mesh-demo
 
 # Deploy frontend, backend, and database services
-kubectl apply -f labs/lab-11/frontend-resources.yaml
+kubectl apply -f labs/lab-10/frontend-resources.yaml
 
 kubectl wait --for=condition=Ready pods --all -n mesh-demo --timeout=120s
 echo "Application deployed"
@@ -216,10 +216,10 @@ echo "  - Live tap and top data"
 
 ```bash
 # Define Server resources for backend and database
-kubectl apply -f labs/lab-11/backend-http-resources.yaml
+kubectl apply -f labs/lab-10/backend-http-resources.yaml
 
 # Create authorization policies — only allow meshed identities
-kubectl apply -f labs/lab-11/backend-allow-frontend-resources.yaml
+kubectl apply -f labs/lab-10/backend-allow-frontend-resources.yaml
 
 echo ""
 echo "=== Testing Authorized Paths ==="

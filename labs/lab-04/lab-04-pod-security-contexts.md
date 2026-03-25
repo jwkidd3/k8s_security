@@ -1,6 +1,6 @@
 # Lab 4: Pod Security Contexts
 
-**Duration:** 45 minutes
+**Duration:** 30 minutes
 
 ## Objectives
 

@@ -1,6 +1,6 @@
 # Lab 7: Secure Container Images
 
-**Duration:** 60 minutes
+**Duration:** 45 minutes
 
 ## Objectives
 

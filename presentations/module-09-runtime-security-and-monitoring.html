@@ -583,7 +583,7 @@
                 <div class="highlight-box success" style="margin-top: 15px;">
                     <strong>For our labs:</strong> We use the modern eBPF driver in kind clusters. Set <code>driver.kind=modern_ebpf</code> in the Helm values.
                 </div>
-                <aside class="notes">The modern eBPF driver is the recommended approach and what we'll use in the lab. It's much easier to deploy and doesn't require privileged access to load kernel modules.</aside>
+                <aside class="notes">The modern eBPF driver is the recommended approach. It's much easier to deploy and doesn't require privileged access to load kernel modules.</aside>
             </section>
 
             <!-- Slide 11: Falco Output Channels -->
@@ -1504,26 +1504,10 @@ spec:
                     <li>A complete detection pipeline routes alerts by severity to prevent alert fatigue</li>
                     <li>Start with detection, tune for accuracy, then graduate to automated response</li>
                 </ul>
-                <aside class="notes">These takeaways represent the core runtime security strategy. The lab will give hands-on experience with Falco, which is the foundation of most Kubernetes runtime security programs.</aside>
+                <aside class="notes">These takeaways represent the core runtime security strategy. Falco is the foundation of most Kubernetes runtime security programs, and students can explore it further in their own environments.</aside>
             </section>
 
-            <!-- Slide 41: Lab Callout -->
-            <section class="lab-callout" data-background-color="#2f855a">
-                <div class="lab-badge">Hands-On Lab</div>
-                <h2>Lab 9: Runtime Security with Falco</h2>
-                <h3>60 Minutes</h3>
-                <div class="lab-description">
-                    <ul>
-                        <li>Install Falco with modern eBPF driver in kind cluster</li>
-                        <li>Deploy Falcosidekick for alert routing</li>
-                        <li>Trigger and detect security events (shell access, sensitive file reads)</li>
-                        <li>Write custom Falco rules for your environment</li>
-                    </ul>
-                </div>
-                <aside class="notes">This lab brings everything together. Students will install Falco, trigger real attacks, see the alerts, and then write their own custom rules. Emphasize that the modern eBPF driver is what makes this work in kind clusters.</aside>
-            </section>
-
-            <!-- Slide 42: Up Next -->
+            <!-- Slide 41: Up Next -->
             <section>
                 <h2>Up Next</h2>
                 <div class="concept-box" style="text-align: center;">

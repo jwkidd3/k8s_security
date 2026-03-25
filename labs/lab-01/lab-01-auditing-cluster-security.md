@@ -1,6 +1,6 @@
 # Lab 1: Auditing Cluster Security
 
-**Duration:** 45 minutes
+**Duration:** 30 minutes
 
 ## Objectives
 

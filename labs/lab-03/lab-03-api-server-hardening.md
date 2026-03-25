@@ -1,6 +1,6 @@
 # Lab 3: API Server Hardening
 
-**Duration:** 60 minutes
+**Duration:** 45 minutes
 
 ## Objectives
 

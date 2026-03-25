@@ -1,6 +1,6 @@
 # Lab 6: Secrets Management
 
-**Duration:** 60 minutes
+**Duration:** 45 minutes
 
 ## Objectives
 
