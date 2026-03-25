@@ -21,9 +21,13 @@ By the end of this lab, you will be able to:
 
 ---
 
-### Step 1: Install Tools
+### Step 1: Create Cluster and Install Tools
 
 ```bash
+# Create cluster (if not already running)
+kind create cluster --name security-lab --config labs/setup/kind-config-default.yaml 2>/dev/null || true
+kubectl cluster-info --context kind-security-lab
+
 # Install Trivy
 TRIVY_VERSION=0.69.3
 curl -LO "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"

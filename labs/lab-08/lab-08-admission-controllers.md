@@ -17,13 +17,26 @@ By the end of this lab, you will be able to:
 
 - Cloud9 environment from Lab 1 (m5.large, us-east-1)
 - Tools installed from Lab 1 (`kind`, `kubectl`)
-- `helm` CLI installed (from Lab 6, or run: see install commands in Lab 6 Step 6)
+- `helm` CLI installed (run the install block below if not already installed)
 
 ---
 
-### Step 1: Install Kyverno via Helm
+### Step 1: Create Cluster and Install Kyverno
 
 ```bash
+# Create cluster (if not already running)
+kind create cluster --name security-lab --config labs/setup/kind-config-default.yaml 2>/dev/null || true
+kubectl cluster-info --context kind-security-lab
+
+# Install Helm if not already installed
+if ! command -v helm &>/dev/null; then
+  HELM_VERSION=v3.14.2
+  curl -LO "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz"
+  tar xzf "helm-${HELM_VERSION}-linux-amd64.tar.gz" linux-amd64/helm
+  sudo mv linux-amd64/helm /usr/local/bin/helm
+  rm -rf linux-amd64 "helm-${HELM_VERSION}-linux-amd64.tar.gz"
+fi
+
 # Create lab namespace
 kubectl create namespace policy-lab
 

@@ -1,4 +1,4 @@
-# Lab 11: Incident Response Tabletop
+# Lab 12: Incident Response Tabletop
 
 **Duration:** 45 minutes
 
@@ -36,7 +36,7 @@ kubectl wait --for=condition=Ready nodes --all --timeout=120s
 # Create the production namespace and deploy the "legitimate" application
 kubectl create namespace production
 
-kubectl apply -f labs/lab-11/web-app-resources.yaml
+kubectl apply -f labs/lab-12/web-app-resources.yaml
 
 # Create secrets the app uses
 kubectl create secret generic db-credentials -n production \
@@ -49,7 +49,7 @@ kubectl create secret generic api-keys -n production \
   --from-literal=sendgrid-key='SG.fake_key_67890'
 
 # Create overly permissive RBAC (the vulnerability the attacker exploited)
-kubectl apply -f labs/lab-11/web-app-role-resources.yaml
+kubectl apply -f labs/lab-12/web-app-role-resources.yaml
 
 kubectl wait --for=condition=Ready pods --all -n production --timeout=120s
 
@@ -82,7 +82,7 @@ kubectl get pods -n kube-system --as system:serviceaccount:production:web-app-sa
 kubectl get configmaps -n default --as system:serviceaccount:production:web-app-sa 2>/dev/null || true
 
 # Deploy attacker persistence pod
-kubectl apply -f labs/lab-11/debug-tools-pod.yaml
+kubectl apply -f labs/lab-12/debug-tools-pod.yaml
 
 kubectl wait --for=condition=Ready pod/debug-tools -n production --timeout=60s
 
@@ -252,7 +252,7 @@ echo "=== CONTAINMENT ==="
 echo ""
 
 # Apply emergency network isolation
-kubectl apply -f labs/lab-11/emergency-isolate-networkpolicy.yaml
+kubectl apply -f labs/lab-12/emergency-isolate-networkpolicy.yaml
 
 echo "Network isolation applied -- all traffic blocked"
 
@@ -262,7 +262,7 @@ echo "Removing attacker's debug pod..."
 kubectl delete pod debug-tools -n production --grace-period=0 --force
 
 # Lock down RBAC -- replace wildcard permissions with minimal access
-kubectl apply -f labs/lab-11/web-app-role.yaml
+kubectl apply -f labs/lab-12/web-app-role.yaml
 
 echo "RBAC locked down -- service account now has minimal permissions"
 

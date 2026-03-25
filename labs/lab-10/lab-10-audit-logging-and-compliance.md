@@ -1,4 +1,4 @@
-# Lab 9: Audit Logging & Compliance
+# Lab 10: Audit Logging & Compliance
 
 **Duration:** 45 minutes
 
@@ -76,7 +76,7 @@ kubectl create secret generic sensitive-data -n audit-test \
 kubectl get secret sensitive-data -n audit-test -o yaml > /dev/null
 
 # Create RBAC resources
-kubectl apply -f labs/lab-09/audit-test-role-resources.yaml
+kubectl apply -f labs/lab-10/audit-test-role-resources.yaml
 
 # Deploy a pod and exec into it
 kubectl run test-pod --image=busybox:1.36 -n audit-test -- sleep 3600
@@ -160,7 +160,7 @@ docker exec audit-lab-control-plane cat /var/log/kubernetes/audit/audit.log | \
 kube-bench checks your cluster against the CIS Kubernetes Benchmark. We run it as a Job on the control plane node:
 
 ```bash
-kubectl apply -f labs/lab-09/kube-bench-job.yaml
+kubectl apply -f labs/lab-10/kube-bench-job.yaml
 ```
 
 ### Step 7: Review kube-bench Results
@@ -207,7 +207,7 @@ polaris audit --format=pretty --kubeconfig ~/.kube/config 2>/dev/null | head -80
 
 ```bash
 # Deploy an insecure workload alongside a hardened one
-kubectl apply -f labs/lab-09/insecure-deploy-resources.yaml
+kubectl apply -f labs/lab-10/insecure-deploy-resources.yaml
 
 kubectl wait --for=condition=Available deployment/insecure-deploy -n audit-test --timeout=60s
 
