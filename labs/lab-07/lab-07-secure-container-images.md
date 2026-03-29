@@ -84,7 +84,7 @@ mkdir -p /tmp/image-lab
 echo "print('Hello from insecure app')" > /tmp/image-lab/app.py
 
 cat > /tmp/image-lab/Dockerfile.insecure <<'EOF'
-FROM ubuntu:latest
+FROM node:18-bullseye
 RUN apt-get update && apt-get install -y curl wget netcat-openbsd python3
 COPY . /app
 WORKDIR /app
@@ -100,7 +100,7 @@ EOF
 hadolint /tmp/image-lab/Dockerfile.insecure
 ```
 
-**Expected issues:** using `latest` tag, running as root, unpinned package versions.
+**Expected issues:** running as root, unpinned package versions, outdated base image with known vulnerabilities.
 
 ### Step 4: Create a Secure Dockerfile, Lint It, and Build Both Images
 
